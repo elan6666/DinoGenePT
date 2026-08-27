@@ -1,0 +1,30 @@
+.DS_Store
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Materialized research artifacts stay on the server.
+data/
+results/
+checkpoints/
+*.zip
+*.pickle
+*.pkl
+*.npz
+*.sqlite
+*.sqlite3
+*.jsonl
+
+# Credentials and local configuration.
+.env
+.env.*
+!.env.example
+*api_key*
+*secret*
+

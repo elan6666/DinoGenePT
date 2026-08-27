@@ -1,0 +1,53 @@
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "genept-seed"
+version = "0.1.0"
+description = "Matched GenePT embedding-backbone comparisons with Doubao embeddings."
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [{name = "GenePT-Seed contributors"}]
+dependencies = [
+  "numpy>=1.26",
+  "scikit-learn>=1.4",
+]
+
+[project.optional-dependencies]
+dev = [
+  "build>=1.2",
+  "hatchling>=1.26",
+  "pytest>=8.0",
+  "ruff>=0.6",
+]
+
+[project.scripts]
+genept-seed = "genept_seed.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/genept_seed"]
+
+[tool.hatch.build]
+exclude = [
+  "/.venv",
+  "/data",
+  "/results",
+  "/checkpoints",
+  "/dist",
+  "/build",
+  "/.pytest_cache",
+  "/.ruff_cache",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

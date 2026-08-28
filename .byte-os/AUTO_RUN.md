@@ -1,20 +1,20 @@
 # Auto Run
 
-- Goal: deliver a reproducible GenePT-Seed comparison repository.
+- Goal: complete the matched GGI comparison of completed-corpus GenePT-Seed
+  and GenePT-Seed+GO-EXP embeddings.
 - Started at: 2026-08-28T00:00:00+08:00
-- Current loop: 4
+- Current loop: 7
 - Completed stages: discussion, goal sync, byte-start, focused research,
   byte-shape, byte-plan, implementation, official-data preparation, official
   baselines, server verification, three iterations, live Doubao generation,
   matched comparison, final verification, ship review, delivery artifact, and
   GitHub handoff preparation.
-- Remaining: none inside the Auto contract; final Git transport is executed as
-  the handoff step for this delivery.
+- Remaining: commit/push and final GitHub identity check.
 - Review verdict: ship.
-- Iteration count: 3/3.
+- Iteration count: 6; three new evidence-led checks cover corpus identity,
+  vector completeness, and matched evaluation receipts.
 - Subagent mode: off; core code and research files overlap, and credentialed
   server execution is sensitive.
-- Hard blocker: none. The authorized key was used ephemerally and removed from
-  the tmux environment after the completed run.
-- Exact resume action: `byte-status`; wait for explicit new scope or real-user
-  evidence.
+- Hard blocker: none. Ark generation and evaluation completed; the key is absent
+  from tmux and no embedding process remains.
+- Exact resume action: commit tracked delivery files, push main, verify remote.

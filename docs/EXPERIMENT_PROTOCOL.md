@@ -2,7 +2,10 @@
 
 ## Fixed scientific contract
 
-- Text source: the same `NCBI_UniProt_summary_of_genes.json` from GenePT v2.
+- Base text source: the immutable GenePT v2
+  `NCBI_UniProt_summary_of_genes.json`, plus an explicitly versioned extension
+  for missing current or historical symbols. Existing GenePT texts are never
+  overwritten.
 - Primary benchmark: Gene2vec's released fixed GGI train/test split.
 - Pair representation: sum of the two gene vectors, matching the official
   GenePT Figure 2 notebook.
@@ -22,6 +25,14 @@ settings explicitly.
 1. Paper reference: NCBI text with `text-embedding-ada-002`.
 2. Latest official GenePT: NCBI+UniProt text with `text-embedding-3-large`.
 3. GenePT-Seed: identical NCBI+UniProt text with `doubao-embedding-vision`.
+4. GenePT-Seed+GO-EXP: the completed GenePT-Seed corpus plus bounded GO terms
+   supported by EXP, IDA, IMP, IEP, HTP, HDA, HMP, or HEP evidence, encoded by
+   the same Doubao model. `NOT`, IPI, IGI, and HGI annotations are excluded.
+
+For the GGI comparison, both Seed conditions select the exact same 10,870
+genes. The added missing-symbol records lie outside this released benchmark,
+so they improve corpus coverage without changing its pair rows. GO text is
+present for 9,597 of the 10,870 selected genes.
 
 ## Verified Ark execution settings
 

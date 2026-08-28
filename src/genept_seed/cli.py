@@ -12,7 +12,7 @@ import sklearn
 
 from . import __version__
 from .axis_corpus import build_axis_corpus
-from .axis_vectors import materialize_axis_vectors
+from .axis_vectors import align_npz_to_axis, materialize_axis_vectors
 from .benchmarks import evaluate_ggi, evaluate_property_task
 from .corpus import extend_genept_texts
 from .data import prepare_genept, prepare_ggi, prepare_go_exp
@@ -87,6 +87,14 @@ def build_parser() -> argparse.ArgumentParser:
     axis_vectors.add_argument("--manifest", type=Path, required=True)
     axis_vectors.add_argument("--model", required=True)
     axis_vectors.add_argument("--trusted-pickle", action="store_true")
+    align_vectors = data_sub.add_parser(
+        "align-axis-vectors",
+        help="reorder a complete NPZ embedding set to an exact graph axis",
+    )
+    align_vectors.add_argument("--source", type=Path, required=True)
+    align_vectors.add_argument("--genes", type=Path, required=True)
+    align_vectors.add_argument("--output", type=Path, required=True)
+    align_vectors.add_argument("--manifest", type=Path, required=True)
     go_source = data_sub.add_parser("prepare-go-exp", help="prepare the pinned human GO release")
     go_source.add_argument("--output", type=Path, required=True)
     go_text = data_sub.add_parser("build-go-exp-texts", help="append bounded experimental GO text")
@@ -199,6 +207,13 @@ def main(argv: list[str] | None = None) -> int:
                 manifest_path=args.manifest,
                 model=args.model,
                 trusted_pickle=args.trusted_pickle,
+            )
+        elif args.data_command == "align-axis-vectors":
+            result = align_npz_to_axis(
+                source_path=args.source,
+                genes_path=args.genes,
+                output_path=args.output,
+                manifest_path=args.manifest,
             )
         elif args.data_command == "build-go-exp-texts":
             result = build_go_exp_corpus(

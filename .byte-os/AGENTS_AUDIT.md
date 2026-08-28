@@ -8,4 +8,10 @@
   `/data/yilangliu/GenePT-Seed` on server.
 - Subagents remain off because implementation and credential-sensitive server
   workflow overlap.
-- No update required after the current review.
+- Root `AGENTS.md` remains ready; `CLAUDE.md` now provides parity for the same
+  source/server and secret boundaries.
+- Scoped command coverage now includes corpus, GO, exact-axis, embedding, and
+  benchmark modules through the codebase map and active plans.
+- Current delivery explicitly excludes GraD-Pert training; server work is
+  embedding generation and fixed GGI evaluation only.
+- Next review: before another benchmark family or 2026-11-28.

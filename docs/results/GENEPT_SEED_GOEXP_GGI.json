@@ -1,0 +1,45 @@
+{
+  "schema_version": "genept-seed-goexp-ggi-comparison-v1",
+  "run_date": "2026-08-28",
+  "execution_host": "yilangliu@10.24.1.91",
+  "embedding_model": "doubao-embedding-vision",
+  "embedding_dimension": 2048,
+  "benchmark": {
+    "task": "gene_gene_interaction",
+    "model": "logistic_regression",
+    "normalization": "l2",
+    "pair_operator": "sum",
+    "random_state": 42,
+    "train_n": 249630,
+    "test_n": 20342,
+    "data_receipt_sha256": "4a84ee1fc45948138cde9e43f7f7c74484da83cd7a007fce342cb75e821347ec",
+    "gene_universe_sha256": "d12aca5c4335f5cede1102e412df5c317fd61434073857d6646daa843b096e6a"
+  },
+  "conditions": [
+    {
+      "name": "genept-seed-extended",
+      "corpus_sha256": "e7c76d017a016617aa5ff04b78bf0f5d639b8738b6a97e3a5172b5f791d1d266",
+      "vectors_sha256": "dbd31d4582c998f336d1d594ba113fd0db91730926e3028ea1f9d6385404426c",
+      "result_sha256": "9124886de0082429eb654cb27074d8e1f3df2cd8ab95dc825b43f7d5a7b82b65",
+      "accuracy": 0.7322288860485695,
+      "auroc": 0.8209871201181043,
+      "average_precision": 0.8114713033398627
+    },
+    {
+      "name": "genept-seed-extended-goexp",
+      "corpus_sha256": "c66efcad7ff85b66362c526bd7f889687d2ac81c23c9d73dcd83e72907a06f93",
+      "corpus_manifest_sha256": "5e819649a80f74340dd39cf2128dcaac0412a6a9e6240cb08c9bc5789417518d",
+      "vectors_sha256": "06269245308de10d70bbcfd391b4ea8476cff02dd7862a9fa8caa1c8aec2f21e",
+      "result_sha256": "937030b9bde72feb666a4cfde2f339752363e22afbb0267f675f8122248dee0c",
+      "accuracy": 0.7352767672795202,
+      "auroc": 0.8241148554829445,
+      "average_precision": 0.8154133109272803
+    }
+  ],
+  "go_minus_base": {
+    "accuracy": 0.0030478812309506775,
+    "auroc": 0.003127735364840234,
+    "average_precision": 0.003942007587417584
+  },
+  "scope": "One released GGI split; no GraD-Pert run and no multi-seed uncertainty claim."
+}

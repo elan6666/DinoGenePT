@@ -38,3 +38,28 @@
 - Final server gate: Ruff passed, 18 tests passed, wheel/sdist built, CLI smoke
   passed, and post-sync dry-run showed no source differences.
 - Removed `ARK_API_KEY` from the tmux environment after the experiment.
+- Built GO-EXP from the completed corpus and fixed 10,870-gene GGI allowlist;
+  9,597 genes received bounded experimental GO text. The rebuilt selected
+  corpus is byte-identical to the prior selected output while its manifest now
+  pins the completed-corpus base.
+- Audited the GO SQLite checkpoint by exact gene/text/model/dimension rather
+  than row count. Resumed the 8,539 stale or missing rows through the authorized
+  Agent Plan API and reached 10,870/10,870 exact matches with no error log.
+- Materialized base and GO NPZ files at width 2,048 and 100% selected coverage.
+  SHA-256: `dbd31d45...426c` and `06269245...f21e`.
+- Ran the fixed Gene2vec GGI evaluation only; no GraD-Pert model was trained.
+  Base Accuracy/AUROC/AP: 0.73223/0.82099/0.81147. GO-EXP:
+  0.73528/0.82411/0.81541.
+- Cross-condition audit confirmed identical data/universe receipts, pair rows,
+  L2 preprocessing, pair-sum operator, classifier, seed, and dependencies.
+- Iterations 4--6 and review 4 captured corpus lineage, cache correctness,
+  matched metrics, scope correction, and a `ship` verdict.
+- Final sync audit found that the unanchored `results/` exclusion also matched
+  `docs/results/`. Anchored generated-directory excludes at repository root so
+  the compact tracked receipt synchronizes without touching server run outputs.
+- Final Mac and server gates each passed 32 tests and Ruff; wheel/sdist and CLI
+  checks passed on server. Post-apply rsync dry run was empty and the tracked
+  result receipt hash matched on both hosts.
+- Mirrored the rsync fix in `.gitignore`: root-anchored `/results/` keeps
+  generated outputs excluded while allowing `docs/results/` receipts to be
+  tracked.

@@ -7,10 +7,10 @@ gene-level benchmark families, tests, server runbook, and delivery evidence.
 
 ## v1
 
-PPI benchmarks and a publication-ready native/common-dimension result table.
+Complete the matched Gene2vec GGI comparison of the completed GenePT-Seed
+corpus with and without bounded GO-EXP.
 
 ## Later
 
-Cell-level GenePT-w tasks and perturbation-prior experiments. These are outside
-the current Auto goal.
-
+GraD-Pert experiments, PPI benchmarks, additional GenePT tasks, multiple seeds,
+and publication-ready uncertainty analysis. These are outside this delivery.

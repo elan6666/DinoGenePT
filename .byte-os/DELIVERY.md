@@ -10,6 +10,8 @@ gene text and replaces only the embedding backbone with Doubao.
 - Safe batch/concurrency pacing derived from live 400/429 evidence.
 - Matched GGI evaluation for paper Ada, latest GenePT, and GenePT-Seed.
 - L2 primary result, native-vector sensitivity, receipts, tests, and runbook.
+- Completed-corpus GenePT-Seed and GenePT-Seed+GO-EXP embeddings with a matched
+  GGI Accuracy/AUROC/AP comparison.
 
 # How To Run
 
@@ -33,18 +35,24 @@ On the server:
 - `README.md`: install and server workflow.
 - `docs/EXPERIMENT_PROTOCOL.md`: fixed scientific contract.
 - `docs/BASELINE_RESULTS.md`: measured comparison and limitations.
+- `docs/results/GENEPT_SEED_GOEXP_GGI.json`: exact two-condition result receipt.
 - `src/genept_seed/embedding.py`: Ark client, pacing, and resume logic.
 - `src/genept_seed/benchmarks.py`: matched GGI estimator.
 
 # Verification
 
-- Server Ruff passed; 18 tests passed.
+- Local and server Ruff passed; 32 tests passed on each host.
 - Wheel and sdist built successfully.
 - 10,870/10,870 Doubao vectors, dimension 2,048, 100% selected coverage.
 - Matching train/test counts and source/universe receipts across conditions.
 - Doubao L2: 0.73223 accuracy, 0.82099 AUROC, 0.81147 AP.
+- Completed-corpus GO-EXP L2: 0.73528 accuracy, 0.82411 AUROC, 0.81541 AP.
+- Both new artifacts: 10,870/10,870 vectors, width 2,048; all GGI fairness
+  identities match and GO-minus-base is +0.00305/+0.00313/+0.00394.
 - Post-apply sync dry-run: no differences.
 - API key removed from the tmux environment after use.
+- Mac/server source sync is checksum-clean; the compact result receipt has
+  matching SHA-256 `823b77a2...906` on both hosts.
 
 # OKR Status
 
@@ -53,14 +61,15 @@ of the selected experiment subset.
 
 # Review And Iteration Summary
 
-Three evidence-led iterations hardened data checksums, embedding manifests and
-dimensions, and benchmark lineage. Review 3 fixed the live batch-default defect
-and returned `ship`.
+Six evidence-led iterations hardened data checksums, embedding manifests,
+dimensions, corpus lineage, text-hash cache validation, and benchmark fairness.
+Review 4 enforced the embedding-only boundary and returned `ship`.
 
 # Known Gaps
 
-The measured advantage is limited to the released GGI split. Other GenePT
-experiments, downstream cell models, and external datasets remain untested.
+The measured GO advantage is limited to the released GGI split. Other GenePT
+experiments, downstream cell models, and external datasets remain untested. No
+GraD-Pert training or evaluation is included.
 
 # Recommended Next Steps
 

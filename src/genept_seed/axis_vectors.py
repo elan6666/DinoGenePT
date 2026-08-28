@@ -11,6 +11,57 @@ import numpy as np
 
 from .axis_corpus import HGNCIndex, _load_ensembl_map
 from .provenance import atomic_write_json, digest_file, utc_now
+from .vectors import load_npz
+
+
+def align_npz_to_axis(
+    *,
+    source_path: Path,
+    genes_path: Path,
+    output_path: Path,
+    manifest_path: Path,
+) -> dict[str, object]:
+    """Reorder a complete NPZ embedding set to an exact downstream graph axis."""
+
+    source = load_npz(source_path)
+    genes = tuple(line.strip() for line in genes_path.read_text(encoding="utf-8").splitlines() if line.strip())
+    if not genes or len(genes) != len(set(genes)):
+        raise ValueError("graph axis must contain unique exact gene IDs")
+    source_genes = tuple(str(value) for value in source.genes.tolist())
+    if len(source_genes) != len(set(source_genes)):
+        raise ValueError("source embedding contains duplicate exact gene IDs")
+    index = {gene: row for row, gene in enumerate(source_genes)}
+    missing = [gene for gene in genes if gene not in index]
+    extra = sorted(set(source_genes) - set(genes))
+    if missing or extra:
+        raise ValueError(f"source embedding and graph axis differ; missing={missing}, extra={extra}")
+    matrix = np.ascontiguousarray(
+        np.stack([source.vectors[index[gene]] for gene in genes]),
+        dtype=np.float32,
+    )
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = output_path.with_name(output_path.name + ".tmp")
+    with temporary.open("wb") as handle:
+        np.savez_compressed(
+            handle,
+            genes=np.asarray(genes, dtype=str),
+            vectors=matrix,
+            model=np.asarray(source.model),
+        )
+    temporary.replace(output_path)
+    manifest: dict[str, object] = {
+        "schema_version": "genept-seed-exact-axis-vectors-v1",
+        "created_at": utc_now(),
+        "model": source.model,
+        "source_sha256": digest_file(source_path),
+        "genes_sha256": digest_file(genes_path),
+        "output_sha256": digest_file(output_path),
+        "genes": len(genes),
+        "dimension": int(matrix.shape[1]),
+        "gene_order_policy": "exact_input_file_order",
+    }
+    atomic_write_json(manifest_path, manifest)
+    return manifest
 
 
 def materialize_axis_vectors(
@@ -33,10 +84,7 @@ def materialize_axis_vectors(
     if type(raw) is not dict or not raw:
         raise ValueError("official embedding pickle must be a non-empty exact dictionary")
     embeddings = cast(dict[object, object], raw)
-    widths = {
-        int(np.asarray(vector).reshape(-1).shape[0])
-        for vector in embeddings.values()
-    }
+    widths = {int(np.asarray(vector).reshape(-1).shape[0]) for vector in embeddings.values()}
     if len(widths) != 1:
         raise ValueError("official embedding artifact has inconsistent widths")
     width = widths.pop()

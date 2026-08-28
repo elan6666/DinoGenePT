@@ -16,15 +16,15 @@ fi
 
 rsync ${mode:+"$mode"} --checksum --recursive --delete --verbose \
   --exclude '.git/' \
-  --exclude '.venv/' \
-  --exclude '.env' \
-  --exclude 'data/' \
-  --exclude 'results/' \
-  --exclude 'checkpoints/' \
+  --exclude '/.venv/' \
+  --exclude '/.env' \
+  --exclude '/data/' \
+  --exclude '/results/' \
+  --exclude '/checkpoints/' \
   --exclude '__pycache__/' \
   --exclude '.pytest_cache/' \
   --exclude '.ruff_cache/' \
-  --exclude 'dist/' \
-  --exclude 'build/' \
+  --exclude '/dist/' \
+  --exclude '/build/' \
   --rsh "ssh -i $ssh_key -S $control_socket -o IdentitiesOnly=yes -o BatchMode=yes" \
   "$local_root" "$remote"

@@ -10,9 +10,9 @@ build/
 dist/
 
 # Materialized research artifacts stay on the server.
-data/
-results/
-checkpoints/
+/data/
+/results/
+/checkpoints/
 *.zip
 *.pickle
 *.pkl
@@ -27,4 +27,3 @@ checkpoints/
 !.env.example
 *api_key*
 *secret*
-

@@ -1,28 +1,32 @@
 ---
 schema_version: 1
 mode: auto
-project_kind: greenfield
+project_kind: existing_codebase
 stage: delivered
-current_workflow: byte-deliver
+current_workflow: byte-status
 next_workflow: byte-status
-harness_status: not_required
+harness_status: ready
 review_verdict: ship
-iteration_count: 3
+iteration_count: 6
 hard_blocked: false
-updated_at: 2026-08-28T20:45:00+08:00
+updated_at: 2026-08-28T20:25:00+08:00
 ---
 
 # Status
 
-Goal: Deliver GenePT-Seed as a reproducible research repository for comparing
-Doubao embeddings against the latest official GenePT on selected paper
-benchmarks, with server-ready execution, tests, review, iterations, and handoff.
+Goal: compare GenePT-Seed from the completed NCBI+UniProt corpus against the
+same corpus plus bounded GO-EXP using the matched GenePT GGI evaluation.
 
-Delivered result: 10,870/10,870 Doubao vectors at dimension 2,048 and a matched
-GGI result of 0.73223 accuracy, 0.82099 AUROC, and 0.81147 average precision.
+Execution is complete. Both server embeddings cover all 10,870 selected genes
+at width 2,048. Their GGI receipts share data, universe, split, classifier,
+normalization, pair operator, seed, dependency versions, and pair counts.
+GO-EXP improves Accuracy/AUROC/AP by 0.00305/0.00313/0.00394 on this split.
 
-Latest verified server gate: 18 tests passed, Ruff passed, sdist/wheel built,
-artifact and benchmark receipts passed, and source sync dry-run had no changes.
+No GraD-Pert model was trained or evaluated. Earlier exact-axis prior artifacts
+remain prepared evidence only and are not part of the reported GGI score.
+
+Delivery verification: local/server 32 tests, Ruff, package build, CLI, secret
+scan, matching result-receipt hash, and empty checksum sync dry run passed.
 
 Local source of truth: `/Users/elan/code/GenePT-Seed`.
 Server execution mirror: `/data/yilangliu/GenePT-Seed`.

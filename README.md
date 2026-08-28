@@ -13,6 +13,7 @@ This is an independent research variant, not an official GenePT release.
 | Paper reference | NCBI | `text-embedding-ada-002` |
 | Latest official GenePT | NCBI + UniProt | `text-embedding-3-large` |
 | GenePT-Seed | Identical NCBI + UniProt | `doubao-embedding-vision` |
+| GenePT-Seed+GO-EXP | Completed NCBI + UniProt + bounded GO-EXP | `doubao-embedding-vision` |
 
 The comparison fixes genes/pairs, labels, splits, classifiers, metrics, and
 random seeds. It reports coverage and native dimensions rather than assuming
@@ -81,6 +82,26 @@ genept-seed benchmark ggi \
   --output results/ggi-seed.json
 ```
 
+The completed-corpus GO comparison uses the same selected GGI genes and
+checkpoint-safe API client:
+
+```bash
+genept-seed data build-go-exp-texts \
+  --base data/genept/NCBI_UniProt_summary_of_genes.extended.json \
+  --genes data/ggi/genes-with-text.txt \
+  --gaf data/go-exp/2026-08-05/HUMAN-uniprot.gaf.gz \
+  --obo data/go-exp/2026-08-05/go-basic.obo \
+  --output data/genept/NCBI_UniProt_extended_GOEXP_safe_GGI_10870.json \
+  --manifest data/genept/NCBI_UniProt_extended_GOEXP_safe_GGI_10870.manifest.json
+
+genept-seed embed \
+  --texts data/genept/NCBI_UniProt_extended_GOEXP_safe_GGI_10870.json \
+  --genes data/ggi/genes-with-text.txt \
+  --checkpoint checkpoints/doubao-goexp-safe.sqlite3 \
+  --output data/embeddings/genept_seed_extended_goexp_GGI_10870.npz \
+  --batch-size 10 --max-workers 3 --request-interval 4
+```
+
 ### Extending missing perturbation targets
 
 The official GenePT v2 corpus is frozen and does not cover every current or
@@ -115,6 +136,11 @@ append 2,048-dimensional Doubao vectors to the frozen 1,536-dimensional Ada
 The exact Nadig Jurkat 2,809-gene corpus and GO-EXP construction are documented
 in [`docs/GRADPERT_JURKAT_GOEXP.md`](docs/GRADPERT_JURKAT_GOEXP.md).
 
+After embedding, use `genept-seed data align-axis-vectors` before a strict
+downstream prior: the generic NPZ writer sorts symbols, while GraD-Pert requires
+the exact frozen graph-axis order. The aligner rejects any missing, extra, or
+duplicate symbol and writes a hash manifest.
+
 Use `--limit 20` with embedding generation for the first paid smoke test.
 The defaults use the live-verified Agent Plan batch limit of 10. The optional
 three-worker configuration above spaces request starts by four seconds; this
@@ -124,7 +150,8 @@ completed the full run without sustained-rate HTTP 429 failures.
 
 On the fixed Gene2vec GGI split and the same 10,870-gene universe, the primary
 L2-normalized GenePT-Seed run reached 0.73223 accuracy, 0.82099 AUROC, and
-0.81147 average precision. The latest official NCBI + UniProt GenePT embedding
+0.81147 average precision. Adding bounded GO-EXP reached 0.73528, 0.82411,
+and 0.81541. The latest official NCBI + UniProt GenePT embedding
 reached 0.70627, 0.79299, and 0.78289 under the same code and receipts. See
 [`docs/BASELINE_RESULTS.md`](docs/BASELINE_RESULTS.md) for scope and caveats.
 

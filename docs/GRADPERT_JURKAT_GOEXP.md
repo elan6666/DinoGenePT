@@ -42,9 +42,19 @@ It provides 2,743 exact vectors and six HGNC-safe alias vectors. The remaining
 60 rows contain zero prior and must be paired with a downstream learned-ID
 residual. They are not claimed as official GenePT embeddings.
 
-## Pending execution
+## GenePT-Seed exact-axis vectors
 
-GenePT-Seed and GenePT-Seed+GO vectors require the server-side Ark credential.
-The server currently has no `ARK_API_KEY`; no vector API request or GraD-Pert
-training run is represented as complete until those artifacts and their hashes
-exist.
+Both Doubao conditions were generated on the server with checkpointed Agent
+Plan requests and then reordered against the frozen graph-axis file. Each
+artifact contains 2,809 finite float32 vectors of width 2,048, has exact axis
+equality, and has zero all-zero rows.
+
+| Condition | Artifact SHA-256 |
+|---|---|
+| GenePT-Seed | `7740c0b8089ffb0d3271e04312c01ea2918b6f4ee0053206df6f03f1c2baa3a4` |
+| GenePT-Seed+GO-EXP | `be5de8e6f1db405a7e891558bbf9032558ae86a4e5c2c45bbd9f8b18cd2ffff1` |
+
+The latest official GenePT comparator has 60 exact zero-prior rows; both Seed
+conditions have none. This difference is reported as coverage evidence rather
+than hidden or relabeled. These files are prepared priors only: no GraD-Pert
+training or perturbation-prediction score is claimed in this project delivery.

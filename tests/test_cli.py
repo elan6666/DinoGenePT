@@ -32,3 +32,18 @@ def test_benchmark_parser_requires_explicit_normalization():
     )
     assert args.normalize is False
     assert args.genes.name == "common.txt"
+
+
+def test_embedding_parser_uses_verified_agent_plan_batch_default():
+    args = build_parser().parse_args(
+        [
+            "embed",
+            "--texts",
+            "texts.json",
+            "--checkpoint",
+            "checkpoint.sqlite3",
+            "--output",
+            "vectors.npz",
+        ]
+    )
+    assert args.batch_size == 10

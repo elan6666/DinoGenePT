@@ -1,9 +1,9 @@
 ---
 id: 004
 title: Quality, server synchronization, and delivery
-status: pending
+status: complete
 wave: 4
-updated_at: 2026-08-27T16:00:00Z
+updated_at: 2026-08-28T20:40:00+08:00
 owner_role: QA Engineer
 depends_on: [003]
 start_directory: .
@@ -31,10 +31,11 @@ Using the exposed key or claiming live results before a rotated key exists.
 
 # Steps
 
-## Step 1: Verify locally
+## Step 1: Verify source locally
 
 - Purpose: catch package and workflow defects before sync.
-- Actions: run tests, lint, build, CLI smoke, secret scan, and git diff checks.
+- Actions: run non-experimental source/diff/secret checks locally; run tests,
+  lint, build, and CLI smoke on the server per the execution boundary.
 - Files or modules: all tracked source/docs.
 - Expected output: clean local verification receipt.
 - Step verification: recorded command outputs.
@@ -105,3 +106,9 @@ Pass/fail evidence and runtime environment; live result availability is stated.
 
 Credential availability can block only the live embedding/result portion.
 
+# Completion Evidence
+
+Server Ruff, 18 tests, wheel/sdist build, doctor, and CLI smoke passed. Source
+sync dry-run was empty after apply. Generated artifacts remained server-only,
+the key was removed from tmux after use, and the final source was prepared for
+GitHub delivery.

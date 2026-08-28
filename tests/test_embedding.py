@@ -1,4 +1,5 @@
 import json
+import threading
 
 import numpy as np
 import pytest
@@ -66,4 +67,41 @@ def test_generation_rejects_unexpected_dimension(tmp_path):
             checkpoint_path=tmp_path / "checkpoint.sqlite3",
             output_path=tmp_path / "vectors.npz",
             expected_dimension=2048,
+        )
+
+
+def test_generation_supports_parallel_requests_with_main_thread_checkpointing(tmp_path):
+    worker_threads = set()
+
+    def fake_embed(texts):
+        worker_threads.add(threading.get_ident())
+        return [np.asarray([len(text), 1], dtype=np.float32) for text in texts]
+
+    output = tmp_path / "parallel.npz"
+    vectors = generate_embeddings(
+        {f"G{index}": f"text-{index}" for index in range(8)},
+        embed=fake_embed,
+        model="mock",
+        checkpoint_path=tmp_path / "parallel.sqlite3",
+        output_path=output,
+        batch_size=1,
+        max_workers=2,
+        expected_dimension=2,
+    )
+    assert len(vectors) == 8
+    assert len(worker_threads) >= 1
+    manifest = json.loads((tmp_path / "parallel.npz.manifest.json").read_text())
+    assert manifest["max_workers"] == 2
+    assert manifest["request_interval"] == 0.0
+
+
+def test_generation_rejects_negative_request_interval(tmp_path):
+    with pytest.raises(ValueError, match="request_interval"):
+        generate_embeddings(
+            {"A": "alpha"},
+            embed=lambda _: [np.zeros(2, dtype=np.float32)],
+            model="mock",
+            checkpoint_path=tmp_path / "checkpoint.sqlite3",
+            output_path=tmp_path / "vectors.npz",
+            request_interval=-1,
         )

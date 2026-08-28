@@ -23,6 +23,15 @@ settings explicitly.
 2. Latest official GenePT: NCBI+UniProt text with `text-embedding-3-large`.
 3. GenePT-Seed: identical NCBI+UniProt text with `doubao-embedding-vision`.
 
-The third condition must not be reported until a rotated Ark key has been
-privately provisioned on the server and the resulting embedding manifest has
-passed shape, coverage, and checkpoint audits.
+## Verified Ark execution settings
+
+- Endpoint: Agent Plan `/api/plan/v3`, not separately billed `/api/v3`.
+- Output: dense float vectors with an asserted dimension of 2,048.
+- Batch size: 10; live tests showed that 16 and 32 return HTTP 400.
+- Throughput: three workers with at least four seconds between request starts.
+- Recovery: SQLite records every completed gene and skips it on restart.
+- Credential handling: server process environment only; never source, args, or
+  logs.
+
+The final vector audit must show 10,870/10,870 coverage, one dimension, finite
+values, and a manifest fingerprint for the selected source text.

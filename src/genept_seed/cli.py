@@ -60,7 +60,9 @@ def build_parser() -> argparse.ArgumentParser:
     embed.add_argument("--base-url", default=DEFAULT_BASE_URL)
     embed.add_argument("--dimensions", type=int)
     embed.add_argument("--expected-dimension", type=int, default=2048)
-    embed.add_argument("--batch-size", type=int, default=32)
+    embed.add_argument("--batch-size", type=int, default=10)
+    embed.add_argument("--max-workers", type=int, default=1)
+    embed.add_argument("--request-interval", type=float, default=0.0)
     embed.add_argument("--limit", type=int)
     embed.add_argument("--genes", type=Path, help="optional newline-delimited gene allowlist")
 
@@ -150,7 +152,8 @@ def main(argv: list[str] | None = None) -> int:
         vectors = generate_embeddings(
             gene_texts, embed=client.embed, model=args.model,
             checkpoint_path=args.checkpoint, output_path=args.output,
-            batch_size=args.batch_size, limit=args.limit,
+            batch_size=args.batch_size, max_workers=args.max_workers,
+            request_interval=args.request_interval, limit=args.limit,
             expected_dimension=args.expected_dimension,
         )
         print(json.dumps({"model": args.model, "genes": len(vectors), "output": str(args.output)}, indent=2))

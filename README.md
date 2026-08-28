@@ -22,9 +22,10 @@ official notebook's native-vector preprocessing as a sensitivity analysis.
 
 ## Safety first
 
-An API key pasted into chat is compromised. Rotate it. Never put a key in this
-repository or a shell command. Provision a new key privately on the server as
-`ARK_API_KEY`. The software reports only whether the variable exists.
+Never put an API key in this repository, a command argument, or a run log.
+Provision it only in the server process environment as `ARK_API_KEY`; the
+software reports only whether the variable exists. Rotate any key that has been
+shared through chat after the run finishes.
 
 Use only the plan endpoint:
 
@@ -66,7 +67,8 @@ genept-seed embed \
   --texts data/genept/NCBI_UniProt_summary_of_genes.json \
   --genes data/ggi/genes-with-text.txt \
   --checkpoint checkpoints/doubao.sqlite3 \
-  --output data/embeddings/genept_seed_doubao.npz
+  --output data/embeddings/genept_seed_doubao.npz \
+  --batch-size 10 --max-workers 3 --request-interval 4
 genept-seed benchmark ggi \
   --name latest-genept \
   --vectors data/genept/GenePT_gene_protein_embedding_model_3_text.pickle \
@@ -80,6 +82,17 @@ genept-seed benchmark ggi \
 ```
 
 Use `--limit 20` with embedding generation for the first paid smoke test.
+The defaults use the live-verified Agent Plan batch limit of 10. The optional
+three-worker configuration above spaces request starts by four seconds; this
+completed the full run without sustained-rate HTTP 429 failures.
+
+## Reproduced result
+
+On the fixed Gene2vec GGI split and the same 10,870-gene universe, the primary
+L2-normalized GenePT-Seed run reached 0.73223 accuracy, 0.82099 AUROC, and
+0.81147 average precision. The latest official NCBI + UniProt GenePT embedding
+reached 0.70627, 0.79299, and 0.78289 under the same code and receipts. See
+[`docs/BASELINE_RESULTS.md`](docs/BASELINE_RESULTS.md) for scope and caveats.
 
 ## Tests
 

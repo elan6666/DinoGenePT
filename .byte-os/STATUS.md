@@ -2,13 +2,14 @@
 schema_version: 1
 mode: auto
 project_kind: greenfield
-stage: reviewed
-current_workflow: byte-review
-next_workflow: byte-build
+stage: delivered
+current_workflow: byte-deliver
+next_workflow: byte-status
 harness_status: not_required
-review_verdict: block
+review_verdict: ship
 iteration_count: 3
-last_updated: 2026-08-28
+hard_blocked: false
+updated_at: 2026-08-28T20:45:00+08:00
 ---
 
 # Status
@@ -17,12 +18,11 @@ Goal: Deliver GenePT-Seed as a reproducible research repository for comparing
 Doubao embeddings against the latest official GenePT on selected paper
 benchmarks, with server-ready execution, tests, review, iterations, and handoff.
 
-Open blocker: a rotated Agent Plan API key must be privately provisioned on the
-server before live embedding generation. The exposed chat credential will not
-be used.
+Delivered result: 10,870/10,870 Doubao vectors at dimension 2,048 and a matched
+GGI result of 0.73223 accuracy, 0.82099 AUROC, and 0.81147 average precision.
 
-Latest verified server gate: 15 tests passed, Ruff passed, sdist/wheel built,
-all Gene2vec hashes passed, and source sync dry-run had no changes.
+Latest verified server gate: 18 tests passed, Ruff passed, sdist/wheel built,
+artifact and benchmark receipts passed, and source sync dry-run had no changes.
 
 Local source of truth: `/Users/elan/code/GenePT-Seed`.
 Server execution mirror: `/data/yilangliu/GenePT-Seed`.

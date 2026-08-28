@@ -1,9 +1,9 @@
 ---
 id: 002
 title: Official data and GenePT-Seed embeddings
-status: in_progress
+status: complete
 wave: 2
-updated_at: 2026-08-28T20:20:00Z
+updated_at: 2026-08-28T20:40:00+08:00
 owner_role: Backend Engineer
 depends_on: [001]
 start_directory: src/genept_seed
@@ -44,7 +44,7 @@ Calling a live API before a rotated server credential is privately configured.
 
 - Purpose: tolerate quota/rate/network interruption.
 - Actions: batch text, POST OpenAI-compatible requests, retry retryable errors,
-  append atomic JSONL checkpoints, and resume completed genes.
+  persist SQLite checkpoints, and resume completed genes.
 - Files or modules: `embedding.py`, CLI, tests.
 - Expected output: resumable checkpoint and compressed final matrix.
 - Step verification: mock HTTP batch/resume test.
@@ -103,3 +103,10 @@ Report text count, valid count, missing count, dimension, and checksum.
 
 Actual Agent Plan response shape may differ from OpenAI-compatible assumptions;
 capture and adapt only after a safe live smoke call.
+
+# Completion Evidence
+
+The live API smoke passed, and the final server artifact contains 10,870
+2,048-dimensional vectors with 100% selected-gene coverage. The resumable
+checkpoint reached 10,870 rows. The final NPZ SHA-256 is
+`dbd31d4582c998f336d1d594ba113fd0db91730926e3028ea1f9d6385404426c`.

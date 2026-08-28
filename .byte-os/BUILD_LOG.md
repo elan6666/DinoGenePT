@@ -24,3 +24,17 @@
 - The no-isolation retry exposed another server-only packaging edge: without a
   mirrored `.git`, sdist discovery scanned generated data. Added explicit build
   exclusions for data, results, checkpoints, environments, and caches.
+- Injected the authorized Ark key only into the server tmux environment; live
+  smoke confirmed OpenAI-compatible requests and 2,048-dimensional vectors.
+- Live boundary tests showed batch sizes 16/32 return HTTP 400. Set the verified
+  default to 10 and added a regression test.
+- Sustained unpaced concurrency triggered HTTP 429. Added optional main-thread
+  checkpoint-safe workers and a global request-start interval; the final run
+  used batch 10, three workers, and four-second spacing.
+- Generated and audited 10,870/10,870 Doubao vectors. Final NPZ SHA-256:
+  `dbd31d4582c998f336d1d594ba113fd0db91730926e3028ea1f9d6385404426c`.
+- Re-ran Ada, latest GenePT, and Doubao GGI conditions against matching data and
+  gene-universe receipts. Doubao L2: accuracy 0.73223, AUROC 0.82099, AP 0.81147.
+- Final server gate: Ruff passed, 18 tests passed, wheel/sdist built, CLI smoke
+  passed, and post-sync dry-run showed no source differences.
+- Removed `ARK_API_KEY` from the tmux environment after the experiment.

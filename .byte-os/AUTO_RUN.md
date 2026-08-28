@@ -2,18 +2,19 @@
 
 - Goal: deliver a reproducible GenePT-Seed comparison repository.
 - Started at: 2026-08-28T00:00:00+08:00
-- Current loop: 3
+- Current loop: 4
 - Completed stages: discussion, goal sync, byte-start, focused research,
   byte-shape, byte-plan, implementation, official-data preparation, official
-  baselines, server verification, review, and three iterations.
-- Remaining: live Doubao smoke/full embedding, matched final comparison, ship
-  review, delivery artifact, commit, and GitHub push.
-- Review verdict: block (missing private server credential only).
+  baselines, server verification, three iterations, live Doubao generation,
+  matched comparison, final verification, ship review, delivery artifact, and
+  GitHub handoff preparation.
+- Remaining: none inside the Auto contract; final Git transport is executed as
+  the handoff step for this delivery.
+- Review verdict: ship.
 - Iteration count: 3/3.
 - Subagent mode: off; core code and research files overlap, and credentialed
   server execution is sensitive.
-- Hard blocker: `ARK_API_KEY` is absent on the server. The chat-exposed key was
-  not used, stored, printed, or transmitted.
-- Exact resume action: privately inject a rotated key into a server-side shell,
-  run a 20-gene `genept-seed embed` smoke with expected dimension 2048, then
-  resume the checkpointed 10,870-gene run and matched GGI comparison.
+- Hard blocker: none. The authorized key was used ephemerally and removed from
+  the tmux environment after the completed run.
+- Exact resume action: `byte-status`; wait for explicit new scope or real-user
+  evidence.

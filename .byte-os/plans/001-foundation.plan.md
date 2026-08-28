@@ -1,9 +1,9 @@
 ---
 id: 001
 title: Package and safety foundation
-status: completed
+status: complete
 wave: 1
-updated_at: 2026-08-28T20:20:00Z
+updated_at: 2026-08-28T20:20:00+08:00
 owner_role: Tech Lead
 depends_on: []
 start_directory: .

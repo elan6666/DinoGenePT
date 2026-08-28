@@ -10,7 +10,9 @@ import time
 import urllib.error
 import urllib.request
 from collections.abc import Callable, Mapping
+from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from pathlib import Path
+from threading import Lock
 
 import numpy as np
 
@@ -167,12 +169,18 @@ def generate_embeddings(
     model: str,
     checkpoint_path: Path,
     output_path: Path,
-    batch_size: int = 32,
+    batch_size: int = 10,
+    max_workers: int = 1,
+    request_interval: float = 0.0,
     limit: int | None = None,
     expected_dimension: int | None = None,
 ) -> dict[str, np.ndarray]:
     if batch_size < 1:
         raise ValueError("batch_size must be positive")
+    if max_workers < 1:
+        raise ValueError("max_workers must be positive")
+    if request_interval < 0:
+        raise ValueError("request_interval must be non-negative")
     items = sorted((str(g).upper(), text) for g, text in gene_texts.items())
     if limit is not None:
         items = items[:limit]
@@ -187,9 +195,23 @@ def generate_embeddings(
                 collected[gene] = cached
             else:
                 pending.append((gene, text, digest))
-        for start in range(0, len(pending), batch_size):
-            batch = pending[start : start + batch_size]
-            vectors = embed([text for _, text, _ in batch])
+        batches = [pending[start : start + batch_size] for start in range(0, len(pending), batch_size)]
+
+        request_lock = Lock()
+        next_request_at = 0.0
+
+        def request(batch: list[tuple[str, str, str]]) -> list[np.ndarray]:
+            nonlocal next_request_at
+            if request_interval:
+                with request_lock:
+                    now = time.monotonic()
+                    delay = max(0.0, next_request_at - now)
+                    next_request_at = max(now, next_request_at) + request_interval
+                if delay:
+                    time.sleep(delay)
+            return embed([text for _, text, _ in batch])
+
+        def store(batch: list[tuple[str, str, str]], vectors: list[np.ndarray]) -> None:
             if len(vectors) != len(batch):
                 raise ValueError("embedding response count differs from request count")
             dimensions = {len(np.asarray(vector).reshape(-1)) for vector in vectors}
@@ -203,6 +225,30 @@ def generate_embeddings(
             for (gene, _, digest), vector in zip(batch, vectors, strict=True):
                 checkpoint.put(gene, digest, model, vector)
                 collected[gene] = np.asarray(vector, dtype=np.float32)
+
+        if max_workers == 1:
+            for batch in batches:
+                store(batch, request(batch))
+        else:
+            batch_iter = iter(batches)
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                active: dict[Future[list[np.ndarray]], list[tuple[str, str, str]]] = {}
+                for _ in range(max_workers):
+                    try:
+                        batch = next(batch_iter)
+                    except StopIteration:
+                        break
+                    active[executor.submit(request, batch)] = batch
+                while active:
+                    done, _ = wait(active, return_when=FIRST_COMPLETED)
+                    for future in done:
+                        batch = active.pop(future)
+                        store(batch, future.result())
+                        try:
+                            next_batch = next(batch_iter)
+                        except StopIteration:
+                            continue
+                        active[executor.submit(request, next_batch)] = next_batch
     finally:
         checkpoint.close()
     dimensions = {len(vector) for vector in collected.values()}
@@ -228,6 +274,8 @@ def generate_embeddings(
             "genes": len(collected),
             "dimension": final_dimension,
             "batch_size": batch_size,
+            "max_workers": max_workers,
+            "request_interval": request_interval,
             "text_fingerprint_sha256": text_fingerprint.hexdigest(),
             "output": output_path.name,
         },

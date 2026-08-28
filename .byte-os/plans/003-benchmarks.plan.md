@@ -1,9 +1,9 @@
 ---
 id: 003
-title: Matched gene-level benchmarks
-status: in_progress
+title: Matched gene-level benchmark
+status: complete
 wave: 3
-updated_at: 2026-08-28T20:28:00Z
+updated_at: 2026-08-28T20:40:00+08:00
 owner_role: Research Engineer
 depends_on: [002]
 start_directory: src/genept_seed
@@ -14,7 +14,7 @@ subagent_policy: none
 
 # Goal
 
-Compare official and GenePT-Seed vectors on matched gene-property and GGI tasks.
+Compare official and GenePT-Seed vectors on the selected matched GGI task.
 
 # OKR Link
 
@@ -22,8 +22,8 @@ KR3 and KR5.
 
 # Scope
 
-Generic binary CV kernel, fixed GGI split, exact intersections, random control,
-results and run manifests.
+Fixed GGI split, exact intersections, L2 primary/native sensitivity, results,
+and run receipts. The user explicitly allowed a selected subset of experiments.
 
 # Non-Goals
 
@@ -90,8 +90,8 @@ carry provenance and never overwrite prior runs silently.
 
 # Acceptance Criteria
 
-Two benchmark families run through one matched comparison workflow and emit
-machine-readable evidence.
+The selected GGI benchmark runs through one matched comparison workflow and
+emits machine-readable evidence for all three conditions.
 
 # Verification
 
@@ -105,3 +105,9 @@ ROC-AUC mean/SD, fold values, coverage, sample counts, model dimension, seed.
 
 Some Table 1 label sources require stable external downloads and gene-ID
 mapping; unavailable tasks must be explicitly reported rather than fabricated.
+
+# Completion Evidence
+
+All L2 conditions used 249,630 training and 20,342 test pairs with matching data
+and gene-universe hashes. GenePT-Seed reached 0.73223 accuracy, 0.82099 AUROC,
+and 0.81147 average precision. Native-vector sensitivity also passed.

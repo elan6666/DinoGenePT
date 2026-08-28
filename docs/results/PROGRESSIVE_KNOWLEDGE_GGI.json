@@ -1,0 +1,103 @@
+{
+  "baseline": "genept-seed-extended-goexp",
+  "conditions": [
+    {
+      "accuracy": 0.7062727362107954,
+      "auroc": 0.7929854360158008,
+      "average_precision": 0.7828875595659336,
+      "delta_vs_baseline": {
+        "accuracy": -0.029004031068724734,
+        "auroc": -0.03112941946714365,
+        "average_precision": -0.03252575136134672
+      },
+      "embedding": "latest-genept",
+      "result_sha256": "c319da9c794e0bfcc69ebb5db637496eb1d2833141aa8efed67c2e73e5aac56e",
+      "vectors_sha256": "cd64611edab310b517cbb461295605a37821f6cd4f8ddae90ba18a2f861a6618"
+    },
+    {
+      "accuracy": 0.7322288860485695,
+      "auroc": 0.8209871201181043,
+      "average_precision": 0.8114713033398627,
+      "delta_vs_baseline": {
+        "accuracy": -0.0030478812309506775,
+        "auroc": -0.003127735364840234,
+        "average_precision": -0.003942007587417584
+      },
+      "embedding": "genept-seed-extended",
+      "result_sha256": "9124886de0082429eb654cb27074d8e1f3df2cd8ab95dc825b43f7d5a7b82b65",
+      "vectors_sha256": "dbd31d4582c998f336d1d594ba113fd0db91730926e3028ea1f9d6385404426c"
+    },
+    {
+      "accuracy": 0.7352767672795202,
+      "auroc": 0.8241148554829445,
+      "average_precision": 0.8154133109272803,
+      "delta_vs_baseline": {
+        "accuracy": 0.0,
+        "auroc": 0.0,
+        "average_precision": 0.0
+      },
+      "embedding": "genept-seed-extended-goexp",
+      "result_sha256": "937030b9bde72feb666a4cfde2f339752363e22afbb0267f675f8122248dee0c",
+      "vectors_sha256": "06269245308de10d70bbcfd391b4ea8476cff02dd7862a9fa8caa1c8aec2f21e"
+    },
+    {
+      "accuracy": 0.7341461016615869,
+      "auroc": 0.8257139747322343,
+      "average_precision": 0.818715411114606,
+      "delta_vs_baseline": {
+        "accuracy": -0.0011306656179332908,
+        "auroc": 0.0015991192492897932,
+        "average_precision": 0.003302100187325685
+      },
+      "embedding": "genept-seed-go-protein",
+      "result_sha256": "501ad13ee2802d493c89fada7b4eeb16d1a6e33eebe89d0be9504ea890398f4b",
+      "vectors_sha256": "8f6b9ac27e41e936540391612e7505cd98953da2b1bd3a419a156630144e7101"
+    },
+    {
+      "accuracy": 0.7496804640644971,
+      "auroc": 0.8361454390098982,
+      "average_precision": 0.8285878961966557,
+      "delta_vs_baseline": {
+        "accuracy": 0.014403696784976883,
+        "auroc": 0.012030583526953742,
+        "average_precision": 0.013174585269375427
+      },
+      "embedding": "genept-seed-go-protein-pathway",
+      "result_sha256": "384d98641ccb14efe56759a22602f2b305b884485f532aed8e1b041f1228434b",
+      "vectors_sha256": "34d4c81b311f567304d299800eb07c8847641f26e82e573f5a1acfe77c202318"
+    },
+    {
+      "accuracy": 0.7397502703765608,
+      "auroc": 0.8308762138943451,
+      "average_precision": 0.8240675397753694,
+      "delta_vs_baseline": {
+        "accuracy": 0.004473503097040643,
+        "auroc": 0.006761358411400575,
+        "average_precision": 0.008654228848089085
+      },
+      "embedding": "genept-seed-go-protein-pathway-hpa",
+      "result_sha256": "a2091383bc7acddf981658e4cc15e6e2038c33545ddc37d9ec182215d748a059",
+      "vectors_sha256": "7e05f104292b716c75cafd2887cf090a719cb07ab4cdf013545e199c6b555edd"
+    }
+  ],
+  "created_at": "2026-08-28T19:29:59.106161+00:00",
+  "fairness_contract": {
+    "data_receipt_sha256": "4a84ee1fc45948138cde9e43f7f7c74484da83cd7a007fce342cb75e821347ec",
+    "gene_universe": "data/ggi/genes-with-text.txt",
+    "gene_universe_sha256": "d12aca5c4335f5cede1102e412df5c317fd61434073857d6646daa843b096e6a",
+    "genept_seed_version": "0.1.0",
+    "model": "logistic_regression",
+    "normalization": "l2",
+    "numpy_version": "2.5.2",
+    "pair_operator": "sum",
+    "random_state": 42,
+    "scikit_learn_version": "1.9.0",
+    "task": "gene_gene_interaction",
+    "test_coverage": 0.9484334203655352,
+    "test_n": 20342,
+    "train_coverage": 0.949105757824619,
+    "train_n": 249630
+  },
+  "fairness_fields_identical": true,
+  "schema_version": "genept-seed-progressive-ggi-comparison-v1"
+}

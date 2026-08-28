@@ -38,3 +38,26 @@ def test_build_axis_corpus_preserves_order_and_uses_hgnc_fallback(tmp_path):
         "hgnc_alias_to_genept": 1,
         "hgnc_identity": 1,
     }
+
+
+def test_build_axis_corpus_can_preserve_unknown_axis_identity_without_invented_function(tmp_path):
+    source = tmp_path / "source.json"
+    genes = tmp_path / "genes.txt"
+    hgnc = tmp_path / "hgnc.tsv"
+    source.write_text(json.dumps({"A": "base A"}))
+    genes.write_text("A\nRP11-UNKNOWN.1\n")
+    hgnc.write_text(
+        "hgnc_id\tsymbol\tname\tlocus_group\tlocus_type\tstatus\tlocation\talias_symbol\t"
+        "prev_symbol\tentrez_id\tensembl_gene_id\tuniprot_ids\n"
+    )
+    output = tmp_path / "output.json"
+    receipt = build_axis_corpus(
+        source_path=source,
+        genes_path=genes,
+        hgnc_path=hgnc,
+        output_path=output,
+        manifest_path=tmp_path / "manifest.json",
+        allow_identity_only=True,
+    )
+    assert json.loads(output.read_text())["RP11-UNKNOWN.1"] == "Gene Symbol RP11-UNKNOWN.1"
+    assert receipt["source_counts"]["axis_identity_only"] == 1

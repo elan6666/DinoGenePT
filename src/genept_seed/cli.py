@@ -15,21 +15,26 @@ from .axis_corpus import build_axis_corpus
 from .axis_vectors import align_npz_to_axis, materialize_axis_vectors
 from .benchmarks import evaluate_ggi, evaluate_property_task
 from .corpus import extend_genept_texts
-from .data import prepare_genept, prepare_ggi, prepare_go_exp
+from .data import prepare_genept, prepare_ggi, prepare_go_exp, prepare_knowledge_sources
 from .embedding import (
     DEFAULT_BASE_URL,
     DEFAULT_MODEL,
     ArkEmbeddingClient,
+    audit_embedding_checkpoint,
     generate_embeddings,
     load_gene_texts,
     select_gene_texts,
     text_statistics,
 )
+from .ggi_comparison import build_ggi_comparison
 from .go_corpus import build_go_exp_corpus
+from .gradpert_union import build_gradpert_union
+from .knowledge_corpus import PROFILES, audit_knowledge_corpora, build_knowledge_corpus
+from .knowledge_vectors import audit_knowledge_vectors
 from .provenance import credential_present, digest_file
 from .reports import write_results
 from .tasks import ggi_genes, load_ggi, load_property_tasks
-from .vectors import coverage, l2_normalize, load_npz, load_official_pickle
+from .vectors import coverage, l2_normalize, load_npz, load_official_pickle, select_universe_vectors
 
 
 def _embedding(path: Path, *, trusted_pickle: bool, normalize: bool):
@@ -75,6 +80,8 @@ def build_parser() -> argparse.ArgumentParser:
     axis_text.add_argument("--ensembl-archive", type=Path)
     axis_text.add_argument("--output", type=Path, required=True)
     axis_text.add_argument("--manifest", type=Path, required=True)
+    axis_text.add_argument("--allow-case-duplicates", action="store_true")
+    axis_text.add_argument("--allow-identity-only", action="store_true")
     axis_vectors = data_sub.add_parser(
         "build-axis-vectors",
         help="align a trusted official embedding pickle to a graph axis",
@@ -97,6 +104,10 @@ def build_parser() -> argparse.ArgumentParser:
     align_vectors.add_argument("--manifest", type=Path, required=True)
     go_source = data_sub.add_parser("prepare-go-exp", help="prepare the pinned human GO release")
     go_source.add_argument("--output", type=Path, required=True)
+    knowledge_source = data_sub.add_parser(
+        "prepare-knowledge-sources", help="freeze official protein/pathway/HPA snapshots"
+    )
+    knowledge_source.add_argument("--output", type=Path, required=True)
     go_text = data_sub.add_parser("build-go-exp-texts", help="append bounded experimental GO text")
     go_text.add_argument("--base", type=Path, required=True)
     go_text.add_argument("--genes", type=Path, required=True)
@@ -106,6 +117,35 @@ def build_parser() -> argparse.ArgumentParser:
     go_text.add_argument("--manifest", type=Path, required=True)
     go_text.add_argument("--max-terms-per-aspect", type=int, default=8)
     go_text.add_argument("--include-interaction-evidence", action="store_true")
+    go_text.add_argument("--allow-case-duplicates", action="store_true")
+    union = data_sub.add_parser("build-gradpert-union", help="freeze all five GraD-Pert graph axes")
+    union.add_argument("--gradpert-root", type=Path, required=True)
+    union.add_argument("--extra-genes", type=Path)
+    union.add_argument("--output", type=Path, required=True)
+    union.add_argument("--manifest", type=Path, required=True)
+    knowledge = data_sub.add_parser("build-knowledge-texts", help="append sparse progressive protein knowledge")
+    knowledge.add_argument("--base", type=Path, required=True)
+    knowledge.add_argument("--genes", type=Path, required=True)
+    knowledge.add_argument("--uniprot", type=Path, required=True)
+    knowledge.add_argument("--interpro", type=Path, required=True)
+    knowledge.add_argument("--reactome", type=Path)
+    knowledge.add_argument("--signor", type=Path)
+    knowledge.add_argument("--hpa", type=Path)
+    knowledge.add_argument("--profile", choices=PROFILES, required=True)
+    knowledge.add_argument("--max-items-per-source", type=int, default=8)
+    knowledge.add_argument("--max-characters-per-field", type=int, default=2000)
+    knowledge.add_argument("--output", type=Path, required=True)
+    knowledge.add_argument("--manifest", type=Path, required=True)
+    corpus_audit = data_sub.add_parser(
+        "audit-knowledge-corpora", help="prove complete and append-only progressive corpora"
+    )
+    corpus_audit.add_argument("--genes", type=Path, required=True)
+    corpus_audit.add_argument("--gradpert-root", type=Path, required=True)
+    corpus_audit.add_argument("--base", type=Path, required=True)
+    corpus_audit.add_argument("--protein", type=Path, required=True)
+    corpus_audit.add_argument("--pathway", type=Path, required=True)
+    corpus_audit.add_argument("--hpa", type=Path, required=True)
+    corpus_audit.add_argument("--output", type=Path, required=True)
 
     embed = subparsers.add_parser("embed", help="generate resumable Doubao gene embeddings")
     embed.add_argument("--texts", type=Path, required=True)
@@ -126,6 +166,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="preserve exact gene-symbol case for strict downstream matching",
     )
 
+    checkpoint_audit = subparsers.add_parser(
+        "audit-checkpoint", help="count exact text-hash hits in an embedding checkpoint"
+    )
+    checkpoint_audit.add_argument("--texts", type=Path, required=True)
+    checkpoint_audit.add_argument("--checkpoint", type=Path, required=True)
+    checkpoint_audit.add_argument("--model", default=DEFAULT_MODEL)
+    checkpoint_audit.add_argument("--genes", type=Path)
+    checkpoint_audit.add_argument("--preserve-gene-case", action="store_true")
+
     texts = subparsers.add_parser("audit-texts", help="inspect source text size and coverage")
     texts.add_argument("--texts", type=Path, required=True)
     texts.add_argument("--genes", type=Path)
@@ -136,6 +185,25 @@ def build_parser() -> argparse.ArgumentParser:
     audit.add_argument("--vectors", type=Path, required=True)
     audit.add_argument("--genes", type=Path)
     audit.add_argument("--trusted-pickle", action="store_true")
+
+    comparison = subparsers.add_parser(
+        "audit-ggi-comparison", help="enforce matched GGI receipts and compute deltas"
+    )
+    comparison.add_argument("--result", type=Path, action="append", required=True)
+    comparison.add_argument("--baseline", required=True)
+    comparison.add_argument("--output", type=Path, required=True)
+
+    knowledge_vector_audit = subparsers.add_parser(
+        "audit-knowledge-vectors", help="prove exact graph, target, and GGI vector coverage"
+    )
+    knowledge_vector_audit.add_argument("--genes", type=Path, required=True)
+    knowledge_vector_audit.add_argument("--ggi-genes", type=Path, required=True)
+    knowledge_vector_audit.add_argument("--gradpert-root", type=Path, required=True)
+    knowledge_vector_audit.add_argument("--protein", type=Path, required=True)
+    knowledge_vector_audit.add_argument("--pathway", type=Path, required=True)
+    knowledge_vector_audit.add_argument("--hpa", type=Path, required=True)
+    knowledge_vector_audit.add_argument("--expected-dimension", type=int, default=2048)
+    knowledge_vector_audit.add_argument("--output", type=Path, required=True)
 
     benchmark = subparsers.add_parser("benchmark", help="run selected GenePT paper benchmarks")
     benchmark_sub = benchmark.add_subparsers(dest="benchmark_command", required=True)
@@ -179,6 +247,8 @@ def main(argv: list[str] | None = None) -> int:
             result = prepare_ggi(args.output)
         elif args.data_command == "prepare-go-exp":
             result = prepare_go_exp(args.output)
+        elif args.data_command == "prepare-knowledge-sources":
+            result = prepare_knowledge_sources(args.output)
         elif args.data_command == "extend-genept-texts":
             result = extend_genept_texts(
                 base_path=args.base,
@@ -196,6 +266,8 @@ def main(argv: list[str] | None = None) -> int:
                 ensembl_archive_path=args.ensembl_archive,
                 output_path=args.output,
                 manifest_path=args.manifest,
+                allow_case_duplicates=args.allow_case_duplicates,
+                allow_identity_only=args.allow_identity_only,
             )
         elif args.data_command == "build-axis-vectors":
             result = materialize_axis_vectors(
@@ -225,6 +297,39 @@ def main(argv: list[str] | None = None) -> int:
                 manifest_path=args.manifest,
                 max_terms_per_aspect=args.max_terms_per_aspect,
                 include_interaction_evidence=args.include_interaction_evidence,
+                allow_case_duplicates=args.allow_case_duplicates,
+            )
+        elif args.data_command == "build-gradpert-union":
+            result = build_gradpert_union(
+                gradpert_root=args.gradpert_root,
+                extra_genes_path=args.extra_genes,
+                output_path=args.output,
+                manifest_path=args.manifest,
+            )
+        elif args.data_command == "build-knowledge-texts":
+            result = build_knowledge_corpus(
+                base_path=args.base,
+                genes_path=args.genes,
+                uniprot_path=args.uniprot,
+                interpro_path=args.interpro,
+                reactome_path=args.reactome,
+                signor_path=args.signor,
+                hpa_path=args.hpa,
+                profile=args.profile,
+                max_items_per_source=args.max_items_per_source,
+                max_characters_per_field=args.max_characters_per_field,
+                output_path=args.output,
+                manifest_path=args.manifest,
+            )
+        elif args.data_command == "audit-knowledge-corpora":
+            result = audit_knowledge_corpora(
+                genes_path=args.genes,
+                gradpert_root=args.gradpert_root,
+                base_path=args.base,
+                protein_path=args.protein,
+                pathway_path=args.pathway,
+                hpa_path=args.hpa,
+                output_path=args.output,
             )
         else:
             selected = sorted(ggi_genes(load_ggi(args.data)))
@@ -285,6 +390,42 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(json.dumps({"model": args.model, "genes": len(vectors), "output": str(args.output)}, indent=2))
         return 0
+    if args.command == "audit-checkpoint":
+        uppercase_genes = not args.preserve_gene_case
+        gene_texts = load_gene_texts(args.texts, uppercase_genes=uppercase_genes)
+        if args.genes:
+            requested = set(args.genes.read_text(encoding="utf-8").splitlines())
+            gene_texts = select_gene_texts(
+                gene_texts, requested, uppercase_genes=uppercase_genes
+            )
+        print(
+            json.dumps(
+                audit_embedding_checkpoint(
+                    gene_texts, checkpoint_path=args.checkpoint, model=args.model
+                ),
+                indent=2,
+            )
+        )
+        return 0
+    if args.command == "audit-ggi-comparison":
+        result = build_ggi_comparison(
+            result_paths=args.result, baseline=args.baseline, output_path=args.output
+        )
+        print(json.dumps(result, indent=2))
+        return 0
+    if args.command == "audit-knowledge-vectors":
+        result = audit_knowledge_vectors(
+            genes_path=args.genes,
+            ggi_genes_path=args.ggi_genes,
+            gradpert_root=args.gradpert_root,
+            protein_path=args.protein,
+            pathway_path=args.pathway,
+            hpa_path=args.hpa,
+            output_path=args.output,
+            expected_dimension=args.expected_dimension,
+        )
+        print(json.dumps(result, indent=2))
+        return 0
     loaded = _embedding(
         args.vectors,
         trusted_pickle=args.trusted_pickle,
@@ -300,17 +441,19 @@ def main(argv: list[str] | None = None) -> int:
             report["coverage"] = coverage(loaded, set(args.genes.read_text().splitlines()))
         print(json.dumps(report, indent=2))
         return 0
-    vectors = loaded.as_dict()
     if args.benchmark_command == "ggi":
         if args.genes:
             universe = {
-                gene.strip().upper()
+                gene.strip()
                 for gene in args.genes.read_text(encoding="utf-8").splitlines()
                 if gene.strip()
             }
-            vectors = {gene: vector for gene, vector in vectors.items() if gene in universe}
+            vectors = select_universe_vectors(loaded, universe)
+        else:
+            vectors = loaded.as_dict()
         rows = [evaluate_ggi(load_ggi(args.data), vectors)]
     else:
+        vectors = loaded.as_dict()
         rows = []
         for task in load_property_tasks(args.tasks).values():
             rows.extend(evaluate_property_task(task, vectors, folds=args.folds))

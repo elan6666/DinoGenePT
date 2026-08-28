@@ -42,6 +42,18 @@ GOEXP_FILES = {
         "sha256": "b08d45b268b8c24ccb2513dbbbc7d4df9f6521c099b413f79eb31e06e0fa3bcc",
     },
 }
+KNOWLEDGE_SOURCE_URLS = {
+    "uniprot-human-reviewed.tsv": (
+        "https://rest.uniprot.org/uniprotkb/stream?format=tsv&query=%28organism_id%3A9606%29%20"
+        "AND%20%28reviewed%3Atrue%29&fields=accession%2Cgene_primary%2Cprotein_name%2C"
+        "cc_subcellular_location%2Ccc_catalytic_activity%2Ccc_cofactor%2Ccc_ptm%2C"
+        "cc_activity_regulation%2Cft_domain%2Cft_act_site%2Cft_binding%2Cxref_interpro"
+    ),
+    "interpro.entry.list": "https://ftp.ebi.ac.uk/pub/databases/interpro/current_release/entry.list",
+    "reactome.UniProt2Reactome.txt": "https://reactome.org/download/current/UniProt2Reactome.txt",
+    "signor.human.tsv": "https://signor.uniroma2.it/API/getHumanData.php",
+    "hpa.proteinatlas.tsv.zip": "https://www.proteinatlas.org/download/proteinatlas.tsv.zip",
+}
 
 
 def download(
@@ -70,6 +82,8 @@ def download(
             "--output",
             str(temporary),
         ]
+        if temporary.exists() and temporary.stat().st_size:
+            command.extend(["--continue-at", "-"])
         if url.startswith("https://api.github.com/"):
             command.extend(["--header", "Accept: application/vnd.github.raw+json"])
         command.append(url)
@@ -78,7 +92,7 @@ def download(
             temporary.replace(destination)
             return destination
         except subprocess.CalledProcessError:
-            temporary.unlink(missing_ok=True)
+            pass
     headers = {"User-Agent": "GenePT-Seed/0.1"}
     if url.startswith("https://api.github.com/"):
         headers["Accept"] = "application/vnd.github.raw+json"
@@ -188,4 +202,24 @@ def prepare_go_exp(destination: Path) -> dict[str, object]:
         "files": files,
     }
     atomic_write_json(destination / "go_exp_source_manifest.json", manifest)
+    return manifest
+
+
+def prepare_knowledge_sources(destination: Path) -> dict[str, object]:
+    """Materialize official current releases and freeze their content hashes."""
+
+    destination.mkdir(parents=True, exist_ok=True)
+    files: dict[str, dict[str, str]] = {}
+    for name, url in KNOWLEDGE_SOURCE_URLS.items():
+        path = destination / name
+        if not path.exists() or path.stat().st_size == 0:
+            download(url, path)
+        files[name] = {"url": url, "sha256": digest_file(path)}
+    manifest = {
+        "schema_version": "genept-seed-knowledge-sources-v1",
+        "prepared_at": utc_now(),
+        "release_policy": "publisher-current-snapshot-frozen-by-sha256",
+        "files": files,
+    }
+    atomic_write_json(destination / "knowledge_source_manifest.json", manifest)
     return manifest

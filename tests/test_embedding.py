@@ -6,6 +6,7 @@ import pytest
 
 from genept_seed.embedding import (
     DEFAULT_BASE_URL,
+    audit_embedding_checkpoint,
     generate_embeddings,
     load_gene_texts,
     select_gene_texts,
@@ -57,6 +58,11 @@ def test_generation_resumes_without_reembedding(tmp_path):
     manifest = json.loads((tmp_path / "vectors.npz.manifest.json").read_text())
     assert manifest["dimension"] == 2
     assert manifest["genes"] == 2
+    assert audit_embedding_checkpoint(
+        arguments["gene_texts"],
+        checkpoint_path=arguments["checkpoint_path"],
+        model="mock",
+    ) == {"requested": 2, "exact_cached": 2, "pending": 0, "dimensions": [2]}
 
 
 def test_generation_rejects_unexpected_dimension(tmp_path):

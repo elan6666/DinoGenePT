@@ -121,6 +121,8 @@ def build_axis_corpus(
     manifest_path: Path,
     axis_mapping_path: Path | None = None,
     ensembl_archive_path: Path | None = None,
+    allow_case_duplicates: bool = False,
+    allow_identity_only: bool = False,
 ) -> dict[str, Any]:
     raw = json.loads(source_path.read_text(encoding="utf-8"))
     if not isinstance(raw, dict):
@@ -134,7 +136,7 @@ def build_axis_corpus(
         if text.strip():
             source[normalized] = (gene, text)
     genes = [line.strip() for line in genes_path.read_text(encoding="utf-8").splitlines() if line.strip()]
-    if len({gene.upper() for gene in genes}) != len(genes):
+    if not allow_case_duplicates and len({gene.upper() for gene in genes}) != len(genes):
         raise ValueError("graph axis has a case-insensitive duplicate")
     ensembl_by_gene = _load_ensembl_map(axis_mapping_path)
     ensembl_archive = (
@@ -159,6 +161,23 @@ def build_axis_corpus(
             if hgnc_row is None:
                 archived = ensembl_archive.get(gene)
                 if not isinstance(archived, dict):
+                    if allow_identity_only:
+                        text = f"Gene Symbol {gene}"
+                        source_kind = "axis_identity_only"
+                        output[gene] = text
+                        stats[source_kind] += 1
+                        records.append(
+                            {
+                                "gene": gene,
+                                "source": source_kind,
+                                "hgnc_id": None,
+                                "hgnc_match_kind": None,
+                                "hgnc_approved_symbol": None,
+                                "text_sha256": digest_text(text),
+                                "text_characters": len(text),
+                            }
+                        )
+                        continue
                     unresolved.append(gene)
                     continue
                 ensembl_id = str(archived.get("id", ensembl_by_gene.get(gene, "")))
@@ -225,6 +244,8 @@ def build_axis_corpus(
         ),
         "output_sha256": digest_file(output_path),
         "genes": len(genes),
+        "case_duplicate_aliases_allowed": allow_case_duplicates,
+        "identity_only_fallback_allowed": allow_identity_only,
         "source_counts": dict(sorted(stats.items())),
         "records": records,
     }

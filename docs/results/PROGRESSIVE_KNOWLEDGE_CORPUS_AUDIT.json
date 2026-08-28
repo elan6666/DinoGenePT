@@ -1,0 +1,99 @@
+{
+  "all_graph_axes_covered": true,
+  "all_perturbation_targets_covered": true,
+  "conditions": {
+    "seed_go": {
+      "empty_texts": 0,
+      "genes": 17730,
+      "sha256": "14820b62b8c6a9aef6798a55aa93905a6616ef7f073d1dbe60b4ab679a27045d"
+    },
+    "seed_go_protein": {
+      "empty_texts": 0,
+      "genes": 17730,
+      "sha256": "5e91e8ca9aa8782593fa397ff023bcb1d7c96eb870907b698bc30d755ea5337b"
+    },
+    "seed_go_protein_pathway": {
+      "empty_texts": 0,
+      "genes": 17730,
+      "sha256": "7a952fa7feaf2f19f3e810e8b50532ee0cfd479deb93d62b47dfebedcc9daa3c"
+    },
+    "seed_go_protein_pathway_hpa": {
+      "empty_texts": 0,
+      "genes": 17730,
+      "sha256": "3cb5a29831febb7d8be853d85fa8bb8b7697f2190a34272bbae1657cf4f6b2bb"
+    }
+  },
+  "created_at": "2026-08-28T13:57:21.050840+00:00",
+  "datasets": [
+    {
+      "all_conditions_cover_graph": true,
+      "all_conditions_cover_targets": true,
+      "dataset": "replogle_k562_essential",
+      "graph_genes": 5657,
+      "graph_missing_from_master": [],
+      "perturbation_targets": 1087,
+      "protocol": "within_cell_unseen_single",
+      "targets_missing_from_master": []
+    },
+    {
+      "all_conditions_cover_graph": true,
+      "all_conditions_cover_targets": true,
+      "dataset": "replogle_rpe1_essential",
+      "graph_genes": 6386,
+      "graph_missing_from_master": [],
+      "perturbation_targets": 2373,
+      "protocol": "within_cell_unseen_single",
+      "targets_missing_from_master": []
+    },
+    {
+      "all_conditions_cover_graph": true,
+      "all_conditions_cover_targets": true,
+      "dataset": "nadig_jurkat",
+      "graph_genes": 6506,
+      "graph_missing_from_master": [],
+      "perturbation_targets": 2372,
+      "protocol": "within_cell_unseen_single",
+      "targets_missing_from_master": []
+    },
+    {
+      "all_conditions_cover_graph": true,
+      "all_conditions_cover_targets": true,
+      "dataset": "nadig_hepg2",
+      "graph_genes": 6530,
+      "graph_missing_from_master": [],
+      "perturbation_targets": 2373,
+      "protocol": "within_cell_unseen_single",
+      "targets_missing_from_master": []
+    },
+    {
+      "all_conditions_cover_graph": true,
+      "all_conditions_cover_targets": true,
+      "dataset": "norman",
+      "graph_genes": 5045,
+      "graph_missing_from_master": [],
+      "perturbation_targets": 102,
+      "protocol": "norman_combo_seen2",
+      "targets_missing_from_master": []
+    }
+  ],
+  "master_genes": 17730,
+  "master_sha256": "01cb4208b752d6041b731d4564217bb1bbe3a67ac6b6d4f39d887e4450c2b685",
+  "schema_version": "genept-seed-progressive-corpus-audit-v1",
+  "transitions": {
+    "seed_go_protein_pathway_to_seed_go_protein_pathway_hpa": {
+      "all_previous_text_is_prefix": true,
+      "changed_genes": 14658,
+      "unchanged_genes": 3072
+    },
+    "seed_go_protein_to_seed_go_protein_pathway": {
+      "all_previous_text_is_prefix": true,
+      "changed_genes": 10740,
+      "unchanged_genes": 6990
+    },
+    "seed_go_to_seed_go_protein": {
+      "all_previous_text_is_prefix": true,
+      "changed_genes": 14847,
+      "unchanged_genes": 2883
+    }
+  }
+}

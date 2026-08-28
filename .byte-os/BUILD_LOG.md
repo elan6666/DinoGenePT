@@ -2,6 +2,55 @@
 
 ## 2026-08-28
 
+- Froze a 17,730-label master universe from all five canonical GraD-Pert graph
+  axes plus the fixed GGI universe; all 2,469 unique perturbation targets are
+  members of the graph union.
+- Materialized official UniProt, InterPro, Reactome, SIGNOR, and HPA snapshots
+  on the server with source hashes. A duplicate HPA download corruption and a
+  SIGNOR `DIRECT=t` schema mismatch were caught by gates, repaired, and rerun.
+- Built three complete append-only corpora. Exact per-source coverage:
+  UniProt structured 14,847; InterPro 14,731; Reactome 10,013; direct human
+  protein-protein SIGNOR 4,255; HPA 14,658.
+- The progressive corpus audit passed all five graph axes and target sets.
+  Protein/Pathway/HPA changed 14,847/10,740/14,658 rows; all other rows remained
+  byte-identical to the preceding condition.
+- Started three checkpointed Doubao embedding runs. Independent four-second
+  intervals caused one Pathway HTTP 429; all runs were safely resumed with
+  twelve-second per-session intervals staggered by four seconds, preserving
+  the validated aggregate four-second request-start rate.
+- Pre-result delivery gate passed on both Mac and server: 36 tests, Ruff,
+  isolated sdist/wheel build, and CLI smoke. The credential scan was tightened
+  after correctly identifying `.env.example` as a placeholder rather than a
+  leaked key; the refined real-token/non-placeholder scan passed.
+- Added a matched-GGI comparison auditor and two regression tests. Its server
+  preflight accepted latest GenePT, completed Seed, and Seed-GO as sharing all
+  15 fairness fields, and will reject protocol drift before combining the three
+  pending conditions. The local suite now contains 38 passing tests.
+- Found and removed an order-dependent GGI edge: eight master-universe label
+  groups differ only by case, while the legacy `as_dict()` uppercased every key.
+  Fixed-universe benchmarks now prefer the exact requested label and permit
+  only a unique case-fold fallback. The delivered Seed-GO baseline rerun remains
+  byte-identical, proving no regression for existing uppercase-only artifacts.
+- Added the final progressive-vector auditor for exact 17,730-label order,
+  2,048 width, nonzero/finite vectors, exact 10,870 GGI labels, per-dataset graph
+  and target coverage, common model, hashes, and explicit case-collision groups.
+  The local suite now contains 40 passing tests.
+- Completed all three exact checkpoints at 17,730/17,730, pending 0, width
+  2,048. The locked finalizer aligned all artifacts and passed the five-dataset
+  graph/target vector gate with no zero rows.
+- Ran the fixed GGI protocol for Protein, ProteinPathway, and
+  ProteinPathway-HPA. Metrics were 0.73415/0.82571/0.81872,
+  0.74968/0.83615/0.82859, and 0.73975/0.83088/0.82407 respectively.
+- The six-row auditor accepted all 15 fairness fields. ProteinPathway improved
+  on Seed+GO by +0.01440 Accuracy, +0.01203 AUROC, and +0.01317 AP and was the
+  best tested condition; HPA did not add a further gain.
+- Copied only compact corpus, vector, and GGI receipts into `docs/results/`;
+  raw data, vectors, checkpoints, and full logs remain server-only and ignored.
+- Final local and server gates each passed 40 tests, Ruff, wheel/sdist build,
+  CLI smoke, and JSON validation. Local diff/credential scans passed; server
+  receipt hashes match the Mac and post-apply checksum sync is empty.
+- Review 5 found no required changes and returned `ship`.
+
 - Began plan 001: package, provenance, CLI, and safety foundation.
 - Local repository is the source of truth; server remains execution-only.
 - Live Ark calls remain gated on a rotated key provisioned privately on server.

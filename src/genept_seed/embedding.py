@@ -140,6 +140,33 @@ def text_statistics(gene_texts: Mapping[str, str]) -> dict[str, object]:
     }
 
 
+def audit_embedding_checkpoint(
+    gene_texts: Mapping[str, str], *, checkpoint_path: Path, model: str
+) -> dict[str, object]:
+    """Count exact gene/text/model hits without reading vectors into logs."""
+
+    connection = sqlite3.connect(checkpoint_path)
+    dimensions: set[int] = set()
+    exact = 0
+    try:
+        for gene, text in gene_texts.items():
+            row = connection.execute(
+                "SELECT dimension FROM embeddings WHERE gene=? AND text_sha256=? AND model=?",
+                (gene, hashlib.sha256(text.encode("utf-8")).hexdigest(), model),
+            ).fetchone()
+            if row is not None:
+                exact += 1
+                dimensions.add(int(row[0]))
+    finally:
+        connection.close()
+    return {
+        "requested": len(gene_texts),
+        "exact_cached": exact,
+        "pending": len(gene_texts) - exact,
+        "dimensions": sorted(dimensions),
+    }
+
+
 class EmbeddingCheckpoint:
     def __init__(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)

@@ -235,6 +235,7 @@ def build_go_exp_corpus(
     manifest_path: Path,
     max_terms_per_aspect: int = 8,
     include_interaction_evidence: bool = False,
+    allow_case_duplicates: bool = False,
 ) -> dict[str, Any]:
     raw = json.loads(base_path.read_text(encoding="utf-8"))
     if not isinstance(raw, dict):
@@ -248,7 +249,10 @@ def build_go_exp_corpus(
         normalized = gene.upper()
         if normalized in base_by_normalized:
             previous = base_by_normalized[normalized][0]
-            raise ValueError(f"base GenePT corpus has a case-insensitive collision: {previous}, {gene}")
+            previous_text = base_by_normalized[normalized][1]
+            if not allow_case_duplicates or previous_text != text:
+                raise ValueError(f"base GenePT corpus has a case-insensitive collision: {previous}, {gene}")
+            continue
         base_by_normalized[normalized] = (gene, text)
     genes_in_order = [
         line.strip()
@@ -256,7 +260,7 @@ def build_go_exp_corpus(
         if line.strip()
     ]
     normalized_genes = [gene.upper() for gene in genes_in_order]
-    if len(normalized_genes) != len(set(normalized_genes)):
+    if not allow_case_duplicates and len(normalized_genes) != len(set(normalized_genes)):
         raise ValueError("gene allowlist contains a case-insensitive duplicate")
     missing = sorted(set(normalized_genes) - set(base_by_normalized))
     if missing:
@@ -307,6 +311,7 @@ def build_go_exp_corpus(
         "ontology_sha256": digest_file(obo_path),
         "output_sha256": digest_file(output_path),
         "genes": len(genes_in_order),
+        "case_duplicate_aliases_allowed": allow_case_duplicates,
         "ontology_terms": len(ontology),
         "annotation_stats": annotation_stats,
         "selection_stats": dict(sorted(selected_term_counts.items())),

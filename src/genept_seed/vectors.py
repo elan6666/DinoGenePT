@@ -96,3 +96,33 @@ def coverage(embedding_set: EmbeddingSet, requested_genes: set[str]) -> dict[str
         "coverage": len(found) / len(requested) if requested else 1.0,
         "missing": sorted(requested - available),
     }
+
+
+def select_universe_vectors(
+    embedding_set: EmbeddingSet, requested_genes: set[str]
+) -> dict[str, np.ndarray]:
+    """Prefer exact labels, with only an unambiguous case-fold fallback."""
+
+    exact = {str(gene): embedding_set.vectors[index] for index, gene in enumerate(embedding_set.genes)}
+    by_normalized: dict[str, list[str]] = {}
+    for gene in exact:
+        by_normalized.setdefault(gene.upper(), []).append(gene)
+    selected: dict[str, np.ndarray] = {}
+    missing: list[str] = []
+    ambiguous: dict[str, list[str]] = {}
+    for requested in sorted({str(gene) for gene in requested_genes if str(gene)}):
+        if requested in exact:
+            selected[requested.upper()] = exact[requested]
+            continue
+        matches = by_normalized.get(requested.upper(), [])
+        if len(matches) == 1:
+            selected[requested.upper()] = exact[matches[0]]
+        elif not matches:
+            missing.append(requested)
+        else:
+            ambiguous[requested] = sorted(matches)
+    if ambiguous:
+        raise ValueError(f"requested universe has ambiguous case-fold matches: {ambiguous}")
+    if missing:
+        raise ValueError(f"requested universe is missing embeddings: {missing[:20]}")
+    return selected

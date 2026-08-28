@@ -14,6 +14,9 @@ This is an independent research variant, not an official GenePT release.
 | Latest official GenePT | NCBI + UniProt | `text-embedding-3-large` |
 | GenePT-Seed | Identical NCBI + UniProt | `doubao-embedding-vision` |
 | GenePT-Seed+GO-EXP | Completed NCBI + UniProt + bounded GO-EXP | `doubao-embedding-vision` |
+| Seed-GO-Protein | Previous + reviewed UniProt structured fields + InterPro | `doubao-embedding-vision` |
+| Seed-GO-ProteinPathway | Previous + Reactome + direct human SIGNOR relations | `doubao-embedding-vision` |
+| Seed-GO-ProteinPathway-HPA | Previous + Human Protein Atlas summaries | `doubao-embedding-vision` |
 
 The comparison fixes genes/pairs, labels, splits, classifiers, metrics, and
 random seeds. It reports coverage and native dimensions rather than assuming
@@ -136,6 +139,43 @@ append 2,048-dimensional Doubao vectors to the frozen 1,536-dimensional Ada
 The exact Nadig Jurkat 2,809-gene corpus and GO-EXP construction are documented
 in [`docs/GRADPERT_JURKAT_GOEXP.md`](docs/GRADPERT_JURKAT_GOEXP.md).
 
+### Complete GraD-Pert knowledge universe
+
+The progressive knowledge artifacts use one 17,730-gene master allowlist: the
+13,759-gene union of all five canonical GraD-Pert graph axes, plus the fixed
+10,870-gene GGI universe (6,899 genes overlap). All 2,469 unique perturbation
+targets are already members of the graph union. Build it from the frozen
+GraD-Pert canonical files rather than maintaining a handwritten list:
+
+```bash
+genept-seed data build-gradpert-union \
+  --gradpert-root /data/yilangliu/GraD-Pert/data-vnext-a942114 \
+  --extra-genes data/ggi/genes-with-text.txt \
+  --output data/universes/gradpert-ggi-master-genes.txt \
+  --manifest data/universes/gradpert-ggi-master-manifest.json
+
+genept-seed data prepare-knowledge-sources --output data/knowledge/current
+genept-seed data build-knowledge-texts \
+  --base data/corpora/seed-go-master.json \
+  --genes data/universes/gradpert-ggi-master-genes.txt \
+  --uniprot data/knowledge/current/uniprot-human-reviewed.tsv \
+  --interpro data/knowledge/current/interpro.entry.list \
+  --reactome data/knowledge/current/reactome.UniProt2Reactome.txt \
+  --signor data/knowledge/current/signor.human.tsv \
+  --hpa data/knowledge/current/hpa.proteinatlas.tsv.zip \
+  --profile protein-pathway-hpa \
+  --output data/corpora/seed-go-protein-pathway-hpa-master.json \
+  --manifest data/corpora/seed-go-protein-pathway-hpa-master.manifest.json
+```
+
+Every output retains every master gene. Optional sections are sparse: a source
+is appended only when that exact normalized gene has a real record. An absent
+GO, InterPro, Reactome, SIGNOR, or HPA record leaves the previous text unchanged;
+it is never replaced by zero text, a nearest gene, or generated biology. Legacy
+graph feature labels absent from current NCBI/HGNC/UniProt receive only the
+auditable identity string `Gene Symbol <label>` so the graph axis stays complete.
+See [`docs/GRADPERT_MASTER_KNOWLEDGE.md`](docs/GRADPERT_MASTER_KNOWLEDGE.md).
+
 After embedding, use `genept-seed data align-axis-vectors` before a strict
 downstream prior: the generic NPZ writer sorts symbols, while GraD-Pert requires
 the exact frozen graph-axis order. The aligner rejects any missing, extra, or
@@ -148,12 +188,25 @@ completed the full run without sustained-rate HTTP 429 failures.
 
 ## Reproduced result
 
-On the fixed Gene2vec GGI split and the same 10,870-gene universe, the primary
-L2-normalized GenePT-Seed run reached 0.73223 accuracy, 0.82099 AUROC, and
-0.81147 average precision. Adding bounded GO-EXP reached 0.73528, 0.82411,
-and 0.81541. The latest official NCBI + UniProt GenePT embedding
-reached 0.70627, 0.79299, and 0.78289 under the same code and receipts. See
-[`docs/BASELINE_RESULTS.md`](docs/BASELINE_RESULTS.md) for scope and caveats.
+All rows below use the fixed Gene2vec GGI split, the same 10,870-gene universe,
+L2 normalization, pair-vector addition, logistic regression, and seed 42.
+
+| Condition | Accuracy | AUROC | Average precision |
+|---|---:|---:|---:|
+| Latest official GenePT | 0.70627 | 0.79299 | 0.78289 |
+| GenePT-Seed | 0.73223 | 0.82099 | 0.81147 |
+| GenePT-Seed+GO-EXP | 0.73528 | 0.82411 | 0.81541 |
+| Seed-GO-Protein | 0.73415 | 0.82571 | 0.81872 |
+| **Seed-GO-ProteinPathway** | **0.74968** | **0.83615** | **0.82859** |
+| Seed-GO-ProteinPathway-HPA | 0.73975 | 0.83088 | 0.82407 |
+
+ProteinPathway is best on all three metrics. Relative to Seed+GO it gains
+0.01440 accuracy, 0.01203 AUROC, and 0.01317 average precision. HPA remains
+above Seed+GO but does not improve on ProteinPathway, so more text is not
+automatically better. These results are evidence for this released GGI split,
+not for GraD-Pert prediction quality. See
+[`docs/BASELINE_RESULTS.md`](docs/BASELINE_RESULTS.md) and the compact
+[`GGI comparison receipt`](docs/results/PROGRESSIVE_KNOWLEDGE_GGI.json).
 
 ## Tests
 

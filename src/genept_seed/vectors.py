@@ -29,10 +29,16 @@ def _validate(genes: np.ndarray, vectors: np.ndarray) -> None:
         raise ValueError("vectors contain non-finite values")
 
 
-def save_npz(path: Path, vectors: Mapping[str, np.ndarray], model: str) -> Path:
+def save_npz(
+    path: Path,
+    vectors: Mapping[str, np.ndarray],
+    model: str,
+    *,
+    uppercase_genes: bool = True,
+) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     normalized = {
-        str(gene).upper(): np.asarray(vector, dtype=np.float32)
+        (str(gene).upper() if uppercase_genes else str(gene)): np.asarray(vector, dtype=np.float32)
         for gene, vector in vectors.items()
     }
     if not normalized:

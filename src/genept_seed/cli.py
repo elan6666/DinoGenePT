@@ -12,6 +12,7 @@ import sklearn
 
 from . import __version__
 from .benchmarks import evaluate_ggi, evaluate_property_task
+from .corpus import extend_genept_texts
 from .data import prepare_genept, prepare_ggi
 from .embedding import (
     DEFAULT_BASE_URL,
@@ -51,6 +52,14 @@ def build_parser() -> argparse.ArgumentParser:
     genes = data_sub.add_parser("ggi-genes", help="write the unique benchmark gene set")
     genes.add_argument("--data", type=Path, required=True)
     genes.add_argument("--output", type=Path, required=True)
+    extend = data_sub.add_parser(
+        "extend-genept-texts",
+        help="append missing human genes from NCBI Gene and UniProtKB with provenance",
+    )
+    extend.add_argument("--base", type=Path, required=True)
+    extend.add_argument("--genes", type=Path, required=True)
+    extend.add_argument("--output", type=Path, required=True)
+    extend.add_argument("--manifest", type=Path, required=True)
 
     embed = subparsers.add_parser("embed", help="generate resumable Doubao gene embeddings")
     embed.add_argument("--texts", type=Path, required=True)
@@ -65,11 +74,17 @@ def build_parser() -> argparse.ArgumentParser:
     embed.add_argument("--request-interval", type=float, default=0.0)
     embed.add_argument("--limit", type=int)
     embed.add_argument("--genes", type=Path, help="optional newline-delimited gene allowlist")
+    embed.add_argument(
+        "--preserve-gene-case",
+        action="store_true",
+        help="preserve exact gene-symbol case for strict downstream matching",
+    )
 
     texts = subparsers.add_parser("audit-texts", help="inspect source text size and coverage")
     texts.add_argument("--texts", type=Path, required=True)
     texts.add_argument("--genes", type=Path)
     texts.add_argument("--output-selected", type=Path)
+    texts.add_argument("--preserve-gene-case", action="store_true")
 
     audit = subparsers.add_parser("audit-vectors", help="inspect vector shape and optional coverage")
     audit.add_argument("--vectors", type=Path, required=True)
@@ -116,6 +131,13 @@ def main(argv: list[str] | None = None) -> int:
             result = prepare_genept(args.output, keep_archive=args.keep_archive)
         elif args.data_command == "prepare-ggi":
             result = prepare_ggi(args.output)
+        elif args.data_command == "extend-genept-texts":
+            result = extend_genept_texts(
+                base_path=args.base,
+                genes_path=args.genes,
+                output_path=args.output,
+                manifest_path=args.manifest,
+            )
         else:
             selected = sorted(ggi_genes(load_ggi(args.data)))
             args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -124,12 +146,23 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, indent=2))
         return 0
     if args.command == "audit-texts":
-        gene_texts = load_gene_texts(args.texts)
+        uppercase_genes = not args.preserve_gene_case
+        gene_texts = load_gene_texts(args.texts, uppercase_genes=uppercase_genes)
         report = text_statistics(gene_texts)
         if args.genes:
             requested = set(args.genes.read_text(encoding="utf-8").splitlines())
-            selected = select_gene_texts(gene_texts, requested)
-            report["requested_genes"] = len({gene.upper() for gene in requested if gene})
+            selected = select_gene_texts(
+                gene_texts,
+                requested,
+                uppercase_genes=uppercase_genes,
+            )
+            report["requested_genes"] = len(
+                {
+                    gene.upper() if uppercase_genes else gene
+                    for gene in requested
+                    if gene
+                }
+            )
             report["selected_genes"] = len(selected)
             report["selected_coverage"] = len(selected) / report["requested_genes"]
             if args.output_selected:
@@ -145,16 +178,22 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "embed":
         client = ArkEmbeddingClient(base_url=args.base_url, model=args.model, dimensions=args.dimensions)
-        gene_texts = load_gene_texts(args.texts)
+        uppercase_genes = not args.preserve_gene_case
+        gene_texts = load_gene_texts(args.texts, uppercase_genes=uppercase_genes)
         if args.genes:
             requested = set(args.genes.read_text(encoding="utf-8").splitlines())
-            gene_texts = select_gene_texts(gene_texts, requested)
+            gene_texts = select_gene_texts(
+                gene_texts,
+                requested,
+                uppercase_genes=uppercase_genes,
+            )
         vectors = generate_embeddings(
             gene_texts, embed=client.embed, model=args.model,
             checkpoint_path=args.checkpoint, output_path=args.output,
             batch_size=args.batch_size, max_workers=args.max_workers,
             request_interval=args.request_interval, limit=args.limit,
             expected_dimension=args.expected_dimension,
+            uppercase_genes=uppercase_genes,
         )
         print(json.dumps({"model": args.model, "genes": len(vectors), "output": str(args.output)}, indent=2))
         return 0

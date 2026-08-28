@@ -91,7 +91,7 @@ def _flatten_text(value: object) -> str:
     return "" if value is None else str(value).strip()
 
 
-def load_gene_texts(path: Path) -> dict[str, str]:
+def load_gene_texts(path: Path, *, uppercase_genes: bool = True) -> dict[str, str]:
     raw = json.loads(path.read_text(encoding="utf-8"))
     if isinstance(raw, dict):
         items = raw.items()
@@ -105,12 +105,24 @@ def load_gene_texts(path: Path) -> dict[str, str]:
                 items.append((gene, row.get("text") or row))
     else:
         raise ValueError("gene text JSON must be an object or list")
-    result = {str(gene).upper(): _flatten_text(text) for gene, text in items}
+    result = {
+        (str(gene).upper() if uppercase_genes else str(gene)): _flatten_text(text)
+        for gene, text in items
+    }
     return {gene: text for gene, text in result.items() if text}
 
 
-def select_gene_texts(gene_texts: Mapping[str, str], genes: set[str]) -> dict[str, str]:
-    requested = {gene.strip().upper() for gene in genes if gene.strip()}
+def select_gene_texts(
+    gene_texts: Mapping[str, str],
+    genes: set[str],
+    *,
+    uppercase_genes: bool = True,
+) -> dict[str, str]:
+    requested = {
+        gene.strip().upper() if uppercase_genes else gene.strip()
+        for gene in genes
+        if gene.strip()
+    }
     return {gene: text for gene, text in gene_texts.items() if gene in requested}
 
 
@@ -174,6 +186,7 @@ def generate_embeddings(
     request_interval: float = 0.0,
     limit: int | None = None,
     expected_dimension: int | None = None,
+    uppercase_genes: bool = True,
 ) -> dict[str, np.ndarray]:
     if batch_size < 1:
         raise ValueError("batch_size must be positive")
@@ -181,7 +194,10 @@ def generate_embeddings(
         raise ValueError("max_workers must be positive")
     if request_interval < 0:
         raise ValueError("request_interval must be non-negative")
-    items = sorted((str(g).upper(), text) for g, text in gene_texts.items())
+    items = sorted(
+        ((str(g).upper() if uppercase_genes else str(g)), text)
+        for g, text in gene_texts.items()
+    )
     if limit is not None:
         items = items[:limit]
     checkpoint = EmbeddingCheckpoint(checkpoint_path)
@@ -259,7 +275,7 @@ def generate_embeddings(
         raise ValueError(
             f"expected {expected_dimension}-dimensional embeddings, got {final_dimension}"
         )
-    save_npz(output_path, collected, model)
+    save_npz(output_path, collected, model, uppercase_genes=uppercase_genes)
     text_fingerprint = hashlib.sha256()
     for gene, text in items:
         text_fingerprint.update(gene.encode("utf-8"))
@@ -276,6 +292,7 @@ def generate_embeddings(
             "batch_size": batch_size,
             "max_workers": max_workers,
             "request_interval": request_interval,
+            "gene_case": "uppercase" if uppercase_genes else "preserved",
             "text_fingerprint_sha256": text_fingerprint.hexdigest(),
             "output": output_path.name,
         },

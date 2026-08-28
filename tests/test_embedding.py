@@ -25,6 +25,7 @@ def test_load_nested_gene_texts(tmp_path):
     path = tmp_path / "texts.json"
     path.write_text(json.dumps({"tp53": {"summary": "tumor", "function": ["repair"]}}))
     assert load_gene_texts(path) == {"TP53": "tumor repair"}
+    assert load_gene_texts(path, uppercase_genes=False) == {"tp53": "tumor repair"}
 
 
 def test_text_selection_and_statistics():
@@ -105,3 +106,19 @@ def test_generation_rejects_negative_request_interval(tmp_path):
             output_path=tmp_path / "vectors.npz",
             request_interval=-1,
         )
+
+
+def test_generation_can_preserve_gene_case(tmp_path):
+    output = tmp_path / "case.npz"
+    generate_embeddings(
+        {"C12orf45": "text"},
+        embed=lambda _: [np.ones(2, dtype=np.float32)],
+        model="mock",
+        checkpoint_path=tmp_path / "case.sqlite3",
+        output_path=output,
+        expected_dimension=2,
+        uppercase_genes=False,
+    )
+    assert load_npz(output).genes.tolist() == ["C12orf45"]
+    manifest = json.loads((tmp_path / "case.npz.manifest.json").read_text())
+    assert manifest["gene_case"] == "preserved"

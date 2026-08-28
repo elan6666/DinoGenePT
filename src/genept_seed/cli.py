@@ -11,9 +11,11 @@ import numpy as np
 import sklearn
 
 from . import __version__
+from .axis_corpus import build_axis_corpus
+from .axis_vectors import materialize_axis_vectors
 from .benchmarks import evaluate_ggi, evaluate_property_task
 from .corpus import extend_genept_texts
-from .data import prepare_genept, prepare_ggi
+from .data import prepare_genept, prepare_ggi, prepare_go_exp
 from .embedding import (
     DEFAULT_BASE_URL,
     DEFAULT_MODEL,
@@ -23,6 +25,7 @@ from .embedding import (
     select_gene_texts,
     text_statistics,
 )
+from .go_corpus import build_go_exp_corpus
 from .provenance import credential_present, digest_file
 from .reports import write_results
 from .tasks import ggi_genes, load_ggi, load_property_tasks
@@ -60,6 +63,41 @@ def build_parser() -> argparse.ArgumentParser:
     extend.add_argument("--genes", type=Path, required=True)
     extend.add_argument("--output", type=Path, required=True)
     extend.add_argument("--manifest", type=Path, required=True)
+    extend.add_argument("--checkpoint", type=Path)
+    axis_text = data_sub.add_parser(
+        "build-axis-texts",
+        help="materialize an exact graph-axis corpus with HGNC identity fallbacks",
+    )
+    axis_text.add_argument("--source", type=Path, required=True)
+    axis_text.add_argument("--genes", type=Path, required=True)
+    axis_text.add_argument("--hgnc", type=Path, required=True)
+    axis_text.add_argument("--axis-mapping", type=Path)
+    axis_text.add_argument("--ensembl-archive", type=Path)
+    axis_text.add_argument("--output", type=Path, required=True)
+    axis_text.add_argument("--manifest", type=Path, required=True)
+    axis_vectors = data_sub.add_parser(
+        "build-axis-vectors",
+        help="align a trusted official embedding pickle to a graph axis",
+    )
+    axis_vectors.add_argument("--source", type=Path, required=True)
+    axis_vectors.add_argument("--genes", type=Path, required=True)
+    axis_vectors.add_argument("--hgnc", type=Path, required=True)
+    axis_vectors.add_argument("--axis-mapping", type=Path)
+    axis_vectors.add_argument("--output", type=Path, required=True)
+    axis_vectors.add_argument("--manifest", type=Path, required=True)
+    axis_vectors.add_argument("--model", required=True)
+    axis_vectors.add_argument("--trusted-pickle", action="store_true")
+    go_source = data_sub.add_parser("prepare-go-exp", help="prepare the pinned human GO release")
+    go_source.add_argument("--output", type=Path, required=True)
+    go_text = data_sub.add_parser("build-go-exp-texts", help="append bounded experimental GO text")
+    go_text.add_argument("--base", type=Path, required=True)
+    go_text.add_argument("--genes", type=Path, required=True)
+    go_text.add_argument("--gaf", type=Path, required=True)
+    go_text.add_argument("--obo", type=Path, required=True)
+    go_text.add_argument("--output", type=Path, required=True)
+    go_text.add_argument("--manifest", type=Path, required=True)
+    go_text.add_argument("--max-terms-per-aspect", type=int, default=8)
+    go_text.add_argument("--include-interaction-evidence", action="store_true")
 
     embed = subparsers.add_parser("embed", help="generate resumable Doubao gene embeddings")
     embed.add_argument("--texts", type=Path, required=True)
@@ -131,12 +169,47 @@ def main(argv: list[str] | None = None) -> int:
             result = prepare_genept(args.output, keep_archive=args.keep_archive)
         elif args.data_command == "prepare-ggi":
             result = prepare_ggi(args.output)
+        elif args.data_command == "prepare-go-exp":
+            result = prepare_go_exp(args.output)
         elif args.data_command == "extend-genept-texts":
             result = extend_genept_texts(
                 base_path=args.base,
                 genes_path=args.genes,
                 output_path=args.output,
                 manifest_path=args.manifest,
+                checkpoint_path=args.checkpoint,
+            )
+        elif args.data_command == "build-axis-texts":
+            result = build_axis_corpus(
+                source_path=args.source,
+                genes_path=args.genes,
+                hgnc_path=args.hgnc,
+                axis_mapping_path=args.axis_mapping,
+                ensembl_archive_path=args.ensembl_archive,
+                output_path=args.output,
+                manifest_path=args.manifest,
+            )
+        elif args.data_command == "build-axis-vectors":
+            result = materialize_axis_vectors(
+                source_path=args.source,
+                genes_path=args.genes,
+                hgnc_path=args.hgnc,
+                axis_mapping_path=args.axis_mapping,
+                output_path=args.output,
+                manifest_path=args.manifest,
+                model=args.model,
+                trusted_pickle=args.trusted_pickle,
+            )
+        elif args.data_command == "build-go-exp-texts":
+            result = build_go_exp_corpus(
+                base_path=args.base,
+                genes_path=args.genes,
+                gaf_path=args.gaf,
+                obo_path=args.obo,
+                output_path=args.output,
+                manifest_path=args.manifest,
+                max_terms_per_aspect=args.max_terms_per_aspect,
+                include_interaction_evidence=args.include_interaction_evidence,
             )
         else:
             selected = sorted(ggi_genes(load_ggi(args.data)))

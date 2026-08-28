@@ -102,14 +102,18 @@ genept-seed embed \
   --preserve-gene-case
 ```
 
-The allowlist accepts `SYMBOL [NCBI_GENE_ID]`; pin the GeneID whenever an old
-symbol is ambiguous. The extension validates each requested symbol against
+The allowlist accepts `SYMBOL [NCBI_GENE_ID|-] [ENSEMBL_GENE_ID]`; pin the
+GeneID whenever an old symbol is ambiguous and provide an Ensembl ID for genes
+that have no NCBI record. The extension validates each requested symbol against
 human NCBI Gene, records renamed symbols and GeneIDs, and appends the reviewed
 UniProtKB function comment when available. It never overwrites an official
 text. Use one embedding model and width for the entire downstream prior; do not
 append 2,048-dimensional Doubao vectors to the frozen 1,536-dimensional Ada
 `emb_b` artifact. The reviewed mappings and server hashes are recorded in
 [`docs/GRADPERT_EXTENSION.md`](docs/GRADPERT_EXTENSION.md).
+
+The exact Nadig Jurkat 2,809-gene corpus and GO-EXP construction are documented
+in [`docs/GRADPERT_JURKAT_GOEXP.md`](docs/GRADPERT_JURKAT_GOEXP.md).
 
 Use `--limit 20` with embedding generation for the first paid smoke test.
 The defaults use the live-verified Agent Plan batch limit of 10. The optional

@@ -30,6 +30,18 @@ GGI_SHA256 = {
     "test_text.txt": "c03f4b276bb9ddbb60b3e82eba32391578c95b4c353479a369e16066a04d5360",
     "test_label.txt": "1e9ffeba8c927e3b12565c37ff5bc8fd9300d6500f67152687eeee198c7ccdb1",
 }
+GO_RELEASE = "2026-08-05"
+GO_RELEASE_BASE_URL = f"https://release.geneontology.org/{GO_RELEASE}"
+GOEXP_FILES = {
+    "HUMAN-uniprot.gaf.gz": {
+        "url": f"{GO_RELEASE_BASE_URL}/annotations/gaf/HUMAN-uniprot.gaf.gz",
+        "sha256": "a0afba19dfb1f8fa996bc1bdcd61fd0c9bd4cf0d2bf2509d09ac86993c0e70a2",
+    },
+    "go-basic.obo": {
+        "url": f"{GO_RELEASE_BASE_URL}/ontology/go-basic.obo",
+        "sha256": "b08d45b268b8c24ccb2513dbbbc7d4df9f6521c099b413f79eb31e06e0fa3bcc",
+    },
+}
 
 
 def download(
@@ -155,4 +167,25 @@ def prepare_ggi(destination: Path) -> dict[str, object]:
         "files": {path.name: digest_file(path) for path in downloaded},
     }
     atomic_write_json(destination / "ggi_manifest.json", manifest)
+    return manifest
+
+
+def prepare_go_exp(destination: Path) -> dict[str, object]:
+    """Download and verify the pinned human GO annotation and ontology release."""
+
+    destination.mkdir(parents=True, exist_ok=True)
+    files: dict[str, str] = {}
+    for name, descriptor in GOEXP_FILES.items():
+        path = destination / name
+        if not path.exists() or path.stat().st_size == 0:
+            download(str(descriptor["url"]), path)
+        verify_sha256(path, str(descriptor["sha256"]))
+        files[name] = digest_file(path)
+    manifest = {
+        "prepared_at": utc_now(),
+        "release": GO_RELEASE,
+        "release_base_url": GO_RELEASE_BASE_URL,
+        "files": files,
+    }
+    atomic_write_json(destination / "go_exp_source_manifest.json", manifest)
     return manifest

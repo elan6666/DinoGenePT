@@ -50,6 +50,9 @@
   CLI smoke, and JSON validation. Local diff/credential scans passed; server
   receipt hashes match the Mac and post-apply checksum sync is empty.
 - Review 5 found no required changes and returned `ship`.
+- Committed the tracked delivery as `daf95b23b82f621960171140a44e80892f0b2219`,
+  pushed it to GitHub `main`, and verified the remote ref at the same commit.
+  The user-owned untracked `uv.lock` was not staged or committed.
 
 - Began plan 001: package, provenance, CLI, and safety foundation.
 - Local repository is the source of truth; server remains execution-only.

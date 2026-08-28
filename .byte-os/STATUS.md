@@ -2,14 +2,14 @@
 schema_version: 1
 mode: auto
 project_kind: existing_codebase
-stage: reviewed
-current_workflow: byte-review
-next_workflow: byte-deliver
+stage: delivered
+current_workflow: byte-deliver
+next_workflow: complete
 harness_status: ready
 review_verdict: ship
 iteration_count: 9
 hard_blocked: false
-updated_at: 2026-08-29T04:12:00+08:00
+updated_at: 2026-08-29T04:16:00+08:00
 ---
 
 # Status
@@ -27,8 +27,9 @@ The fixed 10,870-gene GGI comparison is complete. ProteinPathway is best at
 15 fairness fields. No GraD-Pert model was trained or evaluated.
 
 Review 5 verdict is `ship`. Local and server 40-test suites, Ruff, build, CLI,
-JSON, credential scan, compact receipt hashes, and checksum sync pass. Remaining
-handoff is the final tracked Git commit/push and monitor/goal closure.
+JSON, credential scan, compact receipt hashes, and checksum sync pass. Tracked
+delivery commit `daf95b23b82f621960171140a44e80892f0b2219` is on remote `main`;
+only the user-owned untracked `uv.lock` remains locally.
 
 Local source of truth: `/Users/elan/code/GenePT-Seed`.
 Server execution mirror: `/data/yilangliu/GenePT-Seed`.

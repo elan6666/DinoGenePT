@@ -100,3 +100,9 @@ protocol rather than broadening claims now.
 # Real User Feedback Status
 
 No real-user feedback was collected or claimed.
+
+# Git Handoff
+
+Delivery commit `daf95b23b82f621960171140a44e80892f0b2219` was pushed and
+verified on GitHub `main`. The user-owned untracked `uv.lock` remains local and
+was not included.

@@ -1,0 +1,11 @@
+includes: [_common.yaml]
+
+identity:
+  experiment_id: ibot-post-topk-shortcut
+
+model:
+  mask:
+    gene_selection: post_topk
+
+ablation:
+  dynamic_locals: false

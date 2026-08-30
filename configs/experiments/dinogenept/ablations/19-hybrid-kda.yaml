@@ -1,0 +1,9 @@
+includes: [_common.yaml]
+
+identity:
+  experiment_id: hybrid-kda
+
+ablation:
+  kda:
+    enabled: true
+    global_every: 2

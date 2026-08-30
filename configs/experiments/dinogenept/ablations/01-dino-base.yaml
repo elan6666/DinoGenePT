@@ -1,0 +1,8 @@
+includes: [_common.yaml]
+
+identity:
+  experiment_id: dino-base
+
+ablation:
+  delta_ibot: false
+  dynamic_locals: false

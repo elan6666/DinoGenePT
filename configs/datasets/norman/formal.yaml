@@ -1,0 +1,20 @@
+identity:
+  dataset_id: norman
+
+dataset:
+  adapter: norman
+  path: ${DINOGENEPT_NORMAN_H5AD:-data/perturbations/norman.h5ad}
+  condition_key: condition
+  gene_key: gene_name
+  control_label: ctrl
+  top_de_key: top_non_dropout_de_20
+  split:
+    strategy: manifest
+    path: ${DINOGENEPT_NORMAN_SPLIT:-configs/datasets/norman/split.json}
+    seed: 42
+  limits:
+    max_conditions: 0
+    max_cells_per_condition: 0
+    max_control_cells: 0
+    max_genes: 0
+    variance_chunk_rows: 1024

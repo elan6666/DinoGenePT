@@ -1,0 +1,8 @@
+includes: [_common.yaml]
+
+identity:
+  experiment_id: direction-aware
+
+training:
+  losses:
+    prediction: direction_aware

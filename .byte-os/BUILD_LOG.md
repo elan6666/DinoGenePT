@@ -115,3 +115,24 @@
 - Mirrored the rsync fix in `.gitignore`: root-anchored `/results/` keeps
   generated outputs excluded while allowing `docs/results/` receipts to be
   tracked.
+
+## 2026-08-31 DinoGenePT
+
+- Implemented one extensible perturbation model package with independent model
+  and dataset folders, common evaluation, strict composed configs, and 21
+  config-only ablations.
+- Local static/unit gate passed with 61 tests and one expected Torch skip.
+- The first server matrix exposed a BF16/FP32 MoE dispatch mismatch; explicit
+  weight casting and CUDA BF16 regression tests fixed it.
+- The second matrix exposed an in-place KoLeo `cdist` mask; a non-in-place
+  masked fill and backward regression test fixed it.
+- A critic audit prompted input/output hash binding, atomic completion,
+  server/GPU enforcement, a model-plugin boundary, fixed training-variance iBOT
+  selection, condition-weighted local loss, parameter-stable source rows, and
+  route/collapse diagnostics.
+- The final source-hashed matrix completed 21/21 rows on physical GPU 0, wrote
+  and verified 21 checkpoints, then reused 21/21 receipts on an idempotency
+  check. Peak allocation was 66--79 MiB.
+- Final server gate passed 75 tests, Ruff, wheel/sdist, and both CLI smoke
+  commands. Full attention passed permutation invariance; ordered KDA failed as
+  expected. No run used physical GPU 1.

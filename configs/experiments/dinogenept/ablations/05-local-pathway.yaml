@@ -1,0 +1,12 @@
+includes: [_common.yaml]
+
+identity:
+  experiment_id: local-pathway
+
+priors:
+  optional:
+    pathway:
+      coverage: 1.0
+
+ablation:
+  local_sources: [pathway]

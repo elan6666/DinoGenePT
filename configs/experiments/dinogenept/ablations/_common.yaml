@@ -1,0 +1,8 @@
+includes:
+  - ../../../models/dinogenept/smoke.yaml
+  - ../../../datasets/adamson/smoke.yaml
+
+schema_version: dinogenept-experiment-v1
+
+identity:
+  experiment_id: dynamic-locals

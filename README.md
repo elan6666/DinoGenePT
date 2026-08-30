@@ -1,10 +1,80 @@
-# GenePT-Seed
+# DinoGenePT
+
+DinoGenePT is a knowledge-conditioned self-distillation package for genetic
+perturbation prediction. It uses a shared cell Transformer, a mandatory
+GenePT-Seed Base view, and a variable number of source-only knowledge views.
+The existing `genept_seed` package remains the frozen corpus, embedding, and
+gene-level evaluation toolkit; its results and CLI stay reproducible.
+
+This is an independent research project, not an official GenePT or DINOcell
+release.
+
+## Perturbation model
+
+The current package contains one model family, `dinogenept`. Ablations are
+configuration changes to that model, not separate model implementations.
+
+- The Student always receives a randomly sampled control-cell bag and the
+  complete NCBI + UniProt Base prior for the perturbation target.
+- Optional local views contain exactly one source: GO-EXP, Protein
+  (InterPro + reviewed UniProt structure fields), Pathway (Reactome + SIGNOR),
+  or HPA. They never repeat Base text.
+- A missing optional annotation removes that local view. There is no zero
+  embedding, missing token, invented text, or neighbour fill. Combination
+  perturbations require every target to have that source.
+- The EMA Teacher observes post-perturbation cells only for training-split
+  conditions. DINO is pooled at perturbation-condition level because random
+  controls and post cells are not biologically paired.
+- Delta-iBOT masks expression values while retaining gene identity and predicts
+  post-minus-control deltas. Base is the only prior used at primary inference.
+
+Model code lives under `src/dinogenept/models/<model_id>/`; dataset adapters
+live under `src/dinogenept/datasets/<dataset_family>/`. Every model uses the
+same condition-macro evaluator and writes to
+`<output>/<dataset>/<model>/<experiment>/seed-<seed>/`. Adamson, Norman,
+Replogle K562, and Replogle RPE1 have independent dataset configs.
+
+The architecture and leakage contract are documented in
+[`docs/dinogenept/ARCHITECTURE.md`](docs/dinogenept/ARCHITECTURE.md). The full
+config-only ablation matrix is listed in
+[`docs/dinogenept/ABLATIONS.md`](docs/dinogenept/ABLATIONS.md).
+
+### One-epoch server smoke
+
+All 21 ablation paths completed sequentially on physical server GPU 0 with a
+30% process memory cap; peak allocated memory was 66--79 MiB. The run used
+Adamson mini, eight perturbation conditions, 64 training-split
+variance-selected genes, one epoch, and deterministic synthetic priors. Every
+row saved a checkpoint and hash-bound it to its config, dataset, split, prior
+artifacts, executable source, metrics, and physical GPU UUID. An immediate
+second invocation validated those hashes and reused 21/21 rows without
+training. This proves execution only and is not a model comparison. The compact
+receipt is
+[`docs/results/dinogenept/SMOKE_VALIDATION.json`](docs/results/dinogenept/SMOKE_VALIDATION.json).
+
+```bash
+python -m dinogenept registry
+python -m dinogenept show-config \
+  --config configs/experiments/dinogenept/ablations/07-dynamic-locals.yaml
+
+CUDA_VISIBLE_DEVICES=0 python -m dinogenept run-matrix \
+  --matrix configs/experiments/dinogenept/smoke-matrix.yaml \
+  --device cuda:0 \
+  --output-root results/dinogenept-smoke
+```
+
+Matrix execution is sequential and idempotent. A completed row is reused only
+after its config, executable source, dataset, split, priors, optional pretrained
+checkpoint, metrics, resolved config, and saved model hashes all validate. An
+incomplete retry is archived under its run directory, and `run.json` is written
+only after all material artifacts exist. Formal configs reject fixture priors
+and require frozen split manifests.
+
+## Frozen GenePT-Seed prior toolkit
 
 GenePT-Seed keeps the official GenePT NCBI + UniProt text and selected
 gene-level evaluation protocols, replacing only the embedding backbone with
 `doubao-embedding-vision` through the Volcano Ark Agent Plan endpoint.
-
-This is an independent research variant, not an official GenePT release.
 
 ## Comparison contract
 
@@ -51,9 +121,14 @@ Development installation:
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install -e '.[dev]'
+python -m pip install -e '.[dev,train]'
+dinogenept --help
 genept-seed --help
 ```
+
+On a lightweight Mac checkout, `.[dev]` is sufficient for corpus tooling and
+non-Torch tests. Install `.[train]` only in the server environment used for
+perturbation experiments.
 
 ## Server workflow
 

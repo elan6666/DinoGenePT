@@ -1,0 +1,68 @@
+includes:
+  - base.yaml
+
+model:
+  d_model: 64
+  layers: 2
+  heads: 4
+  ff_dim: 128
+  dropout: 0.0
+  max_seq_len: 32
+  dino_head:
+    hidden_dim: 64
+    bottleneck_dim: 32
+    prototypes: 64
+
+priors:
+  base:
+    fixture: deterministic
+    dimension: 32
+    coverage: 1.0
+  optional:
+    go:
+      fixture: deterministic
+      dimension: 32
+      coverage: 0.8
+    protein:
+      fixture: deterministic
+      dimension: 32
+      coverage: 0.8
+    pathway:
+      fixture: deterministic
+      dimension: 32
+      coverage: 0.8
+    hpa:
+      fixture: deterministic
+      dimension: 32
+      coverage: 0.8
+
+ablation:
+  attention_residual:
+    block_size: 1
+  adapter:
+    top_layers: 1
+    latent_dim: 16
+    experts: 4
+    top_k: 2
+
+training:
+  epochs: 1
+  batch_size: 2
+  bag_size: 2
+  learning_rate: 0.0003
+  lr_gamma: 1.0
+
+evaluation:
+  control_samples: 4
+  batch_size: 4
+  energy_distance: false
+  bootstrap_resamples: 0
+
+runtime:
+  output_root: ${DINOGENEPT_OUTPUT_ROOT:-results/dinogenept-smoke}
+  smoke: true
+  # Keep the one-epoch smoke gate end-to-end: checkpoint materialization and
+  # receipt hashing are part of the run contract, not deferred to full runs.
+  save_checkpoint: true
+  max_gpu_memory_fraction: 0.30
+  min_free_gpu_mb: 20000

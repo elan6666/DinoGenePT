@@ -1,0 +1,118 @@
+identity:
+  model_id: dinogenept
+
+model:
+  name: dinogenept
+  d_model: 512
+  layers: 12
+  heads: 8
+  ff_dim: 1536
+  dropout: 0.1
+  max_seq_len: 512
+  positional_embedding: false
+  pretrained_checkpoint: null
+  pretrained_minimum_match_fraction: 0.9
+  dino_head:
+    hidden_dim: 2048
+    bottleneck_dim: 256
+    prototypes: 4096
+  dino:
+    student_temperature: 0.1
+    teacher_temperature_start: 0.04
+    teacher_temperature_end: 0.07
+    ema_start: 0.996
+    center_momentum: 0.9
+  mask:
+    gene_selection: train_variance
+    sample_probability: 0.5
+    ratio: [0.1, 0.5]
+    noise_std: 0.01
+
+priors:
+  base:
+    path: ${DINOGENEPT_BASE_PRIOR:-data/priors/base.npz}
+  optional:
+    go:
+      enabled: true
+      source_only: true
+      path: ${DINOGENEPT_GO_PRIOR:-data/priors/go-exp-only.npz}
+    protein:
+      enabled: true
+      source_only: true
+      path: ${DINOGENEPT_PROTEIN_PRIOR:-data/priors/protein-only.npz}
+    pathway:
+      enabled: true
+      source_only: true
+      path: ${DINOGENEPT_PATHWAY_PRIOR:-data/priors/pathway-only.npz}
+    hpa:
+      enabled: true
+      source_only: true
+      path: ${DINOGENEPT_HPA_PRIOR:-data/priors/hpa-only.npz}
+
+ablation:
+  dino: true
+  delta_ibot: true
+  dynamic_locals: true
+  local_sources: [go, protein, pathway, hpa]
+  source_control: none
+  ibot_target_control: none
+  koleo_weight: 0.0
+  situ_glu_backbone: false
+  attention_residual:
+    enabled: false
+    block_size: 4
+  kda:
+    enabled: false
+    global_every: 4
+  adapter:
+    type: none
+    top_layers: 4
+    latent_dim: 128
+    experts: 8
+    top_k: 2
+    balance: auxiliary
+    situ_glu: false
+
+training:
+  epochs: 100
+  batch_size: 8
+  bag_size: 8
+  seed: 42
+  learning_rate: 0.0001
+  weight_decay: 0.01
+  lr_gamma: 0.98
+  gradient_clip: 1.0
+  amp_bfloat16: true
+  max_batches: 0
+  losses:
+    prediction: mse
+    prediction_weight: 1.0
+    direction_weight: 0.5
+    dino_weight: 0.5
+    local_dino_weight: 0.5
+    ibot_weight: 0.5
+    moe_balance_weight: 0.01
+
+evaluation:
+  name: perturbation
+  protocol_id: gears-condition-macro-v1
+  split: test
+  seed: 42
+  control_samples: 300
+  batch_size: 64
+  energy_distance: true
+  energy_max_samples: 64
+  bootstrap_resamples: 1000
+  bootstrap_seed: 42
+
+runtime:
+  device: cuda:0
+  output_root: ${DINOGENEPT_OUTPUT_ROOT:-results/dinogenept}
+  enforce_server: true
+  required_work_root: /data/yilangliu/GenePT-Seed
+  required_cuda_visible_devices: "0"
+  smoke: false
+  save_checkpoint: true
+  max_gpu_memory_fraction: 0.35
+  min_free_gpu_mb: 20000
+  permutation_tolerance: 0.00001

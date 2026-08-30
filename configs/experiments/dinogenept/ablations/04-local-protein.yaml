@@ -1,0 +1,12 @@
+includes: [_common.yaml]
+
+identity:
+  experiment_id: local-protein
+
+priors:
+  optional:
+    protein:
+      coverage: 1.0
+
+ablation:
+  local_sources: [protein]

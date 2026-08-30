@@ -1,0 +1,10 @@
+includes: [_common.yaml]
+
+identity:
+  experiment_id: moe-situ-glu
+
+ablation:
+  adapter:
+    type: moe
+    balance: auxiliary
+    situ_glu: true

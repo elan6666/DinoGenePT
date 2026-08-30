@@ -1,0 +1,16 @@
+includes:
+  - formal.yaml
+
+dataset:
+  path: ${DINOGENEPT_SMOKE_DATA:-/data/yilangliu/trishift/examples/adamson_mini/data/adamson_mini.h5ad}
+  split:
+    strategy: deterministic_condition
+    seed: 42
+    test_fraction: 0.25
+    validation_fraction: 0.125
+  limits:
+    max_conditions: 8
+    max_cells_per_condition: 8
+    max_control_cells: 16
+    max_genes: 64
+    variance_chunk_rows: 128

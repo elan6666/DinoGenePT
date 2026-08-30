@@ -63,6 +63,20 @@ def evaluate_property_task(
     return results
 
 
+def evaluate_property_task_repeated(
+    task: PropertyTask,
+    vectors: Mapping[str, np.ndarray],
+    *,
+    folds: int = 5,
+    seeds: tuple[int, ...] = tuple(range(42, 52)),
+) -> list[dict[str, object]]:
+    rows = []
+    for seed in seeds:
+        for row in evaluate_property_task(task, vectors, folds=folds, random_state=seed):
+            rows.append({"random_state": seed, **row})
+    return rows
+
+
 def _pair_matrix(
     pairs: list[tuple[str, str]], vectors: Mapping[str, np.ndarray]
 ) -> tuple[np.ndarray, np.ndarray]:

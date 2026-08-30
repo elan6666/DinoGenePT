@@ -1,0 +1,12 @@
+{
+  "model": "doubao-embedding-vision",
+  "genes": 17730,
+  "dimension": 2048,
+  "coverage": {
+    "requested": 17730,
+    "found": 17730,
+    "coverage": 1.0,
+    "missing": [],
+    "gene_case": "preserved"
+  }
+}

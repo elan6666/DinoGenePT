@@ -1,0 +1,43 @@
+{
+  "corpus_sha256": "5d69a77abe9babe045511f06eebec50e6e7b67ab0a339566a36480c43fd41ce1",
+  "direct_human_protein_pairs": 12637,
+  "direct_self_pairs": 185,
+  "schema_version": "genept-seed-signor-ggi-leakage-v3",
+  "sections": {
+    "test": {
+      "0": {
+        "pairs": 10600,
+        "source_rate": 0.00018867924528301886,
+        "source_signor_overlap": 2,
+        "text_exposed_rate": 0.0,
+        "text_exposed_signor_overlap": 0
+      },
+      "1": {
+        "pairs": 10848,
+        "source_rate": 0.0022123893805309734,
+        "source_signor_overlap": 24,
+        "text_exposed_rate": 0.0,
+        "text_exposed_signor_overlap": 0
+      }
+    },
+    "train": {
+      "0": {
+        "pairs": 132561,
+        "source_rate": 0.00012824284668944862,
+        "source_signor_overlap": 17,
+        "text_exposed_rate": 0.0,
+        "text_exposed_signor_overlap": 0
+      },
+      "1": {
+        "pairs": 130455,
+        "source_rate": 0.002721244873711241,
+        "source_signor_overlap": 355,
+        "text_exposed_rate": 9.198574220995746e-05,
+        "text_exposed_signor_overlap": 12
+      }
+    }
+  },
+  "signor_sha256": "5aeff068a8a2f71d1fd6b6c4c16e9f87527a69382891ff94696d4d99ee31ab0e",
+  "text_exposed_direct_pairs": 377,
+  "text_exposure_definition": "non-self partner symbol in the bounded SIGNOR section"
+}

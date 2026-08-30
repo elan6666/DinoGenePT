@@ -1,0 +1,129 @@
+{
+  "baseline": "genept-seed-go-protein",
+  "conditions": [
+    {
+      "accuracy": 0.7062727362107954,
+      "auroc": 0.7929854360158008,
+      "average_precision": 0.7828875595659336,
+      "delta_vs_baseline": {
+        "accuracy": -0.027873365450791443,
+        "auroc": -0.03272853871643344,
+        "average_precision": -0.03582785154867241
+      },
+      "embedding": "latest-genept",
+      "result_sha256": "c319da9c794e0bfcc69ebb5db637496eb1d2833141aa8efed67c2e73e5aac56e",
+      "vectors_sha256": "cd64611edab310b517cbb461295605a37821f6cd4f8ddae90ba18a2f861a6618"
+    },
+    {
+      "accuracy": 0.7341461016615869,
+      "auroc": 0.8257139747322343,
+      "average_precision": 0.818715411114606,
+      "delta_vs_baseline": {
+        "accuracy": 0.0,
+        "auroc": 0.0,
+        "average_precision": 0.0
+      },
+      "embedding": "genept-seed-go-protein",
+      "result_sha256": "501ad13ee2802d493c89fada7b4eeb16d1a6e33eebe89d0be9504ea890398f4b",
+      "vectors_sha256": "8f6b9ac27e41e936540391612e7505cd98953da2b1bd3a419a156630144e7101"
+    },
+    {
+      "accuracy": 0.7421590797365057,
+      "auroc": 0.8333111820708378,
+      "average_precision": 0.827662383916782,
+      "delta_vs_baseline": {
+        "accuracy": 0.008012978074918853,
+        "auroc": 0.007597207338603473,
+        "average_precision": 0.008946972802176045
+      },
+      "embedding": "seed-go-protein-reactome",
+      "result_sha256": "a80418ebbe3d52fc5450f7f0a0f8d2dfc9134a6cbd3ed045dafd66606c3d244a",
+      "vectors_sha256": "3133e05f42c9ce438227887b7a27c1a96a6be124001772df5a902bd59c422db0"
+    },
+    {
+      "accuracy": 0.738717923508013,
+      "auroc": 0.8284798669020043,
+      "average_precision": 0.8210613339637871,
+      "delta_vs_baseline": {
+        "accuracy": 0.004571821846426127,
+        "auroc": 0.002765892169769968,
+        "average_precision": 0.0023459228491811146
+      },
+      "embedding": "seed-go-protein-signor",
+      "result_sha256": "1815a420e9de7c49d59208a72e5050006848ac6a2910bc0b51c2cb4badb5cbd6",
+      "vectors_sha256": "783c92012a80d62d3ee218304f2349c9cc37dba944c60fd0f6cc2853c27571ab"
+    },
+    {
+      "accuracy": 0.7496804640644971,
+      "auroc": 0.8361454390098982,
+      "average_precision": 0.8285878961966557,
+      "delta_vs_baseline": {
+        "accuracy": 0.015534362402910173,
+        "auroc": 0.010431464277663949,
+        "average_precision": 0.009872485082049742
+      },
+      "embedding": "genept-seed-go-protein-pathway",
+      "result_sha256": "384d98641ccb14efe56759a22602f2b305b884485f532aed8e1b041f1228434b",
+      "vectors_sha256": "34d4c81b311f567304d299800eb07c8847641f26e82e573f5a1acfe77c202318"
+    },
+    {
+      "accuracy": 0.744322092222987,
+      "auroc": 0.8337432042584298,
+      "average_precision": 0.8271291686482237,
+      "delta_vs_baseline": {
+        "accuracy": 0.010175990561400061,
+        "auroc": 0.008029229526195558,
+        "average_precision": 0.008413757533617727
+      },
+      "embedding": "seed-go-protein-pathway-signor-masked",
+      "result_sha256": "036754bb63891321b251ac0243bbf0148ebe46f274a5b88a541e03ecbf3608cc",
+      "vectors_sha256": "d6a495621cce901be4c7c99a37205c0b5a10848acc31cd546b70b2441bd7f829"
+    },
+    {
+      "accuracy": 0.7459443515878478,
+      "auroc": 0.8344309787044446,
+      "average_precision": 0.8286006558765485,
+      "delta_vs_baseline": {
+        "accuracy": 0.011798249926260884,
+        "auroc": 0.008717003972210313,
+        "average_precision": 0.009885244761942524
+      },
+      "embedding": "seed-go-protein-pathway-signor-shuffled",
+      "result_sha256": "dff74f44237979ae50eafe04ad57ad0d6e395af68228d21a1327880296d3226b",
+      "vectors_sha256": "31cd33b7d92ef19243b4ecaeec1b0afcd4cfda3e617f9051afa6684e08f31623"
+    },
+    {
+      "accuracy": 0.7397502703765608,
+      "auroc": 0.8308762138943451,
+      "average_precision": 0.8240675397753694,
+      "delta_vs_baseline": {
+        "accuracy": 0.005604168714973934,
+        "auroc": 0.005162239162110782,
+        "average_precision": 0.0053521286607634
+      },
+      "embedding": "genept-seed-go-protein-pathway-hpa",
+      "result_sha256": "a2091383bc7acddf981658e4cc15e6e2038c33545ddc37d9ec182215d748a059",
+      "vectors_sha256": "7e05f104292b716c75cafd2887cf090a719cb07ab4cdf013545e199c6b555edd"
+    }
+  ],
+  "created_at": "2026-08-30T11:23:27.820215+00:00",
+  "fairness_contract": {
+    "data_receipt_sha256": "4a84ee1fc45948138cde9e43f7f7c74484da83cd7a007fce342cb75e821347ec",
+    "gene_universe": "data/ggi/genes-with-text.txt",
+    "gene_universe_sha256": "d12aca5c4335f5cede1102e412df5c317fd61434073857d6646daa843b096e6a",
+    "genept_seed_version": "0.1.0",
+    "model": "logistic_regression",
+    "normalization": "l2",
+    "numpy_version": "2.5.2",
+    "pair_operator": "sum",
+    "random_state": 42,
+    "scikit_learn_version": "1.9.0",
+    "task": "gene_gene_interaction",
+    "test_coverage": 0.9484334203655352,
+    "test_n": 20342,
+    "train_coverage": 0.949105757824619,
+    "train_n": 249630
+  },
+  "fairness_fields_identical": true,
+  "schema_version": "genept-seed-progressive-ggi-comparison-v1"
+}

@@ -15,7 +15,10 @@ This is an independent research variant, not an official GenePT release.
 | GenePT-Seed | Identical NCBI + UniProt | `doubao-embedding-vision` |
 | GenePT-Seed+GO-EXP | Completed NCBI + UniProt + bounded GO-EXP | `doubao-embedding-vision` |
 | Seed-GO-Protein | Previous + reviewed UniProt structured fields + InterPro | `doubao-embedding-vision` |
+| Seed-GO-Protein-Reactome | Protein + Reactome only | `doubao-embedding-vision` |
+| Seed-GO-Protein-SIGNOR | Protein + direct human SIGNOR only | `doubao-embedding-vision` |
 | Seed-GO-ProteinPathway | Previous + Reactome + direct human SIGNOR relations | `doubao-embedding-vision` |
+| Seed-GO-ProteinPathway controls | Previous with SIGNOR partner symbols masked or shuffled | `doubao-embedding-vision` |
 | Seed-GO-ProteinPathway-HPA | Previous + Human Protein Atlas summaries | `doubao-embedding-vision` |
 
 The comparison fixes genes/pairs, labels, splits, classifiers, metrics, and
@@ -207,6 +210,19 @@ automatically better. These results are evidence for this released GGI split,
 not for GraD-Pert prediction quality. See
 [`docs/BASELINE_RESULTS.md`](docs/BASELINE_RESULTS.md) and the compact
 [`GGI comparison receipt`](docs/results/PROGRESSIVE_KNOWLEDGE_GGI.json).
+
+### Leakage controls and orthogonal property tasks
+
+The follow-up study separates Reactome from SIGNOR, masks or deterministically
+shuffles SIGNOR partner symbols, adds a repeated gene-disjoint GGI protocol,
+and reproduces four GenePT gene-property tasks on one matched gene allowlist.
+The exact protocol, pinned label sources, static SIGNOR overlap audit, and
+interpretation boundary are documented in
+[`docs/PRIORITY_1_2_EXPERIMENTS.md`](docs/PRIORITY_1_2_EXPERIMENTS.md).
+All four control vectors reached 17,730/17,730 exact checkpoint hits and 100%
+master-universe coverage. The final fixed GGI, ten-seed gene-disjoint GGI, and
+64-row property comparison receipts are committed under
+[`docs/results/priority-1-2/`](docs/results/priority-1-2/).
 
 ## Tests
 

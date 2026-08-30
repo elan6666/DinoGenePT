@@ -13,7 +13,7 @@ import sklearn
 from . import __version__
 from .axis_corpus import build_axis_corpus
 from .axis_vectors import align_npz_to_axis, materialize_axis_vectors
-from .benchmarks import evaluate_ggi, evaluate_property_task
+from .benchmarks import evaluate_ggi, evaluate_property_task_repeated
 from .corpus import extend_genept_texts
 from .data import prepare_genept, prepare_ggi, prepare_go_exp, prepare_knowledge_sources
 from .embedding import (
@@ -26,12 +26,19 @@ from .embedding import (
     select_gene_texts,
     text_statistics,
 )
+from .experiment_comparison import summarize_gene_disjoint_results, summarize_property_results
 from .ggi_comparison import build_ggi_comparison
+from .ggi_controls import (
+    audit_signor_ggi_leakage,
+    evaluate_gene_disjoint_ggi,
+    filter_ggi_universe,
+)
 from .go_corpus import build_go_exp_corpus
 from .gradpert_union import build_gradpert_union
 from .knowledge_corpus import PROFILES, audit_knowledge_corpora, build_knowledge_corpus
 from .knowledge_vectors import audit_knowledge_vectors
-from .provenance import credential_present, digest_file
+from .property_data import prepare_property_tasks
+from .provenance import atomic_write_json, credential_present, digest_file
 from .reports import write_results
 from .tasks import ggi_genes, load_ggi, load_property_tasks
 from .vectors import coverage, l2_normalize, load_npz, load_official_pickle, select_universe_vectors
@@ -108,6 +115,19 @@ def build_parser() -> argparse.ArgumentParser:
         "prepare-knowledge-sources", help="freeze official protein/pathway/HPA snapshots"
     )
     knowledge_source.add_argument("--output", type=Path, required=True)
+    property_source = data_sub.add_parser(
+        "prepare-properties", help="prepare the four pinned GenePT gene-property tasks"
+    )
+    property_source.add_argument("--output", type=Path, required=True)
+    property_source.add_argument("--hgnc", type=Path, required=True)
+    property_source.add_argument("--official-overlaps", action="store_true")
+    property_genes = data_sub.add_parser(
+        "property-genes", help="write the exact task-gene intersection shared by vector files"
+    )
+    property_genes.add_argument("--tasks", type=Path, required=True)
+    property_genes.add_argument("--vectors", type=Path, action="append", required=True)
+    property_genes.add_argument("--output", type=Path, required=True)
+    property_genes.add_argument("--manifest", type=Path, required=True)
     go_text = data_sub.add_parser("build-go-exp-texts", help="append bounded experimental GO text")
     go_text.add_argument("--base", type=Path, required=True)
     go_text.add_argument("--genes", type=Path, required=True)
@@ -134,6 +154,7 @@ def build_parser() -> argparse.ArgumentParser:
     knowledge.add_argument("--profile", choices=PROFILES, required=True)
     knowledge.add_argument("--max-items-per-source", type=int, default=8)
     knowledge.add_argument("--max-characters-per-field", type=int, default=2000)
+    knowledge.add_argument("--shuffle-seed", type=int, default=42)
     knowledge.add_argument("--output", type=Path, required=True)
     knowledge.add_argument("--manifest", type=Path, required=True)
     corpus_audit = data_sub.add_parser(
@@ -185,6 +206,9 @@ def build_parser() -> argparse.ArgumentParser:
     audit.add_argument("--vectors", type=Path, required=True)
     audit.add_argument("--genes", type=Path)
     audit.add_argument("--trusted-pickle", action="store_true")
+    audit.add_argument("--preserve-gene-case", action="store_true")
+    audit.add_argument("--expected-dimension", type=int)
+    audit.add_argument("--require-complete", action="store_true")
 
     comparison = subparsers.add_parser(
         "audit-ggi-comparison", help="enforce matched GGI receipts and compute deltas"
@@ -192,6 +216,16 @@ def build_parser() -> argparse.ArgumentParser:
     comparison.add_argument("--result", type=Path, action="append", required=True)
     comparison.add_argument("--baseline", required=True)
     comparison.add_argument("--output", type=Path, required=True)
+    property_comparison = subparsers.add_parser(
+        "audit-property-comparison", help="enforce matched repeated property results and summarize"
+    )
+    property_comparison.add_argument("--result", type=Path, action="append", required=True)
+    property_comparison.add_argument("--output", type=Path, required=True)
+    disjoint_comparison = subparsers.add_parser(
+        "audit-gene-disjoint-comparison", help="enforce identical gene-disjoint splits and summarize"
+    )
+    disjoint_comparison.add_argument("--result", type=Path, action="append", required=True)
+    disjoint_comparison.add_argument("--output", type=Path, required=True)
 
     knowledge_vector_audit = subparsers.add_parser(
         "audit-knowledge-vectors", help="prove exact graph, target, and GGI vector coverage"
@@ -205,9 +239,17 @@ def build_parser() -> argparse.ArgumentParser:
     knowledge_vector_audit.add_argument("--expected-dimension", type=int, default=2048)
     knowledge_vector_audit.add_argument("--output", type=Path, required=True)
 
+    leakage = subparsers.add_parser(
+        "audit-signor-ggi-leakage", help="quantify direct SIGNOR pair overlap with GGI labels"
+    )
+    leakage.add_argument("--data", type=Path, required=True)
+    leakage.add_argument("--signor", type=Path, required=True)
+    leakage.add_argument("--corpus", type=Path)
+    leakage.add_argument("--output", type=Path, required=True)
+
     benchmark = subparsers.add_parser("benchmark", help="run selected GenePT paper benchmarks")
     benchmark_sub = benchmark.add_subparsers(dest="benchmark_command", required=True)
-    for name in ("ggi", "properties"):
+    for name in ("ggi", "ggi-gene-disjoint", "properties"):
         command = benchmark_sub.add_parser(name)
         command.add_argument("--vectors", type=Path, required=True)
         command.add_argument("--output", type=Path, required=True)
@@ -218,16 +260,21 @@ def build_parser() -> argparse.ArgumentParser:
             action="store_true",
             help="L2-normalize each gene vector before evaluation",
         )
-        if name == "ggi":
+        if name in {"ggi", "ggi-gene-disjoint"}:
             command.add_argument("--data", type=Path, required=True)
             command.add_argument(
                 "--genes",
                 type=Path,
                 help="fixed newline-delimited gene universe shared by all embeddings",
             )
+            if name == "ggi-gene-disjoint":
+                command.add_argument("--seeds", default="42,43,44,45,46,47,48,49,50,51")
+                command.add_argument("--test-fraction", type=float, default=0.2)
         else:
             command.add_argument("--tasks", type=Path, required=True)
+            command.add_argument("--genes", type=Path, help="fixed gene universe shared by embeddings")
             command.add_argument("--folds", type=int, default=5)
+            command.add_argument("--seeds", default="42,43,44,45,46,47,48,49,50,51")
     return parser
 
 
@@ -249,6 +296,36 @@ def main(argv: list[str] | None = None) -> int:
             result = prepare_go_exp(args.output)
         elif args.data_command == "prepare-knowledge-sources":
             result = prepare_knowledge_sources(args.output)
+        elif args.data_command == "prepare-properties":
+            result = prepare_property_tasks(
+                args.output,
+                hgnc_path=args.hgnc,
+                clean_overlaps=not args.official_overlaps,
+            )
+        elif args.data_command == "property-genes":
+            task_genes = {
+                gene for task in load_property_tasks(args.tasks).values() for gene in task.genes
+            }
+            vector_genes = []
+            for path in args.vectors:
+                loaded_vectors = (
+                    load_official_pickle(path, trusted=True)
+                    if path.suffix in {".pickle", ".pkl"}
+                    else load_npz(path)
+                )
+                vector_genes.append(set(loaded_vectors.genes))
+            selected = sorted(task_genes.intersection(*vector_genes))
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text("\n".join(selected) + "\n", encoding="utf-8")
+            result = {
+                "task_genes": len(task_genes),
+                "vector_gene_counts": [len(genes) for genes in vector_genes],
+                "common_task_genes": len(selected),
+                "tasks_sha256": digest_file(args.tasks),
+                "vectors_sha256": [digest_file(path) for path in args.vectors],
+                "output_sha256": digest_file(args.output),
+            }
+            atomic_write_json(args.manifest, result)
         elif args.data_command == "extend-genept-texts":
             result = extend_genept_texts(
                 base_path=args.base,
@@ -318,6 +395,7 @@ def main(argv: list[str] | None = None) -> int:
                 profile=args.profile,
                 max_items_per_source=args.max_items_per_source,
                 max_characters_per_field=args.max_characters_per_field,
+                shuffle_seed=args.shuffle_seed,
                 output_path=args.output,
                 manifest_path=args.manifest,
             )
@@ -336,6 +414,15 @@ def main(argv: list[str] | None = None) -> int:
             args.output.parent.mkdir(parents=True, exist_ok=True)
             args.output.write_text("\n".join(selected) + "\n", encoding="utf-8")
             result = {"genes": len(selected), "output": str(args.output)}
+        print(json.dumps(result, indent=2))
+        return 0
+    if args.command == "audit-signor-ggi-leakage":
+        result = audit_signor_ggi_leakage(
+            dataset=load_ggi(args.data),
+            signor_path=args.signor,
+            corpus_path=args.corpus,
+            output_path=args.output,
+        )
         print(json.dumps(result, indent=2))
         return 0
     if args.command == "audit-texts":
@@ -413,6 +500,14 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(json.dumps(result, indent=2))
         return 0
+    if args.command == "audit-property-comparison":
+        result = summarize_property_results(result_paths=args.result, output_path=args.output)
+        print(json.dumps(result, indent=2))
+        return 0
+    if args.command == "audit-gene-disjoint-comparison":
+        result = summarize_gene_disjoint_results(result_paths=args.result, output_path=args.output)
+        print(json.dumps(result, indent=2))
+        return 0
     if args.command == "audit-knowledge-vectors":
         result = audit_knowledge_vectors(
             genes_path=args.genes,
@@ -437,11 +532,33 @@ def main(argv: list[str] | None = None) -> int:
             "genes": len(loaded.genes),
             "dimension": int(loaded.vectors.shape[1]),
         }
+        if args.expected_dimension is not None and report["dimension"] != args.expected_dimension:
+            raise ValueError(
+                f"expected {args.expected_dimension}-dimensional vectors, got {report['dimension']}"
+            )
         if args.genes:
-            report["coverage"] = coverage(loaded, set(args.genes.read_text().splitlines()))
+            requested = {gene for gene in args.genes.read_text().splitlines() if gene}
+            if args.preserve_gene_case:
+                available = {str(gene) for gene in loaded.genes}
+                found = requested & available
+                vector_coverage = {
+                    "requested": len(requested),
+                    "found": len(found),
+                    "coverage": len(found) / len(requested) if requested else 1.0,
+                    "missing": sorted(requested - available),
+                    "gene_case": "preserved",
+                }
+            else:
+                vector_coverage = coverage(loaded, requested)
+                vector_coverage["gene_case"] = "uppercase"
+            report["coverage"] = vector_coverage
+            if args.require_complete and vector_coverage["missing"]:
+                raise ValueError(
+                    f"requested universe is missing embeddings: {vector_coverage['missing'][:20]}"
+                )
         print(json.dumps(report, indent=2))
         return 0
-    if args.benchmark_command == "ggi":
+    if args.benchmark_command in {"ggi", "ggi-gene-disjoint"}:
         if args.genes:
             universe = {
                 gene.strip()
@@ -451,15 +568,35 @@ def main(argv: list[str] | None = None) -> int:
             vectors = select_universe_vectors(loaded, universe)
         else:
             vectors = loaded.as_dict()
-        rows = [evaluate_ggi(load_ggi(args.data), vectors)]
+        dataset = load_ggi(args.data)
+        if args.benchmark_command == "ggi":
+            rows = [{"split": "official_fixed", **evaluate_ggi(dataset, vectors)}]
+        else:
+            seeds = tuple(int(value) for value in args.seeds.split(",") if value.strip())
+            dataset, universe_filter = filter_ggi_universe(dataset, set(vectors))
+            rows = evaluate_gene_disjoint_ggi(
+                dataset,
+                vectors,
+                seeds=seeds,
+                test_fraction=args.test_fraction,
+                universe=set(vectors),
+            )
+            rows = [{"universe_filter": universe_filter, **row} for row in rows]
     else:
         vectors = loaded.as_dict()
+        allowed = None
+        if args.genes:
+            allowed = {
+                gene.strip() for gene in args.genes.read_text(encoding="utf-8").splitlines() if gene.strip()
+            }
+            vectors = {gene: vector for gene, vector in vectors.items() if gene in allowed}
         rows = []
+        seeds = tuple(int(value) for value in args.seeds.split(",") if value.strip())
         for task in load_property_tasks(args.tasks).values():
-            rows.extend(evaluate_property_task(task, vectors, folds=args.folds))
+            rows.extend(evaluate_property_task_repeated(task, vectors, folds=args.folds, seeds=seeds))
     data_receipt = (
         args.data / "ggi_manifest.json"
-        if args.benchmark_command == "ggi"
+        if args.benchmark_command in {"ggi", "ggi-gene-disjoint"}
         else args.tasks
     )
     rows = [
@@ -472,7 +609,7 @@ def main(argv: list[str] | None = None) -> int:
             ),
             "vectors_sha256": digest_file(args.vectors),
             "data_receipt_sha256": digest_file(data_receipt),
-            "random_state": 42,
+            "random_state": row.get("random_state", 42),
             "genept_seed_version": __version__,
             "numpy_version": np.__version__,
             "scikit_learn_version": sklearn.__version__,

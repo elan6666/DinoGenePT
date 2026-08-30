@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import random
 import re
 import zipfile
 from collections import Counter, defaultdict
@@ -15,7 +16,15 @@ from typing import Any, TextIO
 from .gradpert_union import DATASETS, _targets
 from .provenance import atomic_write_json, digest_file, digest_text, utc_now
 
-PROFILES = ("protein", "protein-pathway", "protein-pathway-hpa")
+PROFILES = (
+    "protein",
+    "protein-reactome",
+    "protein-signor",
+    "protein-pathway",
+    "protein-pathway-signor-masked",
+    "protein-pathway-signor-shuffled",
+    "protein-pathway-hpa",
+)
 _SPACE = re.compile(r"\s+")
 
 
@@ -96,8 +105,16 @@ def load_reactome(path: Path, accession_to_gene: dict[str, str]) -> dict[str, li
     return values
 
 
-def load_signor(path: Path, targets: set[str]) -> dict[str, list[str]]:
-    values: dict[str, list[str]] = defaultdict(list)
+def load_signor(
+    path: Path,
+    targets: set[str],
+    *,
+    partner_mode: str = "named",
+    shuffle_seed: int = 42,
+) -> dict[str, list[str]]:
+    if partner_mode not in {"named", "masked", "shuffled"}:
+        raise ValueError(f"unknown SIGNOR partner mode: {partner_mode}")
+    records: list[tuple[str, str, str, str]] = []
     with path.open(encoding="utf-8", newline="") as handle:
         for row in csv.DictReader(handle, delimiter="\t"):
             if _first(row, "TAX_ID") not in {"9606", "taxon:9606"}:
@@ -106,17 +123,33 @@ def load_signor(path: Path, targets: set[str]) -> dict[str, list[str]]:
                 continue
             if _first(row, "TYPEA").lower() != "protein" or _first(row, "TYPEB").lower() != "protein":
                 continue
+            # Preserve the publisher's display case and the original GenePT-Seed
+            # matching behavior. Uppercasing here changes both text and which
+            # mixed-case entities enter the bounded section.
             a, b = _first(row, "ENTITYA"), _first(row, "ENTITYB")
             effect, mechanism = _first(row, "EFFECT"), _first(row, "MECHANISM")
             if not a or not b or not effect or effect.lower() in {"unknown", "unspecified"}:
                 continue
-            detail = f"{a} {effect} {b}"
-            if mechanism and mechanism.lower() not in {"unknown", "unspecified"}:
-                detail += f" via {mechanism}"
-            if a in targets:
-                values[a].append("outgoing: " + detail)
-            if b in targets:
-                values[b].append("incoming: " + detail)
+            records.append((a, b, effect, mechanism))
+    partners = [b for _, b, _, _ in records]
+    if partner_mode == "shuffled":
+        random.Random(shuffle_seed).shuffle(partners)
+    values: dict[str, list[str]] = defaultdict(list)
+    for index, (a, b, effect, mechanism) in enumerate(records):
+        if partner_mode == "masked":
+            outgoing_partner = incoming_partner = "a partner protein"
+        elif partner_mode == "shuffled":
+            outgoing_partner = partners[index]
+            incoming_partner = records[(index + shuffle_seed) % len(records)][0]
+        else:
+            outgoing_partner, incoming_partner = b, a
+        mechanism_text = ""
+        if mechanism and mechanism.lower() not in {"unknown", "unspecified"}:
+            mechanism_text = f" via {mechanism}"
+        if a in targets:
+            values[a].append(f"outgoing: {a} {effect} {outgoing_partner}{mechanism_text}")
+        if b in targets:
+            values[b].append(f"incoming: {incoming_partner} {effect} {b}{mechanism_text}")
     return values
 
 
@@ -166,12 +199,25 @@ def build_knowledge_corpus(
     hpa_path: Path | None = None,
     max_items_per_source: int = 8,
     max_characters_per_field: int = 2000,
+    shuffle_seed: int = 42,
 ) -> dict[str, Any]:
     if profile not in PROFILES:
         raise ValueError(f"unknown profile: {profile}")
     if max_items_per_source < 1 or max_characters_per_field < 1:
         raise ValueError("knowledge section bounds must be positive")
-    if profile in {"protein-pathway", "protein-pathway-hpa"} and (reactome_path is None or signor_path is None):
+    pathway_profiles = {
+        "protein-pathway",
+        "protein-pathway-signor-masked",
+        "protein-pathway-signor-shuffled",
+        "protein-pathway-hpa",
+    }
+    uses_reactome = profile in pathway_profiles | {"protein-reactome"}
+    uses_signor = profile in pathway_profiles | {"protein-signor"}
+    if uses_reactome and reactome_path is None:
+        raise ValueError(f"{profile} profile requires Reactome")
+    if uses_signor and signor_path is None:
+        raise ValueError(f"{profile} profile requires SIGNOR")
+    if profile in pathway_profiles and (reactome_path is None or signor_path is None):
         raise ValueError("pathway profiles require both Reactome and SIGNOR")
     if profile == "protein-pathway-hpa" and hpa_path is None:
         raise ValueError("protein-pathway-hpa profile requires HPA")
@@ -185,15 +231,23 @@ def build_knowledge_corpus(
     uniprot, accession_to_gene = load_uniprot(uniprot_path)
     targets = {gene.upper() for gene in genes}
     uniprot = {gene.upper(): row for gene, row in uniprot.items()}
-    reactome = load_reactome(reactome_path, accession_to_gene) if reactome_path else {}
+    reactome = load_reactome(reactome_path, accession_to_gene) if uses_reactome and reactome_path else {}
     reactome = {gene.upper(): values for gene, values in reactome.items()}
-    signor = load_signor(signor_path, targets) if signor_path else {}
+    partner_mode = {
+        "protein-pathway-signor-masked": "masked",
+        "protein-pathway-signor-shuffled": "shuffled",
+    }.get(profile, "named")
+    signor = (
+        load_signor(signor_path, targets, partner_mode=partner_mode, shuffle_seed=shuffle_seed)
+        if uses_signor and signor_path
+        else {}
+    )
     signor = {gene.upper(): values for gene, values in signor.items()}
     hpa = load_hpa(hpa_path) if hpa_path else {}
     hpa = {gene.upper(): values for gene, values in hpa.items()}
-    if profile in {"protein-pathway", "protein-pathway-hpa"} and not reactome:
+    if uses_reactome and not reactome:
         raise ValueError("Reactome produced no gene-mapped pathways")
-    if profile in {"protein-pathway", "protein-pathway-hpa"} and not signor:
+    if uses_signor and not signor:
         raise ValueError("SIGNOR produced no direct human causal relations for the universe")
     if profile == "protein-pathway-hpa" and not hpa:
         raise ValueError("HPA produced no gene annotations")
@@ -227,11 +281,12 @@ def build_knowledge_corpus(
             if names:
                 sections.append("InterPro entries: " + "; ".join(names))
                 stats["genes_with_interpro"] += 1
-        if profile in {"protein-pathway", "protein-pathway-hpa"}:
+        if uses_reactome:
             pathways = _bounded(reactome.get(key, []), max_items_per_source)
             if pathways:
                 sections.append("Reactome pathways: " + "; ".join(pathways))
                 stats["genes_with_reactome"] += 1
+        if uses_signor:
             causal = _bounded(signor.get(key, []), max_items_per_source)
             if causal:
                 sections.append("SIGNOR direct causal relations: " + "; ".join(causal))
@@ -260,6 +315,8 @@ def build_knowledge_corpus(
         "all_genes_preserved": len(output) == len(genes),
         "max_items_per_source": max_items_per_source,
         "max_characters_per_field": max_characters_per_field,
+        "signor_partner_mode": partner_mode if uses_signor else None,
+        "shuffle_seed": shuffle_seed if partner_mode == "shuffled" else None,
         "source_sha256": {name: digest_file(path) for name, path in sources.items()},
         "selection_stats": dict(sorted(stats.items())),
         "enrichment_fingerprint_sha256": digest_text(

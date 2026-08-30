@@ -1,0 +1,28 @@
+{
+  "schema_version": "genept-seed-progressive-knowledge-corpus-v1",
+  "created_at": "2026-08-30T08:39:33.497821+00:00",
+  "profile": "protein-reactome",
+  "genes": 17730,
+  "all_genes_preserved": true,
+  "max_items_per_source": 8,
+  "max_characters_per_field": 2000,
+  "signor_partner_mode": null,
+  "shuffle_seed": null,
+  "source_sha256": {
+    "base": "14820b62b8c6a9aef6798a55aa93905a6616ef7f073d1dbe60b4ab679a27045d",
+    "genes": "01cb4208b752d6041b731d4564217bb1bbe3a67ac6b6d4f39d887e4450c2b685",
+    "uniprot": "8159610433a72182d1891da70be4555d02b1096527b8b088a9a9fcb8ccc8f053",
+    "interpro": "00b86a43b14652470d1110133b26f91314d5bddf9f164da76c494d7b322752ec",
+    "reactome": "e34fe56a5129d88d8cd67300c279d7e81fa1d3bf86fa0577cf91032c326eaecc"
+  },
+  "selection_stats": {
+    "added_characters": 21417659,
+    "clipped_uniprot_fields": 1190,
+    "genes_enriched": 14847,
+    "genes_with_interpro": 14731,
+    "genes_with_reactome": 10013,
+    "genes_with_uniprot_structured": 14847
+  },
+  "enrichment_fingerprint_sha256": "ddd12a6e183fe7e3419e9f366af5f13267bb69737c2360c7b8bacfb51a0a1c30",
+  "output_sha256": "03ebdc9f0650ab00b5aeba4ba5d7e69ec5d22a30ef7d266aa0feb8cfdcfc17b6"
+}

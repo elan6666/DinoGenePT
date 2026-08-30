@@ -18,6 +18,7 @@ rsync ${mode:+"$mode"} --checksum --recursive --delete --verbose \
   --exclude '.git/' \
   --exclude '/.venv/' \
   --exclude '/.env' \
+  --exclude '/uv.lock' \
   --exclude '/data/' \
   --exclude '/results/' \
   --exclude '/checkpoints/' \

@@ -1,0 +1,14 @@
+{
+  "common_task_genes": 519,
+  "output_sha256": "dafcda2f0f97862c0b7352faff66aa9a00555ec7a66e22a9ecffc5c884111636",
+  "task_genes": 736,
+  "tasks_sha256": "68b09926c09f5fa47e273dc9981b1a3647ca8fdd2af021eab03aba7ee04bf47b",
+  "vector_gene_counts": [
+    17730,
+    122750
+  ],
+  "vectors_sha256": [
+    "8f6b9ac27e41e936540391612e7505cd98953da2b1bd3a419a156630144e7101",
+    "cd64611edab310b517cbb461295605a37821f6cd4f8ddae90ba18a2f861a6618"
+  ]
+}

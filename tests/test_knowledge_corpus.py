@@ -60,6 +60,40 @@ def test_sparse_progressive_sections_preserve_complete_base(tmp_path):
     assert all(receipt["all_genes_preserved"] for receipt in receipts)
 
 
+def test_signor_partner_controls_remove_or_shuffle_names(tmp_path):
+    base, genes = tmp_path / "base.json", tmp_path / "genes.txt"
+    base.write_text(json.dumps({"A": "base A", "B": "base B"}))
+    genes.write_text("A\nB\n")
+    uniprot, interpro, reactome, signor, _ = _sources(tmp_path)
+    payloads = {}
+    for profile in (
+        "protein-signor",
+        "protein-pathway-signor-masked",
+        "protein-pathway-signor-shuffled",
+        "protein-reactome",
+    ):
+        output = tmp_path / f"{profile}.json"
+        build_knowledge_corpus(
+            base_path=base,
+            genes_path=genes,
+            uniprot_path=uniprot,
+            interpro_path=interpro,
+            reactome_path=reactome,
+            signor_path=signor,
+            profile=profile,
+            output_path=output,
+            manifest_path=tmp_path / f"{profile}.manifest.json",
+        )
+        payloads[profile] = json.loads(output.read_text())
+    assert "B" in payloads["protein-signor"]["A"]
+    assert "outgoing: A up-regulates B via phosphorylation" in payloads["protein-signor"]["A"]
+    assert "a partner protein" in payloads["protein-pathway-signor-masked"]["A"]
+    assert "outgoing: A up-regulates a partner protein" in payloads[
+        "protein-pathway-signor-masked"
+    ]["A"]
+    assert "SIGNOR" not in payloads["protein-reactome"]["A"]
+
+
 def test_audit_knowledge_corpora_proves_append_only_graph_and_target_coverage(tmp_path):
     genes = tmp_path / "genes.txt"
     genes.write_text("A\nB\n")

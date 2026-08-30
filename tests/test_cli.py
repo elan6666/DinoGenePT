@@ -1,6 +1,9 @@
 import json
 
+import numpy as np
+
 from genept_seed.cli import build_parser, main
+from genept_seed.vectors import save_npz
 
 
 def test_doctor_never_prints_key(monkeypatch, capsys):
@@ -47,3 +50,34 @@ def test_embedding_parser_uses_verified_agent_plan_batch_default():
         ]
     )
     assert args.batch_size == 10
+
+
+def test_vector_audit_can_require_exact_case_complete_universe(tmp_path, capsys):
+    vectors = tmp_path / "vectors.npz"
+    genes = tmp_path / "genes.txt"
+    save_npz(
+        vectors,
+        {"ABC": np.ones(2), "Abc": np.ones(2)},
+        "demo",
+        uppercase_genes=False,
+    )
+    genes.write_text("ABC\nAbc\n", encoding="utf-8")
+    assert (
+        main(
+            [
+                "audit-vectors",
+                "--vectors",
+                str(vectors),
+                "--genes",
+                str(genes),
+                "--preserve-gene-case",
+                "--expected-dimension",
+                "2",
+                "--require-complete",
+            ]
+        )
+        == 0
+    )
+    report = json.loads(capsys.readouterr().out)
+    assert report["coverage"]["requested"] == 2
+    assert report["coverage"]["found"] == 2

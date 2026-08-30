@@ -1,0 +1,61 @@
+{
+  "canonical_source_urls": {
+    "bivalent.txt": "https://huggingface.co/datasets/ctheodoris/Genecorpus-30M/resolve/eab40d350be70ca6dff2d42555bacc44c8a71cc7/example_input_files/gene_classification/bivalent_promoters/bivalent_gene_labels.txt?download=true",
+    "dosage_sensitive_tf.csv": "https://huggingface.co/datasets/ctheodoris/Genecorpus-30M/resolve/eab40d350be70ca6dff2d42555bacc44c8a71cc7/example_input_files/gene_classification/dosage_sensitive_tfs/dosage_sens_tf_labels.csv?download=true",
+    "long_short_tf.csv": "https://static-content.springer.com/esm/art%3A10.1038%2Fs41467-020-16106-x/MediaObjects/41467_2020_16106_MOESM4_ESM.csv",
+    "lys4_only.txt": "https://huggingface.co/datasets/ctheodoris/Genecorpus-30M/resolve/eab40d350be70ca6dff2d42555bacc44c8a71cc7/example_input_files/gene_classification/bivalent_promoters/lys4_only_gene_labels.txt?download=true",
+    "no_methylation.txt": "https://huggingface.co/datasets/ctheodoris/Genecorpus-30M/resolve/eab40d350be70ca6dff2d42555bacc44c8a71cc7/example_input_files/gene_classification/bivalent_promoters/no_methylation_gene_labels.txt?download=true"
+  },
+  "clean_overlaps": true,
+  "download_endpoints": {
+    "bivalent.txt": "pre-existing file; content identified by SHA-256",
+    "dosage_sensitive_tf.csv": "pre-existing file; content identified by SHA-256",
+    "long_short_tf.csv": "pre-existing file; content identified by SHA-256",
+    "lys4_only.txt": "pre-existing file; content identified by SHA-256",
+    "no_methylation.txt": "pre-existing file; content identified by SHA-256"
+  },
+  "genecorpus_revision": "eab40d350be70ca6dff2d42555bacc44c8a71cc7",
+  "genept_reference_commit": "3602699e7425a7be577771f8f07e218db6c79b9f",
+  "hgnc_sha256": "0615a070f1628e6727953f67ad9248dd0f0ddbb16d41a7b40e06aa852fc3f448",
+  "label_counts": {
+    "0": 493,
+    "1": 360
+  },
+  "output_sha256": "68b09926c09f5fa47e273dc9981b1a3647ca8fdd2af021eab03aba7ee04bf47b",
+  "prepared_at": "2026-08-30T08:53:55.523208+00:00",
+  "schema_version": "genept-seed-property-tasks-v1",
+  "source_sha256": {
+    "bivalent.txt": "c8c2c7a4b71317d70b00a3f0bcb41727912521076f0644b5c5855a28de930266",
+    "dosage_sensitive_tf.csv": "6a3db1b9bd2c4bd1ddf9ed09152722f05cb1def24624d4badf7e559d9a4ba46d",
+    "long_short_tf.csv": "d0f095bbdbe2e07b0e8c654831a531a8f40b4f4d63b74ad53b81efb583cda6ae",
+    "lys4_only.txt": "8f65a830ce094f1c84d05273e390347bf69b90da9503d23e2e67362737022343",
+    "no_methylation.txt": "c71a82b53e07539cbed78988cd8b78daa038661f15a98d46bc6b6c1a79433fe9"
+  },
+  "tasks": {
+    "bivalent_vs_lys4_only": {
+      "class_overlap_removed": 0,
+      "negative": 76,
+      "positive": 95
+    },
+    "bivalent_vs_non_methylated": {
+      "class_overlap_removed": 1,
+      "negative": 38,
+      "positive": 94
+    },
+    "dosage_sensitive_vs_insensitive_tf": {
+      "class_overlap_removed": 0,
+      "negative": 368,
+      "positive": 122
+    },
+    "long_range_vs_short_range_tf": {
+      "class_overlap_removed": 0,
+      "negative": 11,
+      "positive": 49
+    }
+  },
+  "unresolved_ensembl": 2,
+  "unresolved_examples": [
+    "ENSG00000285283",
+    "ENSG00000285708"
+  ]
+}

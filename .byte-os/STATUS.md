@@ -2,34 +2,30 @@
 schema_version: 1
 mode: auto
 project_kind: existing_codebase
-stage: delivered
-current_workflow: byte-deliver
-next_workflow: complete
+stage: review
+current_workflow: byte-review
+next_workflow: git-handoff
 harness_status: ready
 review_verdict: ship
-iteration_count: 9
+iteration_count: 13
 hard_blocked: false
-updated_at: 2026-08-29T04:16:00+08:00
+updated_at: 2026-08-30T19:28:00+08:00
 ---
 
 # Status
 
-Goal: deliver three progressive GenePT-Seed+GO knowledge embeddings covering
-all five GraD-Pert graph axes and targets, with matched GGI evaluation.
+Goal: deliver Reactome/SIGNOR decomposition and partner-identity controls,
+strict gene-disjoint GGI, and four matched GenePT property-task replications.
 
-The 17,730-gene master universe, all three append-only corpora, and all three
-aligned 2,048-wide Doubao artifacts are complete. Exact checkpoint audits are
-17,730/17,730 with pending 0. Corpus and vector receipts prove complete graph
-axis and target coverage across all five datasets.
+All four corrected control corpora and 17,730 × 2,048 vectors are complete.
+Reactome/SIGNOR decomposition, bounded-text leakage audits, masked/shuffled
+partner controls, strict ten-seed 10,870-gene splits, and the four pinned
+property tasks all pass final fairness audits.
 
-The fixed 10,870-gene GGI comparison is complete. ProteinPathway is best at
-0.74968 Accuracy, 0.83615 AUROC, and 0.82859 AP; all six conditions share all
-15 fairness fields. No GraD-Pert model was trained or evaluated.
-
-Review 5 verdict is `ship`. Local and server 40-test suites, Ruff, build, CLI,
-JSON, credential scan, compact receipt hashes, and checksum sync pass. Tracked
-delivery commit `daf95b23b82f621960171140a44e80892f0b2219` is on remote `main`;
-only the user-owned untracked `uv.lock` remains locally.
+Review 6 returns `ship`. Local and server tests, Ruff, build, CLI, JSON, script
+syntax, secret scan, and checksum sync pass. Compact receipts and documentation
+are ready for Git handoff. No GraD-Pert model was run or modified; user-owned
+untracked `uv.lock` remains excluded.
 
 Local source of truth: `/Users/elan/code/GenePT-Seed`.
 Server execution mirror: `/data/yilangliu/GenePT-Seed`.

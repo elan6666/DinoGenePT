@@ -17,6 +17,16 @@ gene text and replaces only the embedding backbone with Doubao.
 - Three append-only knowledge conditions and aligned 2,048-wide Doubao vector
   artifacts: Protein, ProteinPathway, and ProteinPathway-HPA.
 - Compact corpus/vector/GGI audits and a six-condition matched comparison.
+- Reactome-only and SIGNOR-only decomposition plus partner-masked and
+  deterministic partner-shuffled controls over the complete 17,730-label
+  corpus.
+- Static source-versus-actual-text SIGNOR/GGI leakage receipts and a strict
+  ten-seed gene-disjoint GGI evaluation over the frozen 10,870-gene universe.
+- Four pinned GenePT property tasks under a shared 519-gene allowlist,
+  ten repeated five-fold splits, logistic regression, RF500, and
+  Accuracy/AUROC/AP reporting.
+- Compact Priority 1/2 corpus, checkpoint, vector, leakage, fixed GGI,
+  gene-disjoint GGI, and property comparison receipts.
 
 # How To Run
 
@@ -45,6 +55,9 @@ On the server:
 - `docs/results/PROGRESSIVE_KNOWLEDGE_CORPUS_AUDIT.json`: append-only coverage.
 - `docs/results/PROGRESSIVE_KNOWLEDGE_VECTOR_AUDIT.json`: exact vector coverage.
 - `docs/results/PROGRESSIVE_KNOWLEDGE_GGI.json`: six-condition matched GGI table.
+- `docs/PRIORITY_1_2_EXPERIMENTS.md`: leakage controls, strict split protocol,
+  four property tasks, complete results, and interpretation boundary.
+- `docs/results/priority-1-2/`: final compact Priority 1/2 receipts.
 - `src/genept_seed/embedding.py`: Ark client, pacing, and resume logic.
 - `src/genept_seed/benchmarks.py`: matched GGI estimator.
 
@@ -72,30 +85,43 @@ On the server:
 - All six rows share 15 fairness fields. The three new compact receipt hashes
   match between Mac and server: `875d6b75...ce16`, `814c2408...be3`, and
   `c35def5c...cb76`.
+- Four control checkpoints are each 17,730/17,730 exact text/model hits,
+  pending 0, width 2,048; aligned vectors cover all requested labels.
+- The eight-row fixed GGI comparison, eight-row × ten-seed gene-disjoint
+  comparison, and complete 8 × 4 × 2 property grid pass their fairness gates.
+- Masked SIGNOR has zero actual partner-pair exposure; the shuffled control has
+  no accidental test GGI exposure. Under strict gene-disjoint evaluation,
+  masked/shuffled controls reach 0.82436/0.82427 AUROC versus 0.82271 for the
+  named full pathway condition.
+- Local and server verification each pass 50 tests, Ruff, build, CLI, JSON,
+  script syntax, and secret scan. Post-apply checksum sync is clean.
 
 # OKR Status
 
-All revised, user-scoped KRs are achieved. Multi-task benchmarking and
-GraD-Pert evaluation were not part of the selected embedding experiment.
+All revised, user-scoped KRs are achieved. The added GenePT property multitask
+benchmark is complete; GraD-Pert evaluation remains outside the selected
+embedding-only experiment.
 
 # Review And Iteration Summary
 
-Nine evidence-led iterations hardened data checksums, embedding manifests,
+Thirteen evidence-led iterations hardened data checksums, embedding manifests,
 dimensions, corpus lineage, text-hash cache validation, exact-case selection,
-complete-universe coverage, and benchmark fairness. Review 5 verified the
-progressive artifacts and returned `ship`.
+complete-universe coverage, partner-control fidelity, strict split units, and
+benchmark fairness. Review 6 verified the Priority 1/2 artifacts and returned
+`ship`.
 
 # Known Gaps
 
-The measured knowledge-layer differences are limited to the released GGI split.
-Other GenePT experiments, downstream cell models, and external datasets remain
+The fixed GGI result is complemented by ten gene-disjoint splits and four
+GenePT property tasks, but no paired significance test was pre-registered.
+Downstream cell models and external perturbation-expression datasets remain
 untested. No GraD-Pert training or evaluation is included.
 
 # Recommended Next Steps
 
-Rotate the shared Ark key. If expanding the study, add one orthogonal GenePT
-task or a separately scoped GraD-Pert prior ablation with the same receipt-first
-protocol rather than broadening claims now.
+Rotate the shared Ark key. If expanding the study, add paired uncertainty tests
+or a separately scoped GraD-Pert prior ablation with the same receipt-first
+protocol rather than broadening embedding-probe claims now.
 
 # Real User Feedback Status
 

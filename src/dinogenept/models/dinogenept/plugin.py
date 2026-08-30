@@ -43,6 +43,9 @@ class DinoGenePTPlugin:
         priors: Any,
         config: dict[str, Any],
         device: Any,
+        metric_logger: Any | None = None,
+        training_state_path: Any | None = None,
+        training_state_identity: dict[str, Any] | None = None,
     ) -> Trainer:
         return Trainer(
             model=model,
@@ -51,6 +54,9 @@ class DinoGenePTPlugin:
             priors=priors,
             config=config,
             device=device,
+            metric_logger=metric_logger,
+            training_state_path=training_state_path,
+            training_state_identity=training_state_identity,
         )
 
     def predict_split(
@@ -67,7 +73,13 @@ class DinoGenePTPlugin:
         conditions = data.split_conditions(split)
         if not conditions:
             raise ValueError(f"dataset has no {split} conditions")
-        control_indices = np.flatnonzero(data.control_mask)
+        if evaluation.get("name") == "gradpert_exact":
+            from dinogenept.evaluation.gradpert import frozen_control_rows
+
+            frozen_controls, _, _ = frozen_control_rows(data, evaluation, split)
+        else:
+            frozen_controls = {}
+            control_indices = np.flatnonzero(data.control_mask)
         targets_by_condition = _condition_targets(data)
         samples = int(evaluation.get("control_samples", 300))
         batch_size = int(evaluation.get("batch_size", 64))
@@ -79,9 +91,14 @@ class DinoGenePTPlugin:
         model.eval()
         with torch.no_grad():
             for condition in conditions:
-                selected_controls = data.expression[
-                    rng.choice(control_indices, samples, replace=True)
-                ].astype(np.float32)
+                if frozen_controls:
+                    selected_controls = frozen_controls[condition]
+                    if len(selected_controls) != samples:
+                        raise ValueError("configured control_samples differs from frozen draw")
+                else:
+                    selected_controls = data.expression[
+                        rng.choice(control_indices, samples, replace=True)
+                    ].astype(np.float32)
                 condition_predictions = []
                 for start in range(0, samples, batch_size):
                     current = selected_controls[start : start + batch_size]

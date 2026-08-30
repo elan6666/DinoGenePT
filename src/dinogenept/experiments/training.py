@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import hashlib
 import math
+import os
 import random
+import tempfile
 from collections.abc import Iterator
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -28,6 +31,10 @@ def set_reproducible_seed(seed: int) -> None:
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
+    torch.use_deterministic_algorithms(True)
+    if hasattr(torch.backends, "cudnn"):
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
 
@@ -165,6 +172,9 @@ class Trainer:
         priors: PriorStore,
         config: dict[str, Any],
         device: Any,
+        metric_logger: Any | None = None,
+        training_state_path: Path | None = None,
+        training_state_identity: dict[str, Any] | None = None,
     ) -> None:
         torch = _torch()
         self.torch = torch
@@ -174,8 +184,13 @@ class Trainer:
         self.priors = priors
         self.config = config
         self.device = device
+        self.metric_logger = metric_logger
+        self.training_state_path = training_state_path
+        self.training_state_identity = training_state_identity
         training = config["training"]
-        self.optimizer = torch.optim.AdamW(
+        optimizer_name = str(training.get("optimizer", "adamw"))
+        optimizer_class = torch.optim.Adam if optimizer_name == "adam" else torch.optim.AdamW
+        self.optimizer = optimizer_class(
             model.parameters(),
             lr=float(training["learning_rate"]),
             weight_decay=float(training.get("weight_decay", 0.01)),
@@ -185,6 +200,104 @@ class Trainer:
         )
         prototypes = int(config["model"]["dino_head"]["prototypes"])
         self.center = torch.zeros(1, prototypes, device=device)
+
+    def _save_training_state(self, payload: dict[str, Any]) -> None:
+        if self.training_state_path is None:
+            return
+        self.training_state_path.parent.mkdir(parents=True, exist_ok=True)
+        descriptor, temporary_name = tempfile.mkstemp(
+            prefix=f".{self.training_state_path.name}.",
+            dir=self.training_state_path.parent,
+        )
+        os.close(descriptor)
+        temporary = Path(temporary_name)
+        try:
+            self.torch.save(payload, temporary)
+            os.replace(temporary, self.training_state_path)
+        except BaseException:
+            temporary.unlink(missing_ok=True)
+            raise
+
+    def _load_training_state(self) -> dict[str, Any] | None:
+        if self.training_state_path is None or not self.training_state_path.exists():
+            return None
+        state = self.torch.load(
+            self.training_state_path,
+            map_location=self.device,
+            weights_only=False,
+        )
+        if not isinstance(state, dict) or state.get("identity") != self.training_state_identity:
+            raise ValueError("training-state identity differs from current formal run")
+        self.model.load_state_dict(state["model"])
+        self.teacher.load_state_dict(state["teacher"])
+        self.optimizer.load_state_dict(state["optimizer"])
+        self.scheduler.load_state_dict(state["scheduler"])
+        self.center.copy_(state["center"].to(self.device))
+        random.setstate(state["python_random_state"])
+        np.random.set_state(state["numpy_random_state"])
+        self.torch.set_rng_state(state["torch_random_state"].cpu())
+        cuda_states = state.get("cuda_random_states")
+        if cuda_states is not None and self.torch.cuda.is_available():
+            self.torch.cuda.set_rng_state_all(cuda_states)
+        return state
+
+    def _validation_prediction_mse(self, _epoch: int) -> float:
+        """Condition-macro validation GEP used for scGPT-style checkpoint selection."""
+
+        torch = self.torch
+        training = self.config["training"]
+        sampler = ConditionBagSampler(
+            self.data,
+            split="validation",
+            bag_size=int(training["bag_size"]),
+            conditions_per_batch=int(training["batch_size"]),
+            seed=int(training["seed"]) + 50_000,
+        )
+        max_batches = int(training.get("max_validation_batches", 0))
+        total = 0.0
+        batches = 0
+        was_training = self.model.training
+        self.model.eval()
+        with torch.no_grad():
+            # Checkpoint selection must compare epochs on the same sampled
+            # controls and post-perturbation cells. Training remains epoch-
+            # randomized; validation deliberately uses the fixed epoch-0 draw.
+            for batch_index, batch in enumerate(sampler.batches(0, shuffle=False)):
+                if max_batches > 0 and batch_index >= max_batches:
+                    break
+                condition_count = len(batch.conditions)
+                bag_size = int(training["bag_size"])
+                controls = torch.as_tensor(
+                    batch.controls.reshape(-1, self.data.n_genes), device=self.device
+                )
+                posts = torch.as_tensor(
+                    batch.posts.reshape(-1, self.data.n_genes), device=self.device
+                )
+                repeated_targets = _repeat_targets(batch.targets, bag_size)
+                vectors, token_mask, _ = _tensor_prior(
+                    self.priors,
+                    "base",
+                    repeated_targets,
+                    device=self.device,
+                    control="none",
+                    seed=int(training["seed"]),
+                )
+                view = self.model.conditional_view(
+                    controls,
+                    source="base",
+                    prior_vectors=vectors,
+                    prior_mask=token_mask,
+                )
+                prediction = self.model.predict_expression(controls, view).view(
+                    condition_count, bag_size, -1
+                ).mean(dim=1)
+                truth = posts.view(condition_count, bag_size, -1).mean(dim=1)
+                total += float(torch.nn.functional.mse_loss(prediction, truth).cpu())
+                batches += 1
+        self.model.train(was_training)
+        if not batches:
+            raise RuntimeError("validation checkpoint selection produced zero batches")
+        return total / batches
 
     def train(self) -> dict[str, Any]:
         from dinogenept.models.dinogenept.losses import (
@@ -213,12 +326,29 @@ class Trainer:
         if max_batches > 0:
             batches_per_epoch = min(batches_per_epoch, max_batches)
         total_steps = max(1, epochs * batches_per_epoch)
-        history: list[dict[str, float]] = []
-        global_step = 0
+        resume_state = self._load_training_state()
+        history: list[dict[str, float]] = (
+            list(resume_state["history"]) if resume_state is not None else []
+        )
+        global_step = int(resume_state["global_step"]) if resume_state is not None else 0
+        best_epoch: int | None = (
+            resume_state.get("best_epoch") if resume_state is not None else None
+        )
+        best_validation = (
+            float(resume_state["best_validation"])
+            if resume_state is not None
+            else float("inf")
+        )
+        best_state: dict[str, Any] | None = (
+            resume_state.get("best_state") if resume_state is not None else None
+        )
+        start_epoch = int(resume_state["completed_epochs"]) if resume_state is not None else 0
+        if start_epoch > epochs or len(history) != start_epoch:
+            raise ValueError("training-state epoch history differs from configuration")
         use_amp = bool(training.get("amp_bfloat16", True)) and self.device.type == "cuda"
         autocast = torch.autocast
         self.model.train()
-        for epoch in range(epochs):
+        for epoch in range(start_epoch, epochs):
             aggregate: dict[str, float] = {}
             batches = 0
             for batch_index, batch in enumerate(sampler.batches(epoch, shuffle=True)):
@@ -248,21 +378,28 @@ class Trainer:
                         prior_vectors=base_vectors,
                         prior_mask=base_mask,
                     )
-                    prediction = self.model.predict_expression(controls, base_view)
-                    prediction_mean = prediction.view(
-                        condition_count, bag_size, -1
-                    ).mean(dim=1)
                     post_mean = posts.view(condition_count, bag_size, -1).mean(dim=1)
                     control_mean = controls.view(condition_count, bag_size, -1).mean(dim=1)
-                    pred_loss = prediction_loss(
-                        prediction_mean,
-                        post_mean,
-                        control_mean,
-                        kind=str(losses_config.get("prediction", "mse")),
-                        direction_weight=float(losses_config.get("direction_weight", 0.5)),
-                    )
-                    total_loss = pred_loss * float(losses_config.get("prediction_weight", 1.0))
-                    components: dict[str, Any] = {"prediction": pred_loss}
+                    prediction_weight = float(losses_config.get("prediction_weight", 1.0))
+                    if prediction_weight:
+                        prediction = self.model.predict_expression(controls, base_view)
+                        prediction_mean = prediction.view(
+                            condition_count, bag_size, -1
+                        ).mean(dim=1)
+                        pred_loss = prediction_loss(
+                            prediction_mean,
+                            post_mean,
+                            control_mean,
+                            kind=str(losses_config.get("prediction", "mse")),
+                            direction_weight=float(
+                                losses_config.get("direction_weight", 0.5)
+                            ),
+                        )
+                        total_loss = pred_loss * prediction_weight
+                        components: dict[str, Any] = {"prediction": pred_loss}
+                    else:
+                        total_loss = base_view.cls.sum() * 0.0
+                        components = {}
 
                     teacher_condition = None
                     if ablation.get("dino", True) or ablation.get("delta_ibot", True):
@@ -483,12 +620,61 @@ class Trainer:
             if not batches:
                 raise RuntimeError("training epoch produced zero batches")
             self.scheduler.step()
-            history.append(
+            row = {
+                "epoch": float(epoch + 1),
+                "batches": float(batches),
+                "learning_rate": float(self.optimizer.param_groups[0]["lr"]),
+                **{key: value / batches for key, value in aggregate.items()},
+            }
+            if training.get("selection_metric", "none") == "validation_prediction_mse":
+                validation = self._validation_prediction_mse(epoch)
+                row["validation_prediction_mse"] = validation
+                if validation < best_validation:
+                    best_validation = validation
+                    best_epoch = epoch + 1
+                    best_state = {
+                        name: value.detach().cpu().clone()
+                        for name, value in self.model.state_dict().items()
+                    }
+            history.append(row)
+            self._save_training_state(
                 {
-                    "epoch": float(epoch + 1),
-                    "batches": float(batches),
-                    "learning_rate": float(self.optimizer.param_groups[0]["lr"]),
-                    **{key: value / batches for key, value in aggregate.items()},
+                    "schema_version": "dinogenept-training-state-v1",
+                    "identity": self.training_state_identity,
+                    "completed_epochs": epoch + 1,
+                    "global_step": global_step,
+                    "history": history,
+                    "best_epoch": best_epoch,
+                    "best_validation": best_validation,
+                    "best_state": best_state,
+                    "model": self.model.state_dict(),
+                    "teacher": self.teacher.state_dict(),
+                    "optimizer": self.optimizer.state_dict(),
+                    "scheduler": self.scheduler.state_dict(),
+                    "center": self.center.detach().cpu(),
+                    "python_random_state": random.getstate(),
+                    "numpy_random_state": np.random.get_state(),
+                    "torch_random_state": torch.get_rng_state(),
+                    "cuda_random_states": (
+                        torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None
+                    ),
                 }
             )
-        return {"epochs": epochs, "steps": global_step, "history": history}
+            if self.metric_logger is not None:
+                self.metric_logger(row)
+        if best_state is not None:
+            self.model.load_state_dict(best_state)
+        return {
+            "phase": str(training.get("phase", "finetune")),
+            "epochs": epochs,
+            "steps": global_step,
+            "effective_cell_batch_size": int(training["batch_size"])
+            * int(training["bag_size"]),
+            "selection_metric": str(training.get("selection_metric", "none")),
+            "best_epoch": best_epoch,
+            "best_validation_prediction_mse": (
+                best_validation if best_epoch is not None else None
+            ),
+            "history": history,
+            "resumed_from_epoch": start_epoch,
+        }

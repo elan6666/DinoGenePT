@@ -16,7 +16,7 @@ from threading import Lock
 
 import numpy as np
 
-from .provenance import atomic_write_json, utc_now
+from .provenance import atomic_write_json, digest_file, utc_now
 from .vectors import save_npz
 
 DEFAULT_BASE_URL = "https://ark.cn-beijing.volces.com/api/plan/v3"
@@ -145,10 +145,23 @@ def audit_embedding_checkpoint(
 ) -> dict[str, object]:
     """Count exact gene/text/model hits without reading vectors into logs."""
 
+    empty = {
+        "requested": len(gene_texts),
+        "exact_cached": 0,
+        "pending": len(gene_texts),
+        "dimensions": [],
+    }
+    if not checkpoint_path.exists():
+        return empty
     connection = sqlite3.connect(checkpoint_path)
     dimensions: set[int] = set()
     exact = 0
     try:
+        table = connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='embeddings'"
+        ).fetchone()
+        if table is None:
+            return empty
         for gene, text in gene_texts.items():
             row = connection.execute(
                 "SELECT dimension FROM embeddings WHERE gene=? AND text_sha256=? AND model=?",
@@ -164,6 +177,60 @@ def audit_embedding_checkpoint(
         "exact_cached": exact,
         "pending": len(gene_texts) - exact,
         "dimensions": sorted(dimensions),
+    }
+
+
+def merge_exact_checkpoint_hits(
+    gene_texts: Mapping[str, str],
+    *,
+    source_paths: list[Path],
+    destination_path: Path,
+    model: str,
+) -> dict[str, object]:
+    """Merge only exact gene/text/model hits, rejecting conflicting vectors."""
+
+    if not source_paths:
+        raise ValueError("at least one source checkpoint is required")
+    destination = EmbeddingCheckpoint(destination_path)
+    copied = 0
+    unresolved: list[str] = []
+    try:
+        connections = [sqlite3.connect(path.resolve(strict=True)) for path in source_paths]
+        try:
+            for gene, text in sorted(gene_texts.items()):
+                text_sha256 = hashlib.sha256(text.encode("utf-8")).hexdigest()
+                candidates: list[np.ndarray] = []
+                for connection in connections:
+                    row = connection.execute(
+                        "SELECT dimension, vector FROM embeddings "
+                        "WHERE gene=? AND text_sha256=? AND model=?",
+                        (gene, text_sha256, model),
+                    ).fetchone()
+                    if row is not None:
+                        vector = np.frombuffer(row[1], dtype=np.float32).copy()
+                        if vector.shape != (int(row[0]),):
+                            raise ValueError(f"checkpoint vector dimension differs: {gene}")
+                        candidates.append(vector)
+                if not candidates:
+                    unresolved.append(gene)
+                    continue
+                if any(not np.array_equal(candidates[0], other) for other in candidates[1:]):
+                    raise ValueError(f"exact checkpoint hits contain conflicting vectors: {gene}")
+                destination.put(gene, text_sha256, model, candidates[0])
+                copied += 1
+        finally:
+            for connection in connections:
+                connection.close()
+    finally:
+        destination.close()
+    return {
+        "requested": len(gene_texts),
+        "exact_merged": copied,
+        "pending": len(unresolved),
+        "pending_genes": unresolved,
+        "source_checkpoints": [str(path.resolve()) for path in source_paths],
+        "destination_checkpoint": str(destination_path.resolve()),
+        "model": model,
     }
 
 
@@ -214,6 +281,9 @@ def generate_embeddings(
     limit: int | None = None,
     expected_dimension: int | None = None,
     uppercase_genes: bool = True,
+    profile: str | None = None,
+    corpus_path: Path | None = None,
+    universe_path: Path | None = None,
 ) -> dict[str, np.ndarray]:
     if batch_size < 1:
         raise ValueError("batch_size must be positive")
@@ -309,11 +379,14 @@ def generate_embeddings(
         text_fingerprint.update(b"\0")
         text_fingerprint.update(text.encode("utf-8"))
         text_fingerprint.update(b"\0")
+    artifact_sha256 = digest_file(output_path)
     atomic_write_json(
         output_path.with_suffix(output_path.suffix + ".manifest.json"),
         {
+            "schema_version": "genept-seed-embedding-v2",
             "created_at": utc_now(),
             "model": model,
+            "profile": profile,
             "genes": len(collected),
             "dimension": final_dimension,
             "batch_size": batch_size,
@@ -322,6 +395,13 @@ def generate_embeddings(
             "gene_case": "uppercase" if uppercase_genes else "preserved",
             "text_fingerprint_sha256": text_fingerprint.hexdigest(),
             "output": output_path.name,
+            "output_sha256": artifact_sha256,
+            "corpus_sha256": digest_file(corpus_path.resolve(strict=True))
+            if corpus_path
+            else None,
+            "gene_universe_sha256": digest_file(universe_path.resolve(strict=True))
+            if universe_path
+            else None,
         },
     )
     return collected

@@ -9,6 +9,7 @@ from genept_seed.embedding import (
     audit_embedding_checkpoint,
     generate_embeddings,
     load_gene_texts,
+    merge_exact_checkpoint_hits,
     select_gene_texts,
     text_statistics,
     validate_plan_base_url,
@@ -58,11 +59,33 @@ def test_generation_resumes_without_reembedding(tmp_path):
     manifest = json.loads((tmp_path / "vectors.npz.manifest.json").read_text())
     assert manifest["dimension"] == 2
     assert manifest["genes"] == 2
+    assert manifest["schema_version"] == "genept-seed-embedding-v2"
+    assert len(manifest["output_sha256"]) == 64
     assert audit_embedding_checkpoint(
         arguments["gene_texts"],
         checkpoint_path=arguments["checkpoint_path"],
         model="mock",
     ) == {"requested": 2, "exact_cached": 2, "pending": 0, "dimensions": [2]}
+
+
+def test_checkpoint_audit_reports_all_pending_without_materializing_database(tmp_path):
+    missing = tmp_path / "missing.sqlite3"
+    expected = {
+        "requested": 2,
+        "exact_cached": 0,
+        "pending": 2,
+        "dimensions": [],
+    }
+    assert audit_embedding_checkpoint(
+        {"A": "alpha", "B": "beta"}, checkpoint_path=missing, model="mock"
+    ) == expected
+    assert not missing.exists()
+
+    empty = tmp_path / "empty.sqlite3"
+    empty.touch()
+    assert audit_embedding_checkpoint(
+        {"A": "alpha", "B": "beta"}, checkpoint_path=empty, model="mock"
+    ) == expected
 
 
 def test_generation_rejects_unexpected_dimension(tmp_path):
@@ -128,3 +151,33 @@ def test_generation_can_preserve_gene_case(tmp_path):
     assert load_npz(output).genes.tolist() == ["C12orf45"]
     manifest = json.loads((tmp_path / "case.npz.manifest.json").read_text())
     assert manifest["gene_case"] == "preserved"
+
+
+def test_merge_checkpoints_accepts_only_exact_nonconflicting_hits(tmp_path):
+    texts = {"A": "alpha", "B": "beta", "C": "gamma"}
+    sources = []
+    for index, selected in enumerate(({"A": "alpha", "B": "beta"}, {"B": "beta", "C": "gamma"})):
+        checkpoint = tmp_path / f"source-{index}.sqlite3"
+        generate_embeddings(
+            selected,
+            embed=lambda values: [
+                np.asarray([len(value), 1], dtype=np.float32) for value in values
+            ],
+            model="mock",
+            checkpoint_path=checkpoint,
+            output_path=tmp_path / f"source-{index}.npz",
+            expected_dimension=2,
+        )
+        sources.append(checkpoint)
+    destination = tmp_path / "merged.sqlite3"
+    receipt = merge_exact_checkpoint_hits(
+        texts,
+        source_paths=sources,
+        destination_path=destination,
+        model="mock",
+    )
+    assert receipt["exact_merged"] == 3
+    assert receipt["pending"] == 0
+    assert audit_embedding_checkpoint(
+        texts, checkpoint_path=destination, model="mock"
+    )["exact_cached"] == 3

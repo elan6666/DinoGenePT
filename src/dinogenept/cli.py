@@ -32,6 +32,22 @@ def build_parser() -> argparse.ArgumentParser:
     matrix.add_argument("--device", help="override runtime.device for every row")
     matrix.add_argument("--output-root", type=Path)
 
+    pipeline = sub.add_parser(
+        "run-pipeline", help="run resumable six-epoch pretraining then fifteen-epoch fine-tuning"
+    )
+    pipeline.add_argument("--pipeline", type=Path, required=True)
+    pipeline.add_argument("--only", action="append", default=[])
+    pipeline.add_argument("--seed", action="append", type=int, default=[])
+    pipeline.add_argument("--output-root", type=Path)
+
+    benchmark = sub.add_parser(
+        "run-benchmark", help="run a resumable multi-dataset, multi-seed benchmark"
+    )
+    benchmark.add_argument("--benchmark", type=Path, required=True)
+    benchmark.add_argument("--only", action="append", default=[])
+    benchmark.add_argument("--seed", action="append", type=int, default=[])
+    benchmark.add_argument("--output-root", type=Path)
+
     permutation = sub.add_parser(
         "permutation-check", help="measure prediction sensitivity to gene-token order"
     )
@@ -82,6 +98,28 @@ def main(argv: list[str] | None = None) -> int:
         from .experiments.matrix import run_matrix
 
         result = run_matrix(args.matrix, device=args.device, output_root=args.output_root)
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0
+    if args.command == "run-pipeline":
+        from .experiments.pipeline import run_pipeline
+
+        result = run_pipeline(
+            args.pipeline,
+            only=tuple(args.only),
+            only_seeds=tuple(args.seed),
+            output_root=args.output_root,
+        )
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0
+    if args.command == "run-benchmark":
+        from .experiments.benchmark import run_benchmark
+
+        result = run_benchmark(
+            args.benchmark,
+            only=tuple(args.only),
+            only_seeds=tuple(args.seed),
+            output_root=args.output_root,
+        )
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0
     from .experiments.runner import run_permutation_check

@@ -86,3 +86,37 @@ def build_gradpert_union(
     }
     atomic_write_json(manifest_path, manifest)
     return manifest
+
+
+def build_gradpert_targets(
+    *, gradpert_root: Path, output_path: Path, manifest_path: Path
+) -> dict[str, Any]:
+    """Freeze the exact union of perturbation targets across the five protocols."""
+
+    union: set[str] = set()
+    datasets: list[dict[str, Any]] = []
+    for dataset, protocol in DATASETS:
+        split_path = gradpert_root / dataset / protocol / "manifests" / "split.json"
+        split = json.loads(split_path.read_text(encoding="utf-8"))
+        targets = _targets(split)
+        union.update(targets)
+        datasets.append(
+            {
+                "dataset": dataset,
+                "protocol": protocol,
+                "targets": len(targets),
+                "split_sha256": digest_file(split_path),
+            }
+        )
+    ordered = sorted(union)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text("\n".join(ordered) + "\n", encoding="utf-8")
+    manifest = {
+        "schema_version": "genept-seed-gradpert-target-union-v1",
+        "created_at": utc_now(),
+        "datasets": datasets,
+        "targets": len(ordered),
+        "output_sha256": digest_file(output_path),
+    }
+    atomic_write_json(manifest_path, manifest)
+    return manifest

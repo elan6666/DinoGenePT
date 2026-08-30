@@ -29,6 +29,12 @@ train = [
   "scipy>=1.10",
   "torch>=2.4",
 ]
+scouter = [
+  "scouter-learn==0.1.10",
+]
+tracking = [
+  "trackio==0.37.0",
+]
 
 [project.scripts]
 dinogenept = "dinogenept.cli:main"

@@ -51,6 +51,7 @@ training:
   bag_size: 2
   learning_rate: 0.0003
   lr_gamma: 1.0
+  selection_metric: none
 
 evaluation:
   control_samples: 4

@@ -1,0 +1,35 @@
+schema_version: dinogenept-pipeline-v1
+receipt: ablation-01-dino-base.json
+seeds: [1, 2, 3, 4]
+pretrain_overrides:
+  - identity.experiment_id=ablation-01-dino-base-pretrain
+  - ablation.dino=true
+  - ablation.delta_ibot=false
+  - ablation.dynamic_locals=false
+  - ablation.local_sources=[]
+  - priors.optional.go.enabled=false
+  - priors.optional.protein.enabled=false
+  - priors.optional.pathway.enabled=false
+  - priors.optional.hpa.enabled=false
+finetune_overrides:
+  - identity.experiment_id=ablation-01-dino-base-finetune
+  - priors.optional.go.enabled=false
+  - priors.optional.protein.enabled=false
+  - priors.optional.pathway.enabled=false
+  - priors.optional.hpa.enabled=false
+rows:
+  - dataset_id: norman
+    pretrain: ../experiments/dinogenept/gears5/norman/pretrain.yaml
+    finetune: ../experiments/dinogenept/gears5/norman/finetune.yaml
+  - dataset_id: replogle_k562_essential
+    pretrain: ../experiments/dinogenept/gears5/replogle_k562_essential/pretrain.yaml
+    finetune: ../experiments/dinogenept/gears5/replogle_k562_essential/finetune.yaml
+  - dataset_id: replogle_rpe1_essential
+    pretrain: ../experiments/dinogenept/gears5/replogle_rpe1_essential/pretrain.yaml
+    finetune: ../experiments/dinogenept/gears5/replogle_rpe1_essential/finetune.yaml
+  - dataset_id: nadig_jurkat
+    pretrain: ../experiments/dinogenept/gears5/nadig_jurkat/pretrain.yaml
+    finetune: ../experiments/dinogenept/gears5/nadig_jurkat/finetune.yaml
+  - dataset_id: nadig_hepg2
+    pretrain: ../experiments/dinogenept/gears5/nadig_hepg2/pretrain.yaml
+    finetune: ../experiments/dinogenept/gears5/nadig_hepg2/finetune.yaml

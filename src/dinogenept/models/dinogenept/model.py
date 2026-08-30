@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import copy
+import hashlib
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -202,7 +204,11 @@ class DinoGenePT(nn.Module):
         return control_expression + delta
 
     def load_pretrained(
-        self, path: str | Path, *, minimum_match_fraction: float
+        self,
+        path: str | Path,
+        *,
+        minimum_match_fraction: float,
+        strict: bool = False,
     ) -> dict[str, Any]:
         if not 0 < minimum_match_fraction <= 1:
             raise ValueError("pretrained minimum match fraction must be in (0, 1]")
@@ -227,30 +233,72 @@ class DinoGenePT(nn.Module):
             if name in current and current[name].shape == value.shape
         }
         checkpoint_parameters = sum(value.numel() for value in normalized.values())
+        current_parameters = sum(value.numel() for value in current.values())
         matched_parameters = sum(value.numel() for value in compatible.values())
-        match_fraction = (
+        checkpoint_match_fraction = (
             matched_parameters / checkpoint_parameters if checkpoint_parameters else 0.0
         )
-        if match_fraction < minimum_match_fraction:
+        current_match_fraction = (
+            matched_parameters / current_parameters if current_parameters else 0.0
+        )
+        missing_keys = sorted(set(current) - set(compatible))
+        unexpected_keys = sorted(set(normalized) - set(compatible))
+        if strict and (missing_keys or unexpected_keys):
+            raise ValueError(
+                "strict pretrained checkpoint schema mismatch: "
+                f"missing={missing_keys[:10]}, unexpected={unexpected_keys[:10]}"
+            )
+        if min(checkpoint_match_fraction, current_match_fraction) < minimum_match_fraction:
             raise ValueError(
                 "pretrained checkpoint compatibility is below the configured gate: "
-                f"matched={match_fraction:.4f}, required={minimum_match_fraction:.4f}"
+                f"checkpoint={checkpoint_match_fraction:.4f}, "
+                f"current={current_match_fraction:.4f}, "
+                f"required={minimum_match_fraction:.4f}"
             )
-        result = self.load_state_dict(compatible, strict=False)
+        result = self.load_state_dict(normalized if strict else compatible, strict=strict)
+
+        def schema_sha256(values: dict[str, torch.Tensor]) -> str:
+            schema = [
+                [name, list(value.shape), str(value.dtype)]
+                for name, value in sorted(values.items())
+            ]
+            return hashlib.sha256(
+                json.dumps(schema, separators=(",", ":")).encode("utf-8")
+            ).hexdigest()
+
         return {
             "path": str(source),
             "checkpoint_tensor_count": len(normalized),
             "matched_tensor_count": len(compatible),
-            "matched_parameter_fraction": match_fraction,
+            "checkpoint_parameter_match_fraction": checkpoint_match_fraction,
+            "current_parameter_match_fraction": current_match_fraction,
             "minimum_match_fraction": minimum_match_fraction,
+            "strict": strict,
+            "checkpoint_parameter_schema_sha256": schema_sha256(normalized),
+            "current_parameter_schema_sha256": schema_sha256(current),
             "missing_keys": list(result.missing_keys),
-            "unexpected_keys": sorted(set(normalized) - set(compatible)),
+            "unexpected_keys": list(result.unexpected_keys),
         }
 
-    def parameter_receipt(self) -> dict[str, int]:
+    def parameter_receipt(self) -> dict[str, Any]:
         total = sum(parameter.numel() for parameter in self.parameters())
         trainable = sum(parameter.numel() for parameter in self.parameters() if parameter.requires_grad)
-        return {"total": total, "trainable": trainable}
+        components = {
+            name: sum(parameter.numel() for parameter in module.parameters())
+            for name, module in (
+                ("backbone", self.backbone),
+                ("prior_adapters", self.prior_adapters),
+                ("dino_head", self.dino_head),
+                ("expression_decoder", self.expression_decoder),
+                ("token_delta_head", self.token_delta_head),
+            )
+        }
+        return {
+            "total": total,
+            "trainable": trainable,
+            "components": components,
+            "component_sum_matches_total": sum(components.values()) == total,
+        }
 
 
 class EMATeacher(nn.Module):

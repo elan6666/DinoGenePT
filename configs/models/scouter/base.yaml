@@ -1,0 +1,80 @@
+identity:
+  model_id: scouter
+
+model:
+  name: scouter
+  pretrained_checkpoint: null
+  max_seq_len: 1200
+  architecture:
+    encoder: [2048, 512]
+    encoder_output: 64
+    decoder: [2048]
+    batch_norm: true
+    layer_norm: false
+    dropout: 0.0
+
+priors:
+  base:
+    path: ${DINOGENEPT_BASE_PRIOR:-data/embeddings/dinogenept/base-targets.npz}
+    manifest: ${DINOGENEPT_BASE_PRIOR_MANIFEST:-data/embeddings/dinogenept/base-targets.npz.manifest.json}
+    profile: ncbi-uniprot-base-v1
+    source_manifest: data/corpora/seed-master.manifest.json
+    expected_source_manifest_sha256: 07bd8f587b0089a1131e8818b01373571de39d4be03624dbcd2431f878e2eb8d
+    expected_corpus_sha256: dc6a04038a13f2b098b8501b6260ab14bc94940e92bf9a10ae42a1bdbc33ac95
+    expected_gene_universe_sha256: 89fd38747bf69297759f29b6f33c0a3374ad0a15d71a3e4380d6df63e21c58af
+    expected_text_fingerprint_sha256: 85dd083957046b746a1d60596cf7fb9e3727c34295cbf282bb5e46f464adb5ce
+    expected_embedding_model: doubao-embedding-vision
+    expected_gene_case: preserved
+  optional: {}
+
+ablation:
+  dino: false
+  delta_ibot: false
+  dynamic_locals: false
+  local_sources: []
+
+training:
+  phase: finetune
+  epochs: 40
+  batch_size: 256
+  seed: 1
+  optimizer: adam
+  learning_rate: 0.001
+  weight_decay: 0.0
+  lr_gamma: 0.9
+  gradient_clip: 1.0
+  patience: 5
+  loss_gamma: 0.0
+  loss_lambda: 0.5
+  amp_bfloat16: false
+
+evaluation:
+  name: gradpert_exact
+  normalization: none
+  protocol_id: gradpert-metrics-v1
+  split: test
+  seed: 20260824
+  control_samples: 300
+  batch_size: 256
+
+runtime:
+  device: cuda:0
+  output_root: ${DINOGENEPT_OUTPUT_ROOT:-results/dinogenept}
+  enforce_server: true
+  required_work_root: /data/yilangliu/GenePT-Seed
+  required_cuda_visible_devices: "0"
+  smoke: false
+  save_checkpoint: true
+  max_gpu_memory_fraction: 0.90
+  min_free_gpu_mb: 30000
+  permutation_tolerance: 0.00001
+  tracking:
+    provider: trackio
+    enabled: ${DINOGENEPT_TRACKIO_ENABLED:-false}
+    project: ${DINOGENEPT_TRACKIO_PROJECT:-dinogenept-ablation}
+    space_id: ${DINOGENEPT_TRACKIO_SPACE_ID:-}
+    sync_space_id: ${DINOGENEPT_TRACKIO_SYNC_SPACE_ID:-elan68681/dinogenept-ablation}
+    local_dir: ${DINOGENEPT_TRACKIO_DIR:-.runtime/trackio-data}
+    private: true
+    auto_log_gpu: true
+    auto_log_cpu: true

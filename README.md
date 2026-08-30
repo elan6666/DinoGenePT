@@ -31,8 +31,9 @@ configuration changes to that model, not separate model implementations.
 Model code lives under `src/dinogenept/models/<model_id>/`; dataset adapters
 live under `src/dinogenept/datasets/<dataset_family>/`. Every model uses the
 same condition-macro evaluator and writes to
-`<output>/<dataset>/<model>/<experiment>/seed-<seed>/`. Adamson, Norman,
-Replogle K562, and Replogle RPE1 have independent dataset configs.
+`<output>/<dataset>/<model>/<experiment>/seed-<seed>/`. The formal comparison
+has independent configs for Norman, Replogle K562, Replogle RPE1, Nadig
+Jurkat, and Nadig HepG2.
 
 The architecture and leakage contract are documented in
 [`docs/dinogenept/ARCHITECTURE.md`](docs/dinogenept/ARCHITECTURE.md). The full
@@ -69,6 +70,51 @@ checkpoint, metrics, resolved config, and saved model hashes all validate. An
 incomplete retry is archived under its run directory, and `run.json` is written
 only after all material artifacts exist. Formal configs reject fixture priors
 and require frozen split manifests.
+
+### Formal GraD-Pert-aligned comparison
+
+The priority pipelines compare supervised-only, DINO-Base, DINO+iBOT, and
+dynamic source-only locals. Every full pipeline declares the same five dataset
+IDs and training seeds `[1, 2, 3, 4]`, uses six pretraining epochs followed by
+fifteen fine-tuning epochs, and evaluates with the frozen GraD-Pert control and
+state manifests at evaluation seed `20260824`. The first three variants are
+explicitly Base-only; only dynamic-locals loads GO, Protein, Pathway, and HPA.
+
+Scouter is a separate registered model adapter that calls
+`scouter-learn==0.1.10`. Its comparison prior is exactly GenePT-Seed Base
+(NCBI+UniProt); optional priors are rejected before model construction. It is
+labelled as a prior-swap comparison, not an official Scouter reproduction. Its
+installed wheel version, audited source hash, imported module paths, and
+upstream control-pairing seed are part of the reusable run identity.
+
+```bash
+CUBLAS_WORKSPACE_CONFIG=:4096:8 CUDA_VISIBLE_DEVICES=0 \
+  python -m dinogenept run-pipeline \
+  --pipeline configs/pipelines/ablation-01-dino-base.yaml
+CUBLAS_WORKSPACE_CONFIG=:4096:8 CUDA_VISIBLE_DEVICES=0 \
+  python -m dinogenept run-benchmark \
+  --benchmark configs/benchmarks/scouter-gradpert5-base.yaml
+```
+
+`--only <dataset>` and `--seed <seed>` are safe bounded launches. They write a
+selection-hashed `partial_complete` receipt and cannot overwrite or claim the
+full 5-dataset × 4-seed receipt. Cross-model aggregation additionally requires
+one shared fairness-contract hash covering the dataset, canonical split,
+expression-gene order, normalization, and frozen GraD-Pert evaluation
+artifacts. Formal pretrain-to-finetune transfer is strict: missing, unexpected,
+or shape-different parameters fail before training.
+
+### Loss curves and experiment tracking
+
+Formal ablations can mirror every epoch to Hugging Face Trackio. Enable it with
+`DINOGENEPT_TRACKIO_ENABLED=true`; the shared configs record training and
+validation loss, each Dino/iBOT/MoE component, learning rate, elapsed time,
+seed, ablation identity, and final GraD-Pert metrics. Server runs write first to
+the persistent ignored directory `.runtime/trackio-data`. The target private
+Space is `elan68681/dinogenept-ablation`, but Hugging Face is a visualization
+mirror only: hash-bound JSON receipts under `results/` remain the scientific
+source of truth. See
+[`docs/dinogenept/TRACKING.md`](docs/dinogenept/TRACKING.md).
 
 ## Frozen GenePT-Seed prior toolkit
 

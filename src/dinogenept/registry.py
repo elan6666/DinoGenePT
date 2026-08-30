@@ -41,9 +41,19 @@ DATASETS = ComponentRegistry("dataset")
 EVALUATORS = ComponentRegistry("evaluator")
 
 MODELS.register("dinogenept", "dinogenept.models.dinogenept", "PLUGIN")
+MODELS.register("scouter", "dinogenept.models.scouter", "PLUGIN")
 DATASETS.register("adamson", "dinogenept.datasets.adamson", "load_dataset")
 DATASETS.register("norman", "dinogenept.datasets.norman", "load_dataset")
 DATASETS.register("replogle", "dinogenept.datasets.replogle", "load_dataset")
 DATASETS.register("replogle_k562", "dinogenept.datasets.replogle", "load_k562")
 DATASETS.register("replogle_rpe1", "dinogenept.datasets.replogle", "load_rpe1")
+DATASETS.register(
+    "replogle_k562_essential", "dinogenept.datasets.replogle", "load_k562_essential"
+)
+DATASETS.register(
+    "replogle_rpe1_essential", "dinogenept.datasets.replogle", "load_rpe1_essential"
+)
+DATASETS.register("nadig_jurkat", "dinogenept.datasets.nadig", "load_jurkat")
+DATASETS.register("nadig_hepg2", "dinogenept.datasets.nadig", "load_hepg2")
 EVALUATORS.register("perturbation", "dinogenept.evaluation", "build_evaluator")
+EVALUATORS.register("gradpert_exact", "dinogenept.evaluation.gradpert", "build_evaluator")

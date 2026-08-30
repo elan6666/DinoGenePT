@@ -4,6 +4,25 @@ All rows below use the same `dinogenept` model registry entry. They differ only
 through composed YAML configuration. The smoke matrix is
 `configs/experiments/dinogenept/smoke-matrix.yaml`.
 
+The formal priority pipelines are:
+
+| Pipeline | Training-time priors | Primary question |
+|---|---|---|
+| `ablation-00-supervised.yaml` | Base only | Fifteen-epoch supervised random-initialization control |
+| `ablation-01-dino-base.yaml` | Base only | Contribution of condition-level DINO pretraining |
+| `ablation-02-dino-ibot.yaml` | Base only | Added contribution of masked delta-iBOT |
+| `ablation-07-dynamic-locals.yaml` | Base + sparse source-only locals | Added contribution of dynamic GO/Protein/Pathway/HPA views |
+
+Each pipeline declares Norman, Replogle K562, Replogle RPE1, Nadig Jurkat, and
+Nadig HepG2 with seeds 1--4. A bounded `--only`/`--seed` launch is still a
+formal-epoch run, but its selection-hashed receipt is `partial_complete` and
+cannot be presented as the full grid. The separate Scouter benchmark calls
+`scouter-learn==0.1.10`, uses GenePT-Seed Base only, and shares the same frozen
+GraD-Pert evaluator. Scouter run seeds 1--4 control model initialization and
+PyTorch loader shuffling; the pinned upstream package additionally uses its
+documented `BalancedDataset` default seed 24 for control pairing. Both values
+and the audited upstream source hash are written into every Scouter receipt.
+
 | Config | Isolated question |
 |---|---|
 | `00-supervised` | Does supervised condition-mean prediction run without self-distillation? |
@@ -38,6 +57,15 @@ A formal matrix must hold fixed:
 - Base prior artifact and embedding model;
 - evaluator, condition-macro aggregation, and bootstrap settings;
 - training budget except when the budget itself is the named ablation.
+
+Every completed run carries a model-independent fairness-contract SHA over the
+dataset bytes, canonical split, selected expression-gene order, exact evaluator
+protocol, normalization mode, and all frozen control/state artifacts. A
+comparison receipt is rejected unless every DinoGenePT and Scouter row has the
+same SHA. The semantic identity of each prior is separately bound to its
+pre-registered corpus, gene-universe, text-fingerprint, source-manifest, model,
+and gene-case hashes. Formal fine-tuning requires an exact parameter-name and
+shape match with its pretraining checkpoint.
 
 Single-source GO/Protein/Pathway/HPA rows retain all source adapters and differ
 only in which local view is scheduled. The matrix writes candidate-minus-

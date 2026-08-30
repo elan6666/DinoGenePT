@@ -21,6 +21,7 @@ class PerturbationData:
     name: str
     expression: np.ndarray
     genes: tuple[str, ...]
+    row_ids: tuple[str, ...]
     conditions: tuple[str, ...]
     targets: tuple[tuple[str, ...], ...]
     control_mask: np.ndarray
@@ -29,6 +30,9 @@ class PerturbationData:
     ibot_gene_indices: tuple[int, ...]
     source_sha256: str
     split_sha256: str
+    protocol_id: str | None
+    split_content_sha256: str | None
+    expression_gene_order_sha256: str
     fingerprint: str
 
     @property
@@ -45,8 +49,8 @@ class PerturbationData:
     def split_conditions(self, split: str) -> tuple[str, ...]:
         return tuple(
             condition
-            for condition in sorted(self.split_by_condition)
-            if self.split_by_condition[condition] == split
+            for condition, assigned_split in self.split_by_condition.items()
+            if assigned_split == split
         )
 
 
@@ -54,6 +58,17 @@ def plus_condition_parser(condition: str) -> tuple[str, ...]:
     if condition == "ctrl":
         return ()
     return tuple(part for part in condition.split("+") if part and part.lower() != "ctrl")
+
+
+def _sha256_json(value: Any) -> str:
+    encoded = json.dumps(
+        value,
+        allow_nan=False,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def _condition_split(
@@ -64,18 +79,30 @@ def _condition_split(
         path = Path(str(split_config["path"])).resolve(strict=True)
         payload = json.loads(path.read_text(encoding="utf-8"))
         result: dict[str, str] = {}
-        for split in ("train", "validation", "test"):
-            values = payload.get(split)
+        # Native DinoGenePT manifests use train/validation/test.  GraD-Pert's
+        # canonical, audited manifests deliberately spell these fields out as
+        # train_conditions/val_conditions/test_conditions.  Accept both
+        # schemas without rewriting or copying the frozen split artifact.
+        aliases = {
+            "train": ("train", "train_conditions"),
+            "validation": ("validation", "val_conditions"),
+            "test": ("test", "test_conditions"),
+        }
+        for split, names in aliases.items():
+            values = next((payload[name] for name in names if name in payload), None)
             if not isinstance(values, list) or not all(isinstance(item, str) for item in values):
                 raise ValueError(f"split manifest {split!r} must be a list of conditions")
             for condition in values:
                 if condition in result:
                     raise ValueError(f"condition appears in multiple splits: {condition}")
                 result[condition] = split
-        if set(result) != set(conditions):
-            missing = sorted(set(conditions) - set(result))
-            extra = sorted(set(result) - set(conditions))
-            raise ValueError(f"split manifest condition mismatch: missing={missing}, extra={extra}")
+        unassigned = sorted(set(conditions) - set(result))
+        absent = sorted(set(result) - set(conditions))
+        if absent or (unassigned and not split_config.get("allow_unassigned_conditions", False)):
+            raise ValueError(
+                "split manifest condition mismatch: "
+                f"unassigned_canonical={unassigned}, absent_from_canonical={absent}"
+            )
         return result
     if strategy != "deterministic_condition":
         raise ValueError(f"unsupported split strategy: {strategy!r}")
@@ -132,17 +159,24 @@ def _column_variance(matrix: Any, rows: np.ndarray, *, chunk_rows: int) -> np.nd
     return np.maximum(squared_sums / count - np.square(mean), 0.0)
 
 
-def _read_npz(path: Path, config: dict[str, Any]) -> tuple[np.ndarray, list[str], list[str], dict[str, Any]]:
+def _read_npz(
+    path: Path, config: dict[str, Any]
+) -> tuple[np.ndarray, list[str], list[str], list[str], dict[str, Any]]:
     with np.load(path, allow_pickle=False) as payload:
         expression = np.asarray(payload["expression"], dtype=np.float32)
         genes = [str(item) for item in payload["genes"]]
         conditions = [str(item) for item in payload["conditions"]]
-    return expression, genes, conditions, {}
+        row_ids = (
+            [str(item) for item in payload["row_ids"]]
+            if "row_ids" in payload
+            else [f"row-{index}" for index in range(expression.shape[0])]
+        )
+    return expression, genes, conditions, row_ids, {}
 
 
 def _read_h5ad(
     path: Path, config: dict[str, Any]
-) -> tuple[Any, list[str], list[str], dict[str, Any]]:
+) -> tuple[Any, list[str], list[str], list[str], dict[str, Any]]:
     try:
         import anndata
     except ModuleNotFoundError as error:
@@ -157,7 +191,8 @@ def _read_h5ad(
         genes = [str(item) for item in adata.var[gene_key].tolist()]
     else:
         genes = [str(item) for item in adata.var_names.tolist()]
-    return adata, genes, conditions, dict(adata.uns)
+    row_ids = [str(item) for item in adata.obs_names.tolist()]
+    return adata, genes, conditions, row_ids, dict(adata.uns)
 
 
 def _extract_top_de(
@@ -191,17 +226,20 @@ def load_perturbation_dataset(
     dataset = config["dataset"]
     path = Path(str(dataset["path"])).resolve(strict=True)
     if path.suffix == ".npz":
-        matrix, genes, raw_conditions, uns = _read_npz(path, dataset)
+        matrix, genes, raw_conditions, raw_row_ids, uns = _read_npz(path, dataset)
         row_count = matrix.shape[0]
     else:
-        matrix, genes, raw_conditions, uns = _read_h5ad(path, dataset)
+        matrix, genes, raw_conditions, raw_row_ids, uns = _read_h5ad(path, dataset)
         row_count = len(raw_conditions)
+    if len(raw_row_ids) != row_count or len(set(raw_row_ids)) != row_count:
+        raise ValueError("dataset row IDs must be unique and match the cell axis")
     if len(set(genes)) != len(genes):
         raise ValueError("dataset gene symbols must be unique")
     control_label = str(dataset.get("control_label", "ctrl"))
     normalized_conditions = ["ctrl" if item == control_label else item for item in raw_conditions]
     unique_conditions = tuple(sorted(set(normalized_conditions) - {"ctrl"}))
     split = _condition_split(unique_conditions, dataset["split"])
+    unique_conditions = tuple(sorted(split))
     limits = dataset.get("limits", {})
     max_conditions = int(limits.get("max_conditions", 0))
     if max_conditions > 0 and len(unique_conditions) > max_conditions:
@@ -238,22 +276,63 @@ def load_perturbation_dataset(
     )
     max_genes = int(limits.get("max_genes", 0))
     columns = np.arange(len(genes), dtype=np.int64)
+    expression_gene_ids_path = dataset.get("expression_gene_ids_path")
+    if expression_gene_ids_path:
+        expression_genes = tuple(
+            Path(str(expression_gene_ids_path))
+            .resolve(strict=True)
+            .read_text(encoding="utf-8")
+            .splitlines()
+        )
+        if not expression_genes or tuple(genes[: len(expression_genes)]) != expression_genes:
+            raise ValueError(
+                "frozen expression gene order is not a prefix of the canonical gene axis"
+            )
+        columns = np.arange(len(expression_genes), dtype=np.int64)
     variances: np.ndarray | None = None
     expression_matrix = matrix.X if hasattr(matrix, "X") else matrix
     variances = _column_variance(
-        expression_matrix,
+        expression_matrix[:, columns],
         train_rows,
         chunk_rows=int(limits.get("variance_chunk_rows", 1024)),
     )
     if max_genes > 0 and len(columns) > max_genes:
         if variances is None:
             raise RuntimeError("train-only variances were not computed")
-        columns = np.sort(np.argpartition(variances, -max_genes)[-max_genes:])
+        if dataset.get("force_perturbation_targets", False):
+            requested_targets = {
+                target
+                for condition in unique_conditions
+                for target in parse_condition(condition)
+            }
+            candidate_genes = [genes[int(index)] for index in columns]
+            gene_lookup = {gene: index for index, gene in enumerate(candidate_genes)}
+            missing_targets = sorted(requested_targets - set(gene_lookup))
+            if missing_targets:
+                raise ValueError(
+                    "perturbation targets are absent from the expression gene axis: "
+                    f"{missing_targets[:20]}"
+                )
+            forced = {gene_lookup[target] for target in requested_targets}
+            if len(forced) > max_genes:
+                raise ValueError("max_genes is smaller than the perturbation-target set")
+            ranked = np.argsort(-variances, kind="stable")
+            selected = list(forced)
+            selected.extend(
+                int(index)
+                for index in ranked
+                if int(index) not in forced and len(selected) < max_genes
+            )
+            columns = columns[np.asarray(sorted(selected), dtype=np.int64)]
+        else:
+            selected = np.sort(np.argpartition(variances, -max_genes)[-max_genes:])
+            columns = columns[selected]
     expression = _dense_rows(matrix.X if hasattr(matrix, "X") else matrix, rows, columns)
     if hasattr(matrix, "file") and hasattr(matrix.file, "close"):
         matrix.file.close()
     selected_genes = tuple(genes[int(index)] for index in columns)
     selected_conditions = tuple(normalized_conditions[int(index)] for index in rows)
+    selected_row_ids = tuple(raw_row_ids[int(index)] for index in rows)
     targets = tuple(parse_condition(condition) for condition in selected_conditions)
     control_mask = np.asarray([condition == "ctrl" for condition in selected_conditions], dtype=bool)
     if not control_mask.any():
@@ -268,21 +347,54 @@ def load_perturbation_dataset(
     ranked = np.argsort(-selected_variances, kind="stable")[:count]
     ibot_gene_indices = tuple(int(index) for index in ranked)
     source_sha256 = digest_file(path)
+    protocol_id: str | None = None
+    split_content_sha256: str | None = None
     if dataset["split"].get("strategy") == "manifest":
-        split_sha256 = digest_file(Path(str(dataset["split"]["path"])).resolve(strict=True))
+        split_path = Path(str(dataset["split"]["path"])).resolve(strict=True)
+        split_sha256 = digest_file(split_path)
+        split_payload = json.loads(split_path.read_text(encoding="utf-8"))
+        if split_payload.get("schema_version") == "split-manifest-v1":
+            content = {
+                key: split_payload[key]
+                for key in (
+                    "dataset_id",
+                    "protocol_id",
+                    "policy_id",
+                    "split_seed",
+                    "control_condition_id",
+                    "train_conditions",
+                    "val_conditions",
+                    "test_conditions",
+                )
+            }
+            if split_payload.get("dataset_id") != name:
+                raise ValueError("split manifest dataset identity differs")
+            if int(split_payload.get("split_seed", -1)) != int(
+                dataset["split"].get("seed", -2)
+            ):
+                raise ValueError("split manifest seed differs from configuration")
+            if _sha256_json(content) != split_payload.get("split_content_sha256"):
+                raise ValueError("split manifest content hash differs")
+            protocol_id = str(split_payload["protocol_id"])
+            split_content_sha256 = str(split_payload["split_content_sha256"])
     else:
         split_sha256 = hashlib.sha256(
             json.dumps(split, sort_keys=True, separators=(",", ":")).encode("utf-8")
         ).hexdigest()
+    expression_gene_order_sha256 = _sha256_json(list(selected_genes))
     identity = {
         "name": name,
         "path": str(path),
         "shape": list(expression.shape),
         "genes": selected_genes,
+        "row_ids": selected_row_ids,
         "conditions": sorted(set(selected_conditions)),
         "split": split,
         "source_sha256": source_sha256,
         "split_sha256": split_sha256,
+        "protocol_id": protocol_id,
+        "split_content_sha256": split_content_sha256,
+        "expression_gene_order_sha256": expression_gene_order_sha256,
         "ibot_gene_indices": ibot_gene_indices,
     }
     fingerprint = hashlib.sha256(
@@ -292,6 +404,7 @@ def load_perturbation_dataset(
         name=name,
         expression=expression,
         genes=selected_genes,
+        row_ids=selected_row_ids,
         conditions=selected_conditions,
         targets=targets,
         control_mask=control_mask,
@@ -300,5 +413,8 @@ def load_perturbation_dataset(
         ibot_gene_indices=ibot_gene_indices,
         source_sha256=source_sha256,
         split_sha256=split_sha256,
+        protocol_id=protocol_id,
+        split_content_sha256=split_content_sha256,
+        expression_gene_order_sha256=expression_gene_order_sha256,
         fingerprint=fingerprint,
     )

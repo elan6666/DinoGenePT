@@ -1,0 +1,9 @@
+schema_version: dinogenept-benchmark-v1
+receipt: scouter-gradpert5-base.json
+seeds: [1, 2, 3, 4]
+rows:
+  - config: ../experiments/scouter/gears5/replogle_k562_essential.yaml
+  - config: ../experiments/scouter/gears5/replogle_rpe1_essential.yaml
+  - config: ../experiments/scouter/gears5/nadig_jurkat.yaml
+  - config: ../experiments/scouter/gears5/nadig_hepg2.yaml
+  - config: ../experiments/scouter/gears5/norman.yaml

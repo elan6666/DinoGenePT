@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import importlib.metadata
 import json
@@ -9,6 +10,7 @@ import os
 import subprocess
 import tempfile
 import time
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
@@ -73,6 +75,13 @@ def _validate_execution_site(config: dict[str, Any]) -> None:
         )
     if not str(runtime.get("device", "")).startswith("cuda"):
         raise RuntimeError("server-enforced runs require a CUDA device")
+    if (
+        not runtime.get("smoke", False)
+        and os.environ.get("CUBLAS_WORKSPACE_CONFIG") != ":4096:8"
+    ):
+        raise RuntimeError(
+            "formal CUDA runs require CUBLAS_WORKSPACE_CONFIG=:4096:8"
+        )
 
 
 def _physical_gpu_identity(visible_devices: str | None) -> dict[str, str | None]:
@@ -122,6 +131,12 @@ def _runtime_environment(torch: Any) -> dict[str, Any]:
         str(torch.backends.cudnn.version())
         if torch.backends.cudnn.is_available()
         else None
+    )
+    environment["deterministic_algorithms"] = bool(
+        torch.are_deterministic_algorithms_enabled()
+    )
+    environment["cublas_workspace_config"] = os.environ.get(
+        "CUBLAS_WORKSPACE_CONFIG"
     )
     return environment
 
@@ -182,7 +197,7 @@ def build_input_manifest(
     config: dict[str, Any], data: Any, priors: PriorStore
 ) -> dict[str, Any]:
     checkpoint = config["model"].get("pretrained_checkpoint")
-    return {
+    manifest = {
         "dataset": {
             "fingerprint": data.fingerprint,
             "source_sha256": data.source_sha256,
@@ -193,6 +208,76 @@ def build_input_manifest(
             digest_file(Path(str(checkpoint)).resolve(strict=True)) if checkpoint else None
         ),
     }
+    model_id = config.get("identity", {}).get("model_id")
+    if model_id == "scouter":
+        from dinogenept.models.scouter.provenance import input_manifest
+
+        manifest["model_runtime"] = input_manifest(config)
+    evaluation = config.get("evaluation", {})
+    if evaluation.get("name") == "gradpert_exact":
+        manifest["evaluation"] = {
+            "protocol_id": evaluation.get("protocol_id"),
+            "split": evaluation.get("split"),
+            "seed": int(evaluation.get("seed", -1)),
+            "control_samples": int(evaluation.get("control_samples", -1)),
+            "normalization": str(evaluation.get("normalization", "unspecified")),
+            "data_protocol_id": data.protocol_id,
+            "split_content_sha256": data.split_content_sha256,
+            "expression_gene_order_sha256": data.expression_gene_order_sha256,
+            "artifacts": {
+                key: {
+                    "path": str(Path(str(evaluation[key])).resolve(strict=True)),
+                    "sha256": digest_file(
+                        Path(str(evaluation[key])).resolve(strict=True)
+                    ),
+                }
+                for key in (
+                    "control_manifest",
+                    "state_manifest",
+                    "state_arrays",
+                    "expression_gene_ids_path",
+                )
+            },
+        }
+    return manifest
+
+
+def fairness_contract(input_manifest: dict[str, Any]) -> dict[str, Any]:
+    """Build the model-independent comparison identity for one run."""
+
+    dataset = input_manifest["dataset"]
+    evaluation = input_manifest.get("evaluation")
+    if not isinstance(evaluation, dict):
+        return {"schema_version": "dinogenept-fairness-contract-v1", "sha256": None}
+    contract = {
+        "schema_version": "dinogenept-fairness-contract-v1",
+        "dataset": {
+            "fingerprint": dataset["fingerprint"],
+            "source_sha256": dataset["source_sha256"],
+            "split_sha256": dataset["split_sha256"],
+        },
+        "evaluation": {
+            key: evaluation[key]
+            for key in (
+                "protocol_id",
+                "split",
+                "seed",
+                "control_samples",
+                "normalization",
+                "data_protocol_id",
+                "split_content_sha256",
+                "expression_gene_order_sha256",
+            )
+        },
+        "artifact_sha256": {
+            key: value["sha256"]
+            for key, value in sorted(evaluation["artifacts"].items())
+        },
+    }
+    encoded = json.dumps(
+        contract, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    ).encode("utf-8")
+    return {**contract, "sha256": hashlib.sha256(encoded).hexdigest()}
 
 
 def _archive_incomplete_run(output: Path) -> None:
@@ -205,6 +290,19 @@ def _archive_incomplete_run(output: Path) -> None:
     for item in tuple(output.iterdir()):
         if item != attempts:
             item.rename(destination / item.name)
+
+
+def _archive_failure_receipt(output: Path) -> None:
+    failure = output / "failure.json"
+    if not failure.exists():
+        return
+    attempts = output / "attempts"
+    attempt = 1
+    while (attempts / f"attempt-{attempt}").exists():
+        attempt += 1
+    destination = attempts / f"attempt-{attempt}"
+    destination.mkdir(parents=True)
+    failure.rename(destination / failure.name)
 
 
 def _atomic_torch_save(torch: Any, payload: Any, target: Path) -> None:
@@ -231,11 +329,13 @@ def validate_completed_run(
 ) -> None:
     output = run_root(config)
     expected_input = build_input_manifest(config.payload, data, priors)
+    expected_fairness = fairness_contract(expected_input)
     if (
         receipt.get("status") != "complete"
         or receipt.get("config_sha256") != config.sha256
         or receipt.get("implementation_sha256") != implementation_hash
         or receipt.get("input_manifest") != expected_input
+        or receipt.get("fairness_contract") != expected_fairness
         or receipt.get("dataset_fingerprint") != data.fingerprint
         or receipt.get("run_root") != str(output)
     ):
@@ -267,13 +367,21 @@ def run_experiment(
     payload = config.payload
     _validate_execution_site(payload)
     output = run_root(config)
+    training_state_path = output / "training-state.pt"
     if output.exists() and any(output.iterdir()):
         if not retry_failed or (output / "run.json").exists():
             raise ValueError(f"refusing to overwrite an existing run: {output}")
-        _archive_incomplete_run(output)
+        if (
+            config.identity["model_id"] == "dinogenept"
+            and training_state_path.exists()
+        ):
+            _archive_failure_receipt(output)
+        else:
+            _archive_incomplete_run(output)
     output.mkdir(parents=True, exist_ok=True)
     started = time.time()
     implementation_hash = implementation_sha256()
+    tracker = None
     try:
         seed = int(payload["training"]["seed"])
         set_reproducible_seed(seed)
@@ -290,6 +398,12 @@ def run_experiment(
             priors_by_key[prior_key] = PriorStore.from_config(payload, targets)
         priors = priors_by_key[prior_key]
         input_manifest = build_input_manifest(payload, data, priors)
+        from dinogenept.tracking import TrackioRun
+
+        tracker = TrackioRun.start(payload, config.sha256)
+        # Trackio is observability only. Re-seed after its import/init so an
+        # implementation that consumes RNG cannot change a formal seed's model.
+        set_reproducible_seed(seed)
         device, gpu = _device(payload)
         if device.type == "cuda":
             torch.cuda.reset_peak_memory_stats(device)
@@ -305,6 +419,7 @@ def run_experiment(
                 minimum_match_fraction=float(
                     payload["model"].get("pretrained_minimum_match_fraction", 0.9)
                 ),
+                strict=bool(payload["model"].get("pretrained_strict", False)),
             )
         model.to(device)
         trainer = plugin.build_trainer(
@@ -313,46 +428,81 @@ def run_experiment(
             priors=priors,
             config=payload,
             device=device,
-        )
-        training_receipt = trainer.train()
-        predictions, truths, controls = plugin.predict_split(
-            model=model,
-            data=data,
-            priors=priors,
-            config=payload,
-            device=device,
-            split=str(payload["evaluation"].get("split", "test")),
-        )
-        evaluator = EVALUATORS.resolve(str(payload["evaluation"].get("name", "perturbation")))(
-            payload
-        )
-        evaluated_conditions = data.split_conditions(
-            str(payload["evaluation"].get("split", "test"))
-        )
-        targets_by_condition = condition_targets(data)
-        availability = {
-            condition: priors.available_optional(targets_by_condition[condition])
-            for condition in evaluated_conditions
-        }
-        metrics = evaluator.evaluate(
-            predictions=predictions,
-            truths=truths,
-            controls=controls,
-            top_de_indices=data.top_de_indices,
-            strata={
-                "optional_source_count": {
-                    condition: str(len(sources))
-                    for condition, sources in availability.items()
-                },
-                "optional_source_pattern": {
-                    condition: "+".join(sources) if sources else "base_only"
-                    for condition, sources in availability.items()
-                },
+            metric_logger=tracker.log_epoch,
+            training_state_path=(
+                training_state_path
+                if config.identity["model_id"] == "dinogenept"
+                else None
+            ),
+            training_state_identity={
+                "config_sha256": config.sha256,
+                "implementation_sha256": implementation_hash,
+                "input_manifest": input_manifest,
             },
         )
+        training_receipt = trainer.train()
+        if payload["evaluation"].get("run", True):
+            predictions, truths, controls = plugin.predict_split(
+                model=model,
+                data=data,
+                priors=priors,
+                config=payload,
+                device=device,
+                split=str(payload["evaluation"].get("split", "test")),
+            )
+            evaluator_config = copy.deepcopy(payload)
+            evaluator_config["evaluation"].update(
+                {
+                    "dataset_id": data.name,
+                    "data_protocol_id": data.protocol_id,
+                    "split_content_sha256": data.split_content_sha256,
+                    "canonical_data_sha256": data.source_sha256,
+                    "state_condition_ids": [
+                        *data.split_conditions("validation"),
+                        *data.split_conditions("test"),
+                    ],
+                }
+            )
+            evaluator = EVALUATORS.resolve(
+                str(payload["evaluation"].get("name", "perturbation"))
+            )(evaluator_config)
+            evaluated_conditions = data.split_conditions(
+                str(payload["evaluation"].get("split", "test"))
+            )
+            targets_by_condition = condition_targets(data)
+            availability = {
+                condition: priors.available_optional(targets_by_condition[condition])
+                for condition in evaluated_conditions
+            }
+            metrics = evaluator.evaluate(
+                predictions=predictions,
+                truths=truths,
+                controls=controls,
+                top_de_indices=data.top_de_indices,
+                strata={
+                    "optional_source_count": {
+                        condition: str(len(sources))
+                        for condition, sources in availability.items()
+                    },
+                    "optional_source_pattern": {
+                        condition: "+".join(sources) if sources else "base_only"
+                        for condition, sources in availability.items()
+                    },
+                },
+                gene_ids=data.genes,
+            )
+        else:
+            metrics = {
+                "schema_version": "dinogenept-evaluation-skipped-v1",
+                "status": "skipped",
+                "reason": "pretraining checkpoint materialization",
+            }
         if device.type == "cuda":
             gpu["peak_allocated_mb"] = int(torch.cuda.max_memory_allocated(device) // 2**20)
             gpu["peak_reserved_mb"] = int(torch.cuda.max_memory_reserved(device) // 2**20)
+        elapsed_seconds = time.time() - started
+        tracker.log_final(metrics, elapsed_seconds)
+        tracker.finish()
         receipt = {
             "schema_version": "dinogenept-run-v1",
             "status": "complete",
@@ -360,6 +510,7 @@ def run_experiment(
             "config_sha256": config.sha256,
             "implementation_sha256": implementation_hash,
             "input_manifest": input_manifest,
+            "fairness_contract": fairness_contract(input_manifest),
             "dataset_fingerprint": data.fingerprint,
             "package_version": __version__,
             "environment": _runtime_environment(torch),
@@ -370,7 +521,8 @@ def run_experiment(
             "prior_audit": priors.audit(condition_targets(data)),
             "training": training_receipt,
             "metrics": metrics,
-            "elapsed_seconds": time.time() - started,
+            "elapsed_seconds": elapsed_seconds,
+            "tracking": tracker.receipt(),
             "run_root": str(output),
         }
         resolved_path = output / "resolved-config.json"
@@ -391,8 +543,12 @@ def run_experiment(
             artifacts[checkpoint_path.name] = digest_file(checkpoint_path)
         receipt["artifacts"] = artifacts
         atomic_write_json(output / "run.json", receipt)
+        training_state_path.unlink(missing_ok=True)
         return receipt
     except BaseException as error:
+        if tracker is not None:
+            with suppress(BaseException):
+                tracker.finish()
         atomic_write_json(
             output / "failure.json",
             {

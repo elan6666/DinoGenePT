@@ -6,12 +6,15 @@ model:
   d_model: 512
   layers: 12
   heads: 8
-  ff_dim: 1536
+  # scGPT Nature Methods implementation details: 512 embedding/hidden width,
+  # 12 Transformer blocks, 8 heads, and a 512-wide feed-forward layer.
+  ff_dim: 512
   dropout: 0.1
-  max_seq_len: 512
+  max_seq_len: 1200
   positional_embedding: false
   pretrained_checkpoint: null
   pretrained_minimum_match_fraction: 0.9
+  pretrained_strict: false
   dino_head:
     hidden_dim: 2048
     bottleneck_dim: 256
@@ -30,24 +33,69 @@ model:
 
 priors:
   base:
-    path: ${DINOGENEPT_BASE_PRIOR:-data/priors/base.npz}
+    path: ${DINOGENEPT_BASE_PRIOR:-data/embeddings/dinogenept/base-targets.npz}
+    manifest: ${DINOGENEPT_BASE_PRIOR_MANIFEST:-data/embeddings/dinogenept/base-targets.npz.manifest.json}
+    profile: ncbi-uniprot-base-v1
+    source_manifest: data/corpora/seed-master.manifest.json
+    expected_source_manifest_sha256: 07bd8f587b0089a1131e8818b01373571de39d4be03624dbcd2431f878e2eb8d
+    expected_corpus_sha256: dc6a04038a13f2b098b8501b6260ab14bc94940e92bf9a10ae42a1bdbc33ac95
+    expected_gene_universe_sha256: 89fd38747bf69297759f29b6f33c0a3374ad0a15d71a3e4380d6df63e21c58af
+    expected_text_fingerprint_sha256: 85dd083957046b746a1d60596cf7fb9e3727c34295cbf282bb5e46f464adb5ce
+    expected_embedding_model: doubao-embedding-vision
+    expected_gene_case: preserved
   optional:
     go:
       enabled: true
       source_only: true
-      path: ${DINOGENEPT_GO_PRIOR:-data/priors/go-exp-only.npz}
+      path: ${DINOGENEPT_GO_PRIOR:-data/embeddings/dinogenept/go-exp-only-targets.npz}
+      manifest: ${DINOGENEPT_GO_PRIOR_MANIFEST:-data/embeddings/dinogenept/go-exp-only-targets.npz.manifest.json}
+      profile: go-exp-only-v1
+      source_manifest: data/corpora/dinogenept/go-exp-only-targets.manifest.json
+      expected_source_manifest_sha256: f191a7bd1e008dc99b98097b2aaa0c83e7b33cd8ed2e7354274e7ab1d3038814
+      expected_corpus_sha256: 5496e50afdb290b58fa33ce78d2d1340fd1a2e01c5976cb4ba8f64bfcfc603d8
+      expected_gene_universe_sha256: 89fd38747bf69297759f29b6f33c0a3374ad0a15d71a3e4380d6df63e21c58af
+      expected_text_fingerprint_sha256: 71b710c6d36e607eefae993f5283341fadefee05d906e9496732e9cf27d65305
+      expected_embedding_model: doubao-embedding-vision
+      expected_gene_case: preserved
     protein:
       enabled: true
       source_only: true
-      path: ${DINOGENEPT_PROTEIN_PRIOR:-data/priors/protein-only.npz}
+      path: ${DINOGENEPT_PROTEIN_PRIOR:-data/embeddings/dinogenept/protein-only-targets.npz}
+      manifest: ${DINOGENEPT_PROTEIN_PRIOR_MANIFEST:-data/embeddings/dinogenept/protein-only-targets.npz.manifest.json}
+      profile: interpro-uniprot-structure-only-v1
+      source_manifest: data/corpora/dinogenept/protein-only-targets.manifest.json
+      expected_source_manifest_sha256: 8e84bd087a801e4cc0e1548d57c5da5fce4f4af5832ed1fdabe55cec4c2a257c
+      expected_corpus_sha256: a09778ec02800b6116b886b5a8ab3e3b75aec465aba54e85d89ddf7574b41da5
+      expected_gene_universe_sha256: 89fd38747bf69297759f29b6f33c0a3374ad0a15d71a3e4380d6df63e21c58af
+      expected_text_fingerprint_sha256: 32224f977c0338885f082b53dad1fbd771f6744f7dbc224b0b76d70d910a02c1
+      expected_embedding_model: doubao-embedding-vision
+      expected_gene_case: preserved
     pathway:
       enabled: true
       source_only: true
-      path: ${DINOGENEPT_PATHWAY_PRIOR:-data/priors/pathway-only.npz}
+      path: ${DINOGENEPT_PATHWAY_PRIOR:-data/embeddings/dinogenept/pathway-only-targets.npz}
+      manifest: ${DINOGENEPT_PATHWAY_PRIOR_MANIFEST:-data/embeddings/dinogenept/pathway-only-targets.npz.manifest.json}
+      profile: reactome-signor-only-v1
+      source_manifest: data/corpora/dinogenept/pathway-only-targets.manifest.json
+      expected_source_manifest_sha256: 333be418d36f7ab627ff57fe9627e84f36c4c36125b0cacc2714c66c863aad29
+      expected_corpus_sha256: 665aef0c2a897bd9e55655f60de313761fe5829297778abc66cd56975a974992
+      expected_gene_universe_sha256: 89fd38747bf69297759f29b6f33c0a3374ad0a15d71a3e4380d6df63e21c58af
+      expected_text_fingerprint_sha256: 3d208bdc033b61e0ca212bd6dc0c919578333392a908b2009481add13a2d2d48
+      expected_embedding_model: doubao-embedding-vision
+      expected_gene_case: preserved
     hpa:
       enabled: true
       source_only: true
-      path: ${DINOGENEPT_HPA_PRIOR:-data/priors/hpa-only.npz}
+      path: ${DINOGENEPT_HPA_PRIOR:-data/embeddings/dinogenept/hpa-only-targets.npz}
+      manifest: ${DINOGENEPT_HPA_PRIOR_MANIFEST:-data/embeddings/dinogenept/hpa-only-targets.npz.manifest.json}
+      profile: hpa-only-v1
+      source_manifest: data/corpora/dinogenept/hpa-only-targets.manifest.json
+      expected_source_manifest_sha256: 79e00c8b33fc4dbc063d92a8d9bef89a86fb06e6c3378d24702263c6cdbb19cd
+      expected_corpus_sha256: 7a29a1c160e25fa77e2de554d019380159176dd5183d0cd9bf36b68f28a38a0b
+      expected_gene_universe_sha256: 89fd38747bf69297759f29b6f33c0a3374ad0a15d71a3e4380d6df63e21c58af
+      expected_text_fingerprint_sha256: 583831c0cf9fdfd266e86386e638d76daccfc02684aa363fa2163ea1ad62ae04
+      expected_embedding_model: doubao-embedding-vision
+      expected_gene_case: preserved
 
 ablation:
   dino: true
@@ -74,16 +122,20 @@ ablation:
     situ_glu: false
 
 training:
-  epochs: 100
+  phase: finetune
+  epochs: 15
   batch_size: 8
-  bag_size: 8
-  seed: 42
+  bag_size: 4
+  seed: 1
+  optimizer: adam
   learning_rate: 0.0001
-  weight_decay: 0.01
-  lr_gamma: 0.98
+  weight_decay: 0.0
+  lr_gamma: 0.9
   gradient_clip: 1.0
   amp_bfloat16: true
   max_batches: 0
+  max_validation_batches: 0
+  selection_metric: validation_prediction_mse
   losses:
     prediction: mse
     prediction_weight: 1.0
@@ -95,15 +147,16 @@ training:
 
 evaluation:
   name: perturbation
+  normalization: none
   protocol_id: gears-condition-macro-v1
   split: test
-  seed: 42
+  seed: 20260824
   control_samples: 300
   batch_size: 64
   energy_distance: true
   energy_max_samples: 64
   bootstrap_resamples: 1000
-  bootstrap_seed: 42
+  bootstrap_seed: 20260824
 
 runtime:
   device: cuda:0
@@ -113,6 +166,16 @@ runtime:
   required_cuda_visible_devices: "0"
   smoke: false
   save_checkpoint: true
-  max_gpu_memory_fraction: 0.35
-  min_free_gpu_mb: 20000
+  max_gpu_memory_fraction: 0.90
+  min_free_gpu_mb: 30000
   permutation_tolerance: 0.00001
+  tracking:
+    provider: trackio
+    enabled: ${DINOGENEPT_TRACKIO_ENABLED:-false}
+    project: ${DINOGENEPT_TRACKIO_PROJECT:-dinogenept-ablation}
+    space_id: ${DINOGENEPT_TRACKIO_SPACE_ID:-}
+    sync_space_id: ${DINOGENEPT_TRACKIO_SYNC_SPACE_ID:-elan68681/dinogenept-ablation}
+    local_dir: ${DINOGENEPT_TRACKIO_DIR:-.runtime/trackio-data}
+    private: true
+    auto_log_gpu: true
+    auto_log_cpu: true

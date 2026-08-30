@@ -1,11 +1,32 @@
+import json
+
 import numpy as np
+import pytest
 
 from dinogenept.datasets.common import (
     _column_variance,
+    _condition_split,
     _extract_top_de,
     load_perturbation_dataset,
     plus_condition_parser,
 )
+
+
+def test_manifest_may_explicitly_exclude_canonical_conditions(tmp_path):
+    manifest = tmp_path / "split.json"
+    manifest.write_text(
+        json.dumps({"train": ["A"], "validation": ["B"], "test": ["C"]}),
+        encoding="utf-8",
+    )
+    config = {"strategy": "manifest", "path": str(manifest)}
+    with pytest.raises(ValueError, match="unassigned_canonical"):
+        _condition_split(("A", "B", "C", "OUT_OF_PROTOCOL"), config)
+    config["allow_unassigned_conditions"] = True
+    assert _condition_split(("A", "B", "C", "OUT_OF_PROTOCOL"), config) == {
+        "A": "train",
+        "B": "validation",
+        "C": "test",
+    }
 
 
 def test_column_variance_matches_numpy():

@@ -21,7 +21,9 @@ class PerturbationEvaluator:
         controls: dict[str, np.ndarray],
         top_de_indices: dict[str, tuple[int, ...]],
         strata: dict[str, dict[str, str]] | None = None,
+        gene_ids: tuple[str, ...] | None = None,
     ) -> dict[str, Any]:
+        del gene_ids
         conditions = tuple(sorted(predictions))
         if not conditions or set(conditions) != set(truths) or set(conditions) != set(controls):
             raise ValueError("prediction, truth, and control condition sets must match and be non-empty")

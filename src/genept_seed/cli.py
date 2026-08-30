@@ -23,6 +23,7 @@ from .embedding import (
     audit_embedding_checkpoint,
     generate_embeddings,
     load_gene_texts,
+    merge_exact_checkpoint_hits,
     select_gene_texts,
     text_statistics,
 )
@@ -34,12 +35,13 @@ from .ggi_controls import (
     filter_ggi_universe,
 )
 from .go_corpus import build_go_exp_corpus
-from .gradpert_union import build_gradpert_union
+from .gradpert_union import build_gradpert_targets, build_gradpert_union
 from .knowledge_corpus import PROFILES, audit_knowledge_corpora, build_knowledge_corpus
 from .knowledge_vectors import audit_knowledge_vectors
 from .property_data import prepare_property_tasks
 from .provenance import atomic_write_json, credential_present, digest_file
 from .reports import write_results
+from .source_corpus import build_source_only_corpus
 from .tasks import ggi_genes, load_ggi, load_property_tasks
 from .vectors import coverage, l2_normalize, load_npz, load_official_pickle, select_universe_vectors
 
@@ -143,6 +145,21 @@ def build_parser() -> argparse.ArgumentParser:
     union.add_argument("--extra-genes", type=Path)
     union.add_argument("--output", type=Path, required=True)
     union.add_argument("--manifest", type=Path, required=True)
+    targets = data_sub.add_parser(
+        "build-gradpert-targets", help="freeze the target-gene union of all five protocols"
+    )
+    targets.add_argument("--gradpert-root", type=Path, required=True)
+    targets.add_argument("--output", type=Path, required=True)
+    targets.add_argument("--manifest", type=Path, required=True)
+    source_only = data_sub.add_parser(
+        "build-source-only-texts", help="subtract an audited append-only corpus prefix"
+    )
+    source_only.add_argument("--base", type=Path, required=True)
+    source_only.add_argument("--enriched", type=Path, required=True)
+    source_only.add_argument("--genes", type=Path)
+    source_only.add_argument("--source", required=True)
+    source_only.add_argument("--output", type=Path, required=True)
+    source_only.add_argument("--manifest", type=Path, required=True)
     knowledge = data_sub.add_parser("build-knowledge-texts", help="append sparse progressive protein knowledge")
     knowledge.add_argument("--base", type=Path, required=True)
     knowledge.add_argument("--genes", type=Path, required=True)
@@ -182,6 +199,10 @@ def build_parser() -> argparse.ArgumentParser:
     embed.add_argument("--limit", type=int)
     embed.add_argument("--genes", type=Path, help="optional newline-delimited gene allowlist")
     embed.add_argument(
+        "--profile",
+        help="semantic corpus profile bound into the embedding artifact manifest",
+    )
+    embed.add_argument(
         "--preserve-gene-case",
         action="store_true",
         help="preserve exact gene-symbol case for strict downstream matching",
@@ -195,6 +216,16 @@ def build_parser() -> argparse.ArgumentParser:
     checkpoint_audit.add_argument("--model", default=DEFAULT_MODEL)
     checkpoint_audit.add_argument("--genes", type=Path)
     checkpoint_audit.add_argument("--preserve-gene-case", action="store_true")
+
+    checkpoint_merge = subparsers.add_parser(
+        "merge-checkpoints", help="merge exact text-hash hits without calling an API"
+    )
+    checkpoint_merge.add_argument("--texts", type=Path, required=True)
+    checkpoint_merge.add_argument("--source", type=Path, action="append", required=True)
+    checkpoint_merge.add_argument("--destination", type=Path, required=True)
+    checkpoint_merge.add_argument("--model", default=DEFAULT_MODEL)
+    checkpoint_merge.add_argument("--genes", type=Path)
+    checkpoint_merge.add_argument("--preserve-gene-case", action="store_true")
 
     texts = subparsers.add_parser("audit-texts", help="inspect source text size and coverage")
     texts.add_argument("--texts", type=Path, required=True)
@@ -383,6 +414,21 @@ def main(argv: list[str] | None = None) -> int:
                 output_path=args.output,
                 manifest_path=args.manifest,
             )
+        elif args.data_command == "build-gradpert-targets":
+            result = build_gradpert_targets(
+                gradpert_root=args.gradpert_root,
+                output_path=args.output,
+                manifest_path=args.manifest,
+            )
+        elif args.data_command == "build-source-only-texts":
+            result = build_source_only_corpus(
+                base_path=args.base,
+                enriched_path=args.enriched,
+                genes_path=args.genes,
+                source=args.source,
+                output_path=args.output,
+                manifest_path=args.manifest,
+            )
         elif args.data_command == "build-knowledge-texts":
             result = build_knowledge_corpus(
                 base_path=args.base,
@@ -474,6 +520,9 @@ def main(argv: list[str] | None = None) -> int:
             request_interval=args.request_interval, limit=args.limit,
             expected_dimension=args.expected_dimension,
             uppercase_genes=uppercase_genes,
+            profile=args.profile,
+            corpus_path=args.texts,
+            universe_path=args.genes,
         )
         print(json.dumps({"model": args.model, "genes": len(vectors), "output": str(args.output)}, indent=2))
         return 0
@@ -491,6 +540,29 @@ def main(argv: list[str] | None = None) -> int:
                     gene_texts, checkpoint_path=args.checkpoint, model=args.model
                 ),
                 indent=2,
+            )
+        )
+        return 0
+    if args.command == "merge-checkpoints":
+        gene_texts = load_gene_texts(
+            args.texts, uppercase_genes=not args.preserve_gene_case
+        )
+        if args.genes:
+            gene_texts = select_gene_texts(
+                gene_texts,
+                set(args.genes.read_text(encoding="utf-8").splitlines()),
+                uppercase_genes=not args.preserve_gene_case,
+            )
+        print(
+            json.dumps(
+                merge_exact_checkpoint_hits(
+                    gene_texts,
+                    source_paths=args.source,
+                    destination_path=args.destination,
+                    model=args.model,
+                ),
+                indent=2,
+                sort_keys=True,
             )
         )
         return 0

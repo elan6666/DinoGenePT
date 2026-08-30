@@ -1,0 +1,10 @@
+includes:
+  - ../../../models/scouter/base.yaml
+  - ../../../datasets/gears5/nadig_jurkat.yaml
+schema_version: dinogenept-experiment-v1
+identity:
+  experiment_id: scouter-seed-base
+training:
+  loss_lambda: 0.5
+  learning_rate: 0.001
+  protocol_note: preregistered-replogle-transfer-no-official-nadig-default

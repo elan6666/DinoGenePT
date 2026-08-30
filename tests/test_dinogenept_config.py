@@ -8,6 +8,7 @@ from dinogenept.config import load_config, validate_config
 from dinogenept.experiments.matrix import run_matrix
 from dinogenept.experiments.runner import (
     build_input_manifest,
+    fairness_contract,
     implementation_sha256,
     run_root,
 )
@@ -44,11 +45,11 @@ def test_invalid_dynamic_local_without_dino_fails_closed():
 
 
 def test_registries_expose_model_dataset_and_common_evaluator():
-    assert MODELS.names() == ("dinogenept",)
+    assert MODELS.names() == ("dinogenept", "scouter")
     assert {"adamson", "norman", "replogle_k562", "replogle_rpe1"}.issubset(
         DATASETS.names()
     )
-    assert EVALUATORS.names() == ("perturbation",)
+    assert EVALUATORS.names() == ("gradpert_exact", "perturbation")
 
 
 def test_matrix_reuses_matching_completed_receipt(tmp_path):
@@ -91,13 +92,15 @@ def test_matrix_reuses_matching_completed_receipt(tmp_path):
     atomic_write_json(resolved_path, config.payload)
     atomic_write_json(metrics_path, metrics)
     checkpoint_path.write_bytes(b"deterministic-test-checkpoint")
+    input_manifest = build_input_manifest(config.payload, data, priors)
     atomic_write_json(
         completed,
         {
             "status": "complete",
             "config_sha256": config.sha256,
             "implementation_sha256": implementation_sha256(),
-            "input_manifest": build_input_manifest(config.payload, data, priors),
+            "input_manifest": input_manifest,
+            "fairness_contract": fairness_contract(input_manifest),
             "dataset_fingerprint": data.fingerprint,
             "run_root": str(completed.parent),
             "elapsed_seconds": 1.0,

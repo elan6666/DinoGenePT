@@ -1,0 +1,5 @@
+includes:
+  - ../../../../models/dinogenept/base.yaml
+  - ../../../../datasets/gears5/replogle_k562_essential.yaml
+  - ../../../../training/scgpt-finetune.yaml
+schema_version: dinogenept-experiment-v1

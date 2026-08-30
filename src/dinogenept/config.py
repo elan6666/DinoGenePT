@@ -117,30 +117,56 @@ def validate_config(payload: dict[str, Any]) -> None:
     model = _require_mapping(payload, "model")
     if model.get("name") != identity["model_id"]:
         raise ValueError("model name and identity.model_id differ")
-    for key in ("d_model", "layers", "heads", "ff_dim", "max_seq_len"):
-        if int(model.get(key, 0)) <= 0:
-            raise ValueError(f"model.{key} must be positive")
-    if int(model["d_model"]) % int(model["heads"]):
-        raise ValueError("model.heads must divide model.d_model")
-    dino_head = model.get("dino_head")
-    if not isinstance(dino_head, dict) or any(
-        int(dino_head.get(key, 0)) <= 0
-        for key in ("hidden_dim", "bottleneck_dim", "prototypes")
-    ):
-        raise ValueError("model.dino_head dimensions must be positive")
-    mask = model.get("mask")
-    if not isinstance(mask, dict) or mask.get("gene_selection") not in {
-        "train_variance",
-        "post_topk",
-    }:
-        raise ValueError("model.mask.gene_selection must be train_variance or post_topk")
+    model_id = identity["model_id"]
+    if model_id == "dinogenept":
+        for key in ("d_model", "layers", "heads", "ff_dim", "max_seq_len"):
+            if int(model.get(key, 0)) <= 0:
+                raise ValueError(f"model.{key} must be positive")
+        if int(model["d_model"]) % int(model["heads"]):
+            raise ValueError("model.heads must divide model.d_model")
+        if not isinstance(model.get("pretrained_strict", False), bool):
+            raise ValueError("model.pretrained_strict must be boolean")
+        dino_head = model.get("dino_head")
+        if not isinstance(dino_head, dict) or any(
+            int(dino_head.get(key, 0)) <= 0
+            for key in ("hidden_dim", "bottleneck_dim", "prototypes")
+        ):
+            raise ValueError("model.dino_head dimensions must be positive")
+        mask = model.get("mask")
+        if not isinstance(mask, dict) or mask.get("gene_selection") not in {
+            "train_variance",
+            "post_topk",
+        }:
+            raise ValueError("model.mask.gene_selection must be train_variance or post_topk")
+    elif model_id == "scouter":
+        architecture = model.get("architecture")
+        if not isinstance(architecture, dict):
+            raise ValueError("Scouter requires model.architecture")
+        if tuple(architecture.get("encoder", ())) != (2048, 512):
+            raise ValueError("Scouter encoder must preserve the official (2048, 512) default")
+        if int(architecture.get("encoder_output", 0)) != 64:
+            raise ValueError("Scouter encoder_output must preserve the official default 64")
+        if tuple(architecture.get("decoder", ())) != (2048,):
+            raise ValueError("Scouter decoder must preserve the official (2048,) default")
+    else:
+        raise ValueError(f"unsupported model identity: {model_id}")
     training = _require_mapping(payload, "training")
     if int(training.get("epochs", 0)) <= 0 or int(training.get("batch_size", 0)) <= 0:
         raise ValueError("training epochs and batch_size must be positive")
-    if int(training.get("bag_size", 0)) <= 0:
+    if model_id == "dinogenept" and int(training.get("bag_size", 0)) <= 0:
         raise ValueError("training.bag_size must be positive")
     if float(training.get("learning_rate", 0.0)) <= 0:
         raise ValueError("training.learning_rate must be positive")
+    allowed_phases = {"pretrain", "finetune"} if model_id == "dinogenept" else {"finetune"}
+    if training.get("phase", "finetune") not in allowed_phases:
+        raise ValueError("training.phase must be pretrain or finetune")
+    if training.get("optimizer", "adamw") not in {"adam", "adamw"}:
+        raise ValueError("training.optimizer must be adam or adamw")
+    if training.get("selection_metric", "none") not in {
+        "none",
+        "validation_prediction_mse",
+    }:
+        raise ValueError("unsupported training.selection_metric")
     runtime = _require_mapping(payload, "runtime")
     if not isinstance(runtime.get("output_root"), str) or not runtime["output_root"]:
         raise ValueError("runtime.output_root must be a non-empty path")
@@ -153,6 +179,26 @@ def validate_config(payload: dict[str, Any]) -> None:
             raise ValueError(
                 "server enforcement requires runtime.required_cuda_visible_devices"
             )
+    tracking = runtime.get("tracking", {})
+    if not isinstance(tracking, dict):
+        raise ValueError("runtime.tracking must be a mapping")
+    if tracking.get("enabled", False):
+        if tracking.get("provider", "trackio") != "trackio":
+            raise ValueError("runtime.tracking.provider must be trackio")
+        if not isinstance(tracking.get("project"), str) or not tracking["project"].strip():
+            raise ValueError("enabled Trackio requires runtime.tracking.project")
+        for key in ("space_id", "sync_space_id"):
+            value = tracking.get(key)
+            if value is not None and not isinstance(value, str):
+                raise ValueError(f"runtime.tracking.{key} must be a string or null")
+        local_dir = tracking.get("local_dir")
+        if local_dir is not None and (
+            not isinstance(local_dir, str) or not local_dir.strip()
+        ):
+            raise ValueError("runtime.tracking.local_dir must be a non-empty string")
+        for key in ("private", "auto_log_gpu", "auto_log_cpu"):
+            if key in tracking and not isinstance(tracking[key], bool):
+                raise ValueError(f"runtime.tracking.{key} must be boolean")
     priors = _require_mapping(payload, "priors")
     base = priors.get("base")
     if not isinstance(base, dict):
@@ -160,6 +206,22 @@ def validate_config(payload: dict[str, Any]) -> None:
     smoke = bool(runtime.get("smoke", False))
     if not smoke and base.get("fixture"):
         raise ValueError("fixture priors are forbidden outside smoke mode")
+    formal_prior_fields = (
+        "manifest",
+        "profile",
+        "source_manifest",
+        "expected_source_manifest_sha256",
+        "expected_corpus_sha256",
+        "expected_gene_universe_sha256",
+        "expected_text_fingerprint_sha256",
+        "expected_embedding_model",
+        "expected_gene_case",
+    )
+    if not smoke and any(
+        not isinstance(base.get(key), str) or not base[key]
+        for key in formal_prior_fields
+    ):
+        raise ValueError("formal Base prior lacks preregistered corpus lineage")
     optional = priors.get("optional", {})
     if not isinstance(optional, dict):
         raise ValueError("priors.optional must be a mapping")
@@ -170,14 +232,41 @@ def validate_config(payload: dict[str, Any]) -> None:
             raise ValueError(f"formal optional prior {source!r} must declare source_only: true")
         if not smoke and source_config.get("fixture"):
             raise ValueError("fixture optional priors are forbidden outside smoke mode")
+        if not smoke and any(
+            not isinstance(source_config.get(key), str) or not source_config[key]
+            for key in formal_prior_fields
+        ):
+            raise ValueError(
+                f"formal optional prior {source!r} lacks preregistered corpus lineage"
+            )
         if source == "base":
             raise ValueError("base cannot also be configured as an optional prior")
+    if model_id == "scouter" and any(
+        source_config.get("enabled", True) for source_config in optional.values()
+    ):
+        raise ValueError("Scouter baseline is Base-only; optional priors are forbidden")
+    evaluation = _require_mapping(payload, "evaluation")
+    if evaluation.get("name") == "gradpert_exact" and evaluation.get(
+        "normalization"
+    ) != "none":
+        raise ValueError("GraD-Pert exact evaluation requires normalization=none")
     split = dataset.get("split")
     if not isinstance(split, dict):
         raise ValueError("dataset.split must be configured")
     if not smoke and split.get("strategy") != "manifest":
         raise ValueError("formal runs require a frozen split manifest")
     ablation = _require_mapping(payload, "ablation")
+    if model_id == "scouter":
+        if any(
+            (
+                ablation.get("dino", False),
+                ablation.get("delta_ibot", False),
+                ablation.get("dynamic_locals", False),
+                bool(ablation.get("local_sources", [])),
+            )
+        ):
+            raise ValueError("Scouter must not enable DinoGenePT ablations")
+        return
     if float(ablation.get("koleo_weight", 0.0)) < 0:
         raise ValueError("ablation.koleo_weight must be non-negative")
     if ablation.get("kda", {}).get("enabled") and model.get("positional_embedding", False):
@@ -218,7 +307,6 @@ def validate_config(payload: dict[str, Any]) -> None:
             raise ValueError("MoE experts/top_k are invalid")
         if adapter.get("balance", "auxiliary") not in {"auxiliary", "quantile", "none"}:
             raise ValueError("unsupported MoE balancing mode")
-    _require_mapping(payload, "evaluation")
 
 
 @dataclass(frozen=True)

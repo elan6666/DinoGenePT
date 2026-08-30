@@ -9,7 +9,7 @@
   baselines, server verification, four evidence-led iterations, live Doubao
   generation, matched comparisons, compact receipts, final verification, and
   ship review.
-- Remaining: commit, push, verify GitHub `main`, then close the heartbeat/goal.
+- Remaining: metadata closeout, then close the heartbeat/goal.
 - Review verdict: review 6 `ship`.
 - Iteration count: 13. Iterations 10–13 hardened actual text-exposure leakage,
   partner-only sentence fidelity, strict pre-filtered gene partitioning, and
@@ -19,6 +19,8 @@
 - Hard blocker: none. All server embedding and finalizer sessions completed.
 - Fixed, gene-disjoint, and property comparison auditors pass on the complete
   eight-embedding grid.
-- Git handoff: pending. Preserve user-owned untracked `uv.lock`.
-- Exact resume action: commit tracked changes excluding `uv.lock`, push and
-  verify GitHub `main`, then update delivery metadata.
+- Git handoff: implementation/results commit
+  `24e3bd07b1cc1be7fc498c628a691b0a3f2cdbd5` pushed and verified on GitHub
+  `main`; user-owned untracked `uv.lock` remains excluded.
+- Exact resume action: push this metadata-only closeout, verify remote `main`,
+  delete the heartbeat, and complete the goal.

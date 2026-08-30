@@ -18,5 +18,6 @@
   and checksum sync pass. Review 6 verdict is `ship`.
 - No GraD-Pert command was run or modified. User-owned untracked `uv.lock`
   remains excluded.
-- Remaining action: Git commit/push and remote verification, then close the
-  heartbeat and goal.
+- Implementation/results commit `24e3bd07b1cc1be7fc498c628a691b0a3f2cdbd5`
+  is pushed and verified on GitHub `main`. Only this metadata closeout remains
+  before deleting the heartbeat and completing the goal.

@@ -132,3 +132,8 @@ No real-user feedback was collected or claimed.
 Delivery commit `daf95b23b82f621960171140a44e80892f0b2219` was pushed and
 verified on GitHub `main`. The user-owned untracked `uv.lock` remains local and
 was not included.
+
+The Priority 1/2 implementation, documentation, and compact receipts were
+committed as `24e3bd07b1cc1be7fc498c628a691b0a3f2cdbd5`, pushed, and verified
+on GitHub `main`. The final follow-up commit changes only Byte OS closeout
+metadata. The user-owned untracked `uv.lock` remains local and excluded.

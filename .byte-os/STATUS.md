@@ -2,14 +2,14 @@
 schema_version: 1
 mode: auto
 project_kind: existing_codebase
-stage: review
-current_workflow: byte-review
-next_workflow: git-handoff
+stage: delivered
+current_workflow: delivery
+next_workflow: none
 harness_status: ready
 review_verdict: ship
 iteration_count: 13
 hard_blocked: false
-updated_at: 2026-08-30T19:28:00+08:00
+updated_at: 2026-08-30T19:32:00+08:00
 ---
 
 # Status
@@ -24,7 +24,8 @@ property tasks all pass final fairness audits.
 
 Review 6 returns `ship`. Local and server tests, Ruff, build, CLI, JSON, script
 syntax, secret scan, and checksum sync pass. Compact receipts and documentation
-are ready for Git handoff. No GraD-Pert model was run or modified; user-owned
+were committed in `24e3bd07b1cc1be7fc498c628a691b0a3f2cdbd5`, pushed, and
+verified on GitHub `main`. No GraD-Pert model was run or modified; user-owned
 untracked `uv.lock` remains excluded.
 
 Local source of truth: `/Users/elan/code/GenePT-Seed`.

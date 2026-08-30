@@ -32,6 +32,18 @@ export DINOGENEPT_TRACKIO_SITE=.runtime/trackio-site
 export DINOGENEPT_TRACKIO_DIR=.runtime/trackio-data
 ```
 
+After no run is writing the database, inspect the curves locally with:
+
+```bash
+TRACKIO_DIR=.runtime/trackio-data .venv/bin/trackio show \
+  --project dinogenept-ablation
+```
+
+An isolated server integration check wrote and closed one epoch successfully;
+Trackio reported the durable project directory and dashboard command. Formal
+run names use the deterministic scheme above, so curves can be filtered by
+model, dataset, ablation, seed, and resolved-config hash.
+
 The compute server currently cannot reliably reach the Hugging Face API, so it
 does not receive or persist a Hugging Face token. After runs have stopped,
 checksum-sync `.runtime/trackio-data/` to the same ignored directory on the Mac

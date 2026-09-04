@@ -1,8 +1,0 @@
-includes: [_common.yaml]
-
-identity:
-  experiment_id: attention-residual
-
-ablation:
-  attention_residual:
-    enabled: true

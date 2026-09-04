@@ -3,16 +3,15 @@ requires = ["hatchling>=1.26"]
 build-backend = "hatchling.build"
 
 [project]
-name = "dinogenept"
-version = "0.2.0"
-description = "Knowledge-conditioned self-distillation for genetic perturbation prediction."
+name = "genept-seed"
+version = "0.1.0"
+description = "Matched GenePT embedding-backbone comparisons with Doubao embeddings."
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
-authors = [{name = "DinoGenePT contributors"}]
+authors = [{name = "GenePT-Seed contributors"}]
 dependencies = [
   "numpy>=1.26",
-  "PyYAML>=6.0",
   "scikit-learn>=1.4",
 ]
 
@@ -23,25 +22,12 @@ dev = [
   "pytest>=8.0",
   "ruff>=0.6",
 ]
-train = [
-  "anndata>=0.10",
-  "pandas>=2.0",
-  "scipy>=1.10",
-  "torch>=2.4",
-]
-scouter = [
-  "scouter-learn==0.1.10",
-]
-tracking = [
-  "trackio==0.37.0",
-]
 
 [project.scripts]
-dinogenept = "dinogenept.cli:main"
 genept-seed = "genept_seed.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/dinogenept", "src/genept_seed"]
+packages = ["src/genept_seed"]
 
 [tool.hatch.build]
 exclude = [

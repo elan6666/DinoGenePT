@@ -1,126 +1,10 @@
-# DinoGenePT
-
-DinoGenePT is a knowledge-conditioned self-distillation package for genetic
-perturbation prediction. It uses a shared cell Transformer, a mandatory
-GenePT-Seed Base view, and a variable number of source-only knowledge views.
-The existing `genept_seed` package remains the frozen corpus, embedding, and
-gene-level evaluation toolkit; its results and CLI stay reproducible.
-
-This is an independent research project, not an official GenePT or DINOcell
-release.
-
-## Perturbation model
-
-The current package contains one model family, `dinogenept`. Ablations are
-configuration changes to that model, not separate model implementations.
-
-- The Student always receives a randomly sampled control-cell bag and the
-  complete NCBI + UniProt Base prior for the perturbation target.
-- Optional local views contain exactly one source: GO-EXP, Protein
-  (InterPro + reviewed UniProt structure fields), Pathway (Reactome + SIGNOR),
-  or HPA. They never repeat Base text.
-- A missing optional annotation removes that local view. There is no zero
-  embedding, missing token, invented text, or neighbour fill. Combination
-  perturbations require every target to have that source.
-- The EMA Teacher observes post-perturbation cells only for training-split
-  conditions. DINO is pooled at perturbation-condition level because random
-  controls and post cells are not biologically paired.
-- Delta-iBOT masks expression values while retaining gene identity and predicts
-  post-minus-control deltas. Base is the only prior used at primary inference.
-
-Model code lives under `src/dinogenept/models/<model_id>/`; dataset adapters
-live under `src/dinogenept/datasets/<dataset_family>/`. Every model uses the
-same condition-macro evaluator and writes to
-`<output>/<dataset>/<model>/<experiment>/seed-<seed>/`. The formal comparison
-has independent configs for Norman, Replogle K562, Replogle RPE1, Nadig
-Jurkat, and Nadig HepG2.
-
-The architecture and leakage contract are documented in
-[`docs/dinogenept/ARCHITECTURE.md`](docs/dinogenept/ARCHITECTURE.md). The full
-config-only ablation matrix is listed in
-[`docs/dinogenept/ABLATIONS.md`](docs/dinogenept/ABLATIONS.md).
-
-### One-epoch server smoke
-
-All 21 ablation paths completed sequentially on physical server GPU 0 with a
-30% process memory cap; peak allocated memory was 66--79 MiB. The run used
-Adamson mini, eight perturbation conditions, 64 training-split
-variance-selected genes, one epoch, and deterministic synthetic priors. Every
-row saved a checkpoint and hash-bound it to its config, dataset, split, prior
-artifacts, executable source, metrics, and physical GPU UUID. An immediate
-second invocation validated those hashes and reused 21/21 rows without
-training. This proves execution only and is not a model comparison. The compact
-receipt is
-[`docs/results/dinogenept/SMOKE_VALIDATION.json`](docs/results/dinogenept/SMOKE_VALIDATION.json).
-
-```bash
-python -m dinogenept registry
-python -m dinogenept show-config \
-  --config configs/experiments/dinogenept/ablations/07-dynamic-locals.yaml
-
-CUDA_VISIBLE_DEVICES=0 python -m dinogenept run-matrix \
-  --matrix configs/experiments/dinogenept/smoke-matrix.yaml \
-  --device cuda:0 \
-  --output-root results/dinogenept-smoke
-```
-
-Matrix execution is sequential and idempotent. A completed row is reused only
-after its config, executable source, dataset, split, priors, optional pretrained
-checkpoint, metrics, resolved config, and saved model hashes all validate. An
-incomplete retry is archived under its run directory, and `run.json` is written
-only after all material artifacts exist. Formal configs reject fixture priors
-and require frozen split manifests.
-
-### Formal GraD-Pert-aligned comparison
-
-The priority pipelines compare supervised-only, DINO-Base, DINO+iBOT, and
-dynamic source-only locals. Every full pipeline declares the same five dataset
-IDs and training seeds `[1, 2, 3, 4]`, uses six pretraining epochs followed by
-fifteen fine-tuning epochs, and evaluates with the frozen GraD-Pert control and
-state manifests at evaluation seed `20260824`. The first three variants are
-explicitly Base-only; only dynamic-locals loads GO, Protein, Pathway, and HPA.
-
-Scouter is a separate registered model adapter that calls
-`scouter-learn==0.1.10`. Its comparison prior is exactly GenePT-Seed Base
-(NCBI+UniProt); optional priors are rejected before model construction. It is
-labelled as a prior-swap comparison, not an official Scouter reproduction. Its
-installed wheel version, audited source hash, imported module paths, and
-upstream control-pairing seed are part of the reusable run identity.
-
-```bash
-CUBLAS_WORKSPACE_CONFIG=:4096:8 CUDA_VISIBLE_DEVICES=0 \
-  python -m dinogenept run-pipeline \
-  --pipeline configs/pipelines/ablation-01-dino-base.yaml
-CUBLAS_WORKSPACE_CONFIG=:4096:8 CUDA_VISIBLE_DEVICES=0 \
-  python -m dinogenept run-benchmark \
-  --benchmark configs/benchmarks/scouter-gradpert5-base.yaml
-```
-
-`--only <dataset>` and `--seed <seed>` are safe bounded launches. They write a
-selection-hashed `partial_complete` receipt and cannot overwrite or claim the
-full 5-dataset × 4-seed receipt. Cross-model aggregation additionally requires
-one shared fairness-contract hash covering the dataset, canonical split,
-expression-gene order, normalization, and frozen GraD-Pert evaluation
-artifacts. Formal pretrain-to-finetune transfer is strict: missing, unexpected,
-or shape-different parameters fail before training.
-
-### Loss curves and experiment tracking
-
-Formal ablations can mirror every epoch to Hugging Face Trackio. Enable it with
-`DINOGENEPT_TRACKIO_ENABLED=true`; the shared configs record training and
-validation loss, each Dino/iBOT/MoE component, learning rate, elapsed time,
-seed, ablation identity, and final GraD-Pert metrics. Server runs write first to
-the persistent ignored directory `.runtime/trackio-data`. The target private
-Space is `elan68681/dinogenept-ablation`, but Hugging Face is a visualization
-mirror only: hash-bound JSON receipts under `results/` remain the scientific
-source of truth. See
-[`docs/dinogenept/TRACKING.md`](docs/dinogenept/TRACKING.md).
-
-## Frozen GenePT-Seed prior toolkit
+# GenePT-Seed
 
 GenePT-Seed keeps the official GenePT NCBI + UniProt text and selected
 gene-level evaluation protocols, replacing only the embedding backbone with
 `doubao-embedding-vision` through the Volcano Ark Agent Plan endpoint.
+
+This is an independent research variant, not an official GenePT release.
 
 ## Comparison contract
 
@@ -167,14 +51,9 @@ Development installation:
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install -e '.[dev,train]'
-dinogenept --help
+python -m pip install -e '.[dev]'
 genept-seed --help
 ```
-
-On a lightweight Mac checkout, `.[dev]` is sufficient for corpus tooling and
-non-Torch tests. Install `.[train]` only in the server environment used for
-perturbation experiments.
 
 ## Server workflow
 

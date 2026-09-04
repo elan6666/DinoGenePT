@@ -17,6 +17,7 @@ fi
 rsync ${mode:+"$mode"} --checksum --recursive --delete --verbose \
   --exclude '.git/' \
   --exclude '/.venv/' \
+  --exclude '/.runtime/' \
   --exclude '/.env' \
   --exclude '/uv.lock' \
   --exclude '/data/' \

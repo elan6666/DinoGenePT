@@ -1,7 +1,0 @@
-includes: [_common.yaml]
-
-identity:
-  experiment_id: koleo
-
-ablation:
-  koleo_weight: 0.1

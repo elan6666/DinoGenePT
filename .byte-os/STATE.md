@@ -1,38 +1,19 @@
-# Active Byte Auto state
+# Active project state
 
-- Goal: deliver the extensible DinoGenePT perturbation package, implement all
-  planned config-only ablations, and prove every path with a one-epoch server
-  smoke without using the occupied GPU.
-- Local Git is the source of truth. Server execution root is
-  `/data/yilangliu/GenePT-Seed`; no GraD-Pert source or run was modified.
-- One model registry entry, `dinogenept`, now supports condition-bag DINO,
-  delta-iBOT, sparse source-only locals, Base-only inference, attention
-  residuals, Dense/MoE adapters, quantile routing, SiTU, KoLeo, and hybrid KDA.
-- Dataset adapters/configs are separate for Adamson, Norman, Replogle K562, and
-  Replogle RPE1. All models use the same condition-macro evaluator and output
-  hierarchy.
-- The 21-row Adamson-mini matrix completed on physical GPU 0 only; physical GPU
-  1 remained occupied by the user's unrelated GraD-Pert process. Peak allocated
-  memory was 66--79 MiB.
-- Matrix identity is fixed by dataset/source/split/prior/checkpoint hashes,
-  config SHA-256, executable source SHA-256, seed, and evaluator. All 21 model
-  checkpoints and result artifacts passed hash verification; an idempotent
-  recheck reused 21/21 rows.
-- Full attention passed the permutation gate (`5.96e-7 <= 1e-5`). Hybrid KDA is
-  explicitly order-sensitive (`0.20075`) and remains an experimental ablation.
-- Local verification: 61 passed, 1 Torch-dependent skip; server verification:
-  75 passed, Ruff passed, wheel/sdist built, both CLIs passed.
-- Compact evidence is in `docs/results/dinogenept/SMOKE_VALIDATION.json`. Raw
-  datasets, generated runs, checkpoints, and logs remain server-only.
-- The smoke proves functionality only. No full GEARS/scGPT reproduction, real
-  source-only knowledge embedding experiment, or biological model comparison
-  has been run.
-- User-owned untracked `uv.lock` remains excluded. The pre-existing untracked
-  `.byte-os/LESSONS.md` is preserved and not staged.
-
-## Next scientific step
-
-Materialize the four real source-only priors, freeze an official Adamson/Norman
-condition manifest, then run a preregistered multi-seed ladder from supervised
-to Base DINO, delta-iBOT, dynamic locals, and semantic negative controls. Do not
-select an architecture from the one-epoch smoke metrics.
+- Scope: retain only the GenePT-Seed corpus, embedding, provenance, vector
+  audit, and gene-level evaluation toolkit.
+- Local source root is `/Users/elan/code/GenePT-Seed`; server materialization
+  root remains `/data/yilangliu/GenePT-Seed`.
+- `src/genept_seed` is the only packaged Python module. DINO self-distillation,
+  cell-model backbones, GEARS/Scouter adapters, training configs, Trackio, and
+  architecture ablations have been removed from the current tree.
+- NCBI + UniProt Base, GO-EXP, Protein, Reactome/SIGNOR, HPA, GraD-Pert axis
+  coverage, checkpoint-safe Ark embedding generation, and matched GGI/property
+  evaluations remain supported.
+- Existing compact GenePT result receipts under `docs/results` remain tracked;
+  raw datasets, embeddings, checkpoints, and full logs remain server-only.
+- The GenePT-only local gate passes 52 tests, Ruff, shell syntax, wheel/sdist,
+  module CLI, and installed entry-point checks.
+- Four pre-cleanup uncommitted files from the retired training/Trackio path are
+  recoverable from Git stash
+  `backup-before-genept-only-cleanup-2026-09-04`.

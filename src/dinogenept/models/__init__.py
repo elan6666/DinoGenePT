@@ -1,1 +1,0 @@
-"""DinoGenePT model registry namespace."""

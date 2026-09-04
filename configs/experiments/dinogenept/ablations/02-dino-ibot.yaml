@@ -1,7 +1,0 @@
-includes: [_common.yaml]
-
-identity:
-  experiment_id: dino-ibot
-
-ablation:
-  dynamic_locals: false

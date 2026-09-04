@@ -1,7 +1,0 @@
-includes: [_common.yaml]
-
-identity:
-  experiment_id: backbone-situ-glu
-
-ablation:
-  situ_glu_backbone: true

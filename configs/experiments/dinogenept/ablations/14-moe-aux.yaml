@@ -1,9 +1,0 @@
-includes: [_common.yaml]
-
-identity:
-  experiment_id: moe-auxiliary
-
-ablation:
-  adapter:
-    type: moe
-    balance: auxiliary

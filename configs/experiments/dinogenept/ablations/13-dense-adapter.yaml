@@ -1,8 +1,0 @@
-includes: [_common.yaml]
-
-identity:
-  experiment_id: dense-adapter
-
-ablation:
-  adapter:
-    type: dense

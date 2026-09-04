@@ -1,9 +1,0 @@
-includes: [_common.yaml]
-
-identity:
-  experiment_id: supervised-only
-
-ablation:
-  dino: false
-  delta_ibot: false
-  dynamic_locals: false

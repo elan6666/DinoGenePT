@@ -137,30 +137,3 @@ The Priority 1/2 implementation, documentation, and compact receipts were
 committed as `24e3bd07b1cc1be7fc498c628a691b0a3f2cdbd5`, pushed, and verified
 on GitHub `main`. The final follow-up commit changes only Byte OS closeout
 metadata. The user-owned untracked `uv.lock` remains local and excluded.
-
-## 2026-08-31 DinoGenePT package delivery
-
-- Added the independent `dinogenept` package while retaining the frozen
-  `genept_seed` prior-toolkit CLI.
-- Added lazy model/dataset/evaluator registries, per-dataset config folders,
-  config composition and validation, structured output identities, source and
-  config hashes, and idempotent sequential matrices.
-- Implemented the complete 21-row config-only ablation surface for one model:
-  condition DINO, delta-iBOT, four source-only locals, sparse dynamic locals,
-  semantic/missingness/iBOT controls, direction loss, attention residual,
-  Dense/MoE/quantile/SiTU, KoLeo, hybrid KDA, and an explicit post-Top-K iBOT
-  shortcut control.
-- Added model plugins, input/output hash manifests, last-write completion
-  receipts, physical-GPU enforcement, paired condition comparisons, and
-  diagnostic receipts for MoE routing, KoLeo activity, and representation
-  collapse.
-- The server Adamson-mini 1-epoch matrix completed 21/21 rows on physical GPU 0
-  with 66--79 MiB peak allocated memory. All 21 checkpoints passed artifact
-  hash validation; a repeat reused 21/21 receipts and did not retrain. GPU 1 and
-  GraD-Pert remained untouched.
-- Local gates: 61 passed and one expected no-Torch skip. Server gates: 75
-  passed, Ruff, wheel, sdist, old/new CLI smoke. The server project environment
-  now includes its declared PyYAML dependency.
-- The smoke is not a scientific comparison; real source-only priors, frozen
-  official splits, repeated seeds, and full GEARS-scale training remain future
-  work.

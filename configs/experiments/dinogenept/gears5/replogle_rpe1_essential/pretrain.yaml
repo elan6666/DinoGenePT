@@ -1,5 +1,0 @@
-includes:
-  - ../../../../models/dinogenept/base.yaml
-  - ../../../../datasets/gears5/replogle_rpe1_essential.yaml
-  - ../../../../training/scgpt-pretrain.yaml
-schema_version: dinogenept-experiment-v1

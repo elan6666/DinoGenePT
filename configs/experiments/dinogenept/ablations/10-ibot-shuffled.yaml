@@ -1,8 +1,0 @@
-includes: [_common.yaml]
-
-identity:
-  experiment_id: ibot-shuffled-expression
-
-ablation:
-  dynamic_locals: false
-  ibot_target_control: shuffled_expression

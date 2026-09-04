@@ -1,7 +1,0 @@
-includes: [_common.yaml]
-
-identity:
-  experiment_id: source-shuffled
-
-ablation:
-  source_control: shuffled

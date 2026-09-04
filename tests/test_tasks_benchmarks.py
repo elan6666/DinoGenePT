@@ -1,12 +1,12 @@
 import numpy as np
 
-from genept_seed.benchmarks import evaluate_ggi, evaluate_property_task, evaluate_property_task_repeated
-from genept_seed.ggi_controls import (
+from dinogenept.benchmarks import evaluate_ggi, evaluate_property_task, evaluate_property_task_repeated
+from dinogenept.ggi_controls import (
     audit_signor_ggi_leakage,
     filter_ggi_universe,
     gene_disjoint_split,
 )
-from genept_seed.tasks import GGIDataset, ggi_genes, load_property_tasks
+from dinogenept.tasks import GGIDataset, ggi_genes, load_property_tasks
 
 
 def test_property_parser_and_benchmark(tmp_path):

@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 import pytest
 
-from genept_seed.axis_vectors import align_npz_to_axis, materialize_axis_vectors
+from dinogenept.axis_vectors import align_npz_to_axis, materialize_axis_vectors
 
 
 def test_materialize_axis_vectors_uses_alias_and_zero_fallback(tmp_path):

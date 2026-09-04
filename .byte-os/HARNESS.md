@@ -4,7 +4,7 @@
 - Claude support: ready through `CLAUDE.md`.
 - Codex support: ready through `AGENTS.md` and `.byte-os/CODEBASE_MAP.md`.
 - Active start directories: repository root for orchestration and
-  `src/genept_seed` for corpus/embedding changes.
+  `src/dinogenept` for corpus/embedding changes.
 - Noise filters: `.gitignore` excludes virtual environments, caches, data,
   embeddings, checkpoints, results, distributions, and scientific binaries.
 - Scoped checks: axis/GO tests from `CODEBASE_MAP.md`; full test, Ruff, and build

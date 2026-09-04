@@ -3,13 +3,13 @@ requires = ["hatchling>=1.26"]
 build-backend = "hatchling.build"
 
 [project]
-name = "genept-seed"
+name = "dinogenept"
 version = "0.1.0"
-description = "Matched GenePT embedding-backbone comparisons with Doubao embeddings."
+description = "DinoGenePT research toolkit with auditable GenePT knowledge embeddings."
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
-authors = [{name = "GenePT-Seed contributors"}]
+authors = [{name = "DinoGenePT contributors"}]
 dependencies = [
   "numpy>=1.26",
   "scikit-learn>=1.4",
@@ -24,10 +24,10 @@ dev = [
 ]
 
 [project.scripts]
-genept-seed = "genept_seed.cli:main"
+dinogenept = "dinogenept.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/genept_seed"]
+packages = ["src/dinogenept"]
 
 [tool.hatch.build]
 exclude = [
@@ -48,6 +48,14 @@ addopts = "-q"
 [tool.ruff]
 line-length = 120
 target-version = "py311"
+extend-exclude = [
+  ".runtime",
+  "data",
+  "results",
+  "checkpoints",
+  "dist",
+  "build",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]

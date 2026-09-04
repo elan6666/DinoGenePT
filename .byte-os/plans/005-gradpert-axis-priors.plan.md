@@ -6,7 +6,7 @@ wave: 5
 updated_at: 2026-08-28T22:20:00+08:00
 owner_role: Research Engineer
 depends_on: [004]
-start_directory: src/genept_seed
+start_directory: src/dinogenept
 agents_context_stack: [AGENTS.md]
 subagent_policy: none
 ---

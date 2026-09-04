@@ -2,8 +2,8 @@ import json
 
 import numpy as np
 
-from genept_seed.cli import build_parser, main
-from genept_seed.vectors import save_npz
+from dinogenept.cli import build_parser, main
+from dinogenept.vectors import save_npz
 
 
 def test_doctor_never_prints_key(monkeypatch, capsys):

@@ -93,7 +93,7 @@ def download(
             return destination
         except subprocess.CalledProcessError:
             pass
-    headers = {"User-Agent": "GenePT-Seed/0.1"}
+    headers = {"User-Agent": "DinoGenePT/0.1"}
     if url.startswith("https://api.github.com/"):
         headers["Accept"] = "application/vnd.github.raw+json"
     request = urllib.request.Request(url, headers=headers)

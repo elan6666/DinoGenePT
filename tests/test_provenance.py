@@ -1,6 +1,6 @@
 import json
 
-from genept_seed.provenance import atomic_write_json, digest_file, sanitized_config
+from dinogenept.provenance import atomic_write_json, digest_file, sanitized_config
 
 
 def test_atomic_json_and_digest(tmp_path, monkeypatch):

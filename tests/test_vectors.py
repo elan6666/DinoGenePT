@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from genept_seed.vectors import (
+from dinogenept.vectors import (
     EmbeddingSet,
     coverage,
     l2_normalize,

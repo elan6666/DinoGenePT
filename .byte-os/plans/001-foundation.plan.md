@@ -34,9 +34,9 @@ Data download, API calls, or scientific benchmark execution.
 
 - Purpose: establish one stable entry point.
 - Actions: add `pyproject.toml`, package modules, CLI routing, and version.
-- Files or modules: `pyproject.toml`, `src/genept_seed/`, `tests/`.
-- Expected output: `genept-seed --help` works after installation.
-- Step verification: `python -m genept_seed --help`.
+- Files or modules: `pyproject.toml`, `src/dinogenept/`, `tests/`.
+- Expected output: `dinogenept --help` works after installation.
+- Step verification: `python -m dinogenept --help`.
 - Subagent: none.
 
 ## Step 2: Add safety and provenance primitives
@@ -44,7 +44,7 @@ Data download, API calls, or scientific benchmark execution.
 - Purpose: prevent secrets/large artifacts and make outputs auditable.
 - Actions: add hashing, atomic JSON, manifests, credential-presence checks,
   `.gitignore`, and tests.
-- Files or modules: `src/genept_seed/provenance.py`, `.gitignore`, tests.
+- Files or modules: `src/dinogenept/provenance.py`, `.gitignore`, tests.
 - Expected output: deterministic manifests without secret values.
 - Step verification: `python -m pytest tests/test_provenance.py`.
 - Subagent: none.

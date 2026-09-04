@@ -1,4 +1,4 @@
-# GenePT-Seed Discussion
+# DinoGenePT knowledge-subsystem discussion
 
 Date: 2026-08-28
 
@@ -11,9 +11,9 @@ against the latest official GenePT on selected experiments from the paper.
 
 ## Current understanding
 
-- Local project root: `/Users/elan/code/GenePT-Seed`.
-- GitHub repository: `https://github.com/elan6666/GenePT-Seed`.
-- Remote experiment root should default to `/data/yilangliu/GenePT-Seed`.
+- Local project root: `/Users/elan/code/DinoGenePT`.
+- GitHub repository: `https://github.com/elan6666/DinoGenePT`.
+- Remote experiment root should default to `/data/yilangliu/DinoGenePT`.
 - Official text and baseline artifacts come from GenePT Zenodo v2 record
   `10833191`, especially `NCBI_UniProt_summary_of_genes.json` and
   `GenePT_gene_protein_embedding_model_3_text.pickle`.

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-local_root="/Users/elan/code/GenePT-Seed/"
-remote="yilangliu@10.24.1.91:/data/yilangliu/GenePT-Seed/"
+local_root="/Users/elan/code/DinoGenePT/"
+remote="yilangliu@10.24.1.91:/data/yilangliu/DinoGenePT/"
 ssh_key="/Users/elan/.ssh/elanquant_yilangliu_ed25519"
 control_socket="/tmp/elanquant-agent.sock"
 

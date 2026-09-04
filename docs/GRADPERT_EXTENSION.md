@@ -39,7 +39,7 @@ comment in the queried field.
 
 ## Server receipts
 
-Generated on the server under `/data/yilangliu/GenePT-Seed`:
+Generated on the server under `/data/yilangliu/DinoGenePT`:
 
 | Artifact | SHA-256 |
 |---|---|

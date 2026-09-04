@@ -28,5 +28,5 @@ were committed in `24e3bd07b1cc1be7fc498c628a691b0a3f2cdbd5`, pushed, and
 verified on GitHub `main`. No GraD-Pert model was run or modified; user-owned
 untracked `uv.lock` remains excluded.
 
-Local source of truth: `/Users/elan/code/GenePT-Seed`.
-Server execution mirror: `/data/yilangliu/GenePT-Seed`.
+Local source of truth: `/Users/elan/code/DinoGenePT`.
+Server execution mirror: `/data/yilangliu/DinoGenePT`.

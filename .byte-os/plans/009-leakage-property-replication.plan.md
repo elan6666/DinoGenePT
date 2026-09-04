@@ -29,5 +29,5 @@ GenePT property tasks under one matched vector/evaluation contract.
 ## Execution boundary
 
 Local Git is source of truth. Downloads, embeddings, and benchmarks materialize
-only under `/data/yilangliu/GenePT-Seed`. Credentials remain process-only and
+only under `/data/yilangliu/DinoGenePT`. Credentials remain process-only and
 large data, vectors, checkpoints, and logs remain untracked.

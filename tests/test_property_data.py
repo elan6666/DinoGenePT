@@ -1,4 +1,4 @@
-from genept_seed.property_data import _clean_binary, _dosage, _hgnc_ensembl_map, _long_short
+from dinogenept.property_data import _clean_binary, _dosage, _hgnc_ensembl_map, _long_short
 
 
 def test_property_source_parsers_and_hgnc_mapping(tmp_path):

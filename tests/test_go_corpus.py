@@ -1,7 +1,7 @@
 import gzip
 import json
 
-from genept_seed.go_corpus import (
+from dinogenept.go_corpus import (
     SAFE_EXPERIMENTAL_EVIDENCE,
     build_go_exp_corpus,
     load_go_annotations,

@@ -50,7 +50,7 @@ class _HTTPClient:
             delay = max(0.0, self._last_request_at + self.request_interval - time.monotonic())
             if delay:
                 time.sleep(delay)
-            request_headers = {"User-Agent": "GenePT-Seed/0.1", **(headers or {})}
+            request_headers = {"User-Agent": "DinoGenePT/0.1", **(headers or {})}
             request = urllib.request.Request(url, headers=request_headers)
             try:
                 with urllib.request.urlopen(request, timeout=120) as response:
@@ -133,7 +133,7 @@ class NCBIGeneClient:
                     "term": f"{requested}[sym] AND {HUMAN_TAXON_ID}[taxid]",
                     "retmode": "json",
                     "retmax": 20,
-                    "tool": "genept_seed",
+                    "tool": "dinogenept",
                 }
             )
             search = self.http.get_json(search_url)
@@ -149,7 +149,7 @@ class NCBIGeneClient:
                 "db": "gene",
                 "id": ",".join(map(str, identifiers)),
                 "retmode": "json",
-                "tool": "genept_seed",
+                "tool": "dinogenept",
             }
         )
         result = self.http.get_json(summary_url).get("result", {})

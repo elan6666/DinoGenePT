@@ -1,6 +1,6 @@
 import json
 
-from genept_seed.axis_corpus import build_axis_corpus
+from dinogenept.axis_corpus import build_axis_corpus
 
 
 def test_build_axis_corpus_preserves_order_and_uses_hgnc_fallback(tmp_path):

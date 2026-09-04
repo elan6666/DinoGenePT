@@ -55,7 +55,7 @@ def _embedding(path: Path, *, trusted_pickle: bool, normalize: bool):
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="genept-seed")
+    parser = argparse.ArgumentParser(prog="dinogenept")
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("doctor", help="check runtime and credential presence")
 

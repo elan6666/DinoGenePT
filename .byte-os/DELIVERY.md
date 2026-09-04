@@ -32,7 +32,7 @@ gene text and replaces only the embedding backbone with Doubao.
 
 Follow `README.md`. Keep the Mac repository as source of truth, sync code with
 `scripts/sync_code_to_server.sh`, and run materializing commands only under
-`/data/yilangliu/GenePT-Seed` on the server.
+`/data/yilangliu/DinoGenePT` on the server.
 
 # How To Test
 
@@ -42,7 +42,7 @@ On the server:
 .venv/bin/ruff check .
 .venv/bin/pytest -q
 .venv/bin/python -m build --no-isolation
-.venv/bin/genept-seed --help
+.venv/bin/dinogenept --help
 ```
 
 # Key Files
@@ -58,8 +58,8 @@ On the server:
 - `docs/PRIORITY_1_2_EXPERIMENTS.md`: leakage controls, strict split protocol,
   four property tasks, complete results, and interpretation boundary.
 - `docs/results/priority-1-2/`: final compact Priority 1/2 receipts.
-- `src/genept_seed/embedding.py`: Ark client, pacing, and resume logic.
-- `src/genept_seed/benchmarks.py`: matched GGI estimator.
+- `src/dinogenept/embedding.py`: Ark client, pacing, and resume logic.
+- `src/dinogenept/benchmarks.py`: matched GGI estimator.
 
 # Verification
 

@@ -1,6 +1,6 @@
 import json
 
-from genept_seed.gradpert_union import DATASETS, build_gradpert_union
+from dinogenept.gradpert_union import DATASETS, build_gradpert_union
 
 
 def test_build_gradpert_union_includes_graph_targets_and_extras(tmp_path):

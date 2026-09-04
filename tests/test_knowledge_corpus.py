@@ -1,8 +1,8 @@
 import json
 import zipfile
 
-from genept_seed.gradpert_union import DATASETS
-from genept_seed.knowledge_corpus import audit_knowledge_corpora, build_knowledge_corpus
+from dinogenept.gradpert_union import DATASETS
+from dinogenept.knowledge_corpus import audit_knowledge_corpora, build_knowledge_corpus
 
 
 def _sources(tmp_path):

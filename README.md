@@ -1,10 +1,19 @@
-# GenePT-Seed
+# DinoGenePT
 
-GenePT-Seed keeps the official GenePT NCBI + UniProt text and selected
-gene-level evaluation protocols, replacing only the embedding backbone with
+DinoGenePT is a research project for DINO-style cell representation learning
+and perturbation prediction with GenePT knowledge views. The current
+implemented package intentionally contains only its auditable GenePT knowledge
+subsystem: it keeps the official NCBI + UniProt text and selected gene-level
+evaluation protocols while replacing the embedding backbone with
 `doubao-embedding-vision` through the Volcano Ark Agent Plan endpoint.
 
-This is an independent research variant, not an official GenePT release.
+The previous cell-model implementation was removed for redesign; the project
+identity and Python package remain DinoGenePT. This is an independent research
+project, not an official GenePT or DINOcell release.
+
+A proposed future downstream cell model is recorded separately in
+[`docs/CELL_DINO_KNOWLEDGE_LOCAL_DESIGN.md`](docs/CELL_DINO_KNOWLEDGE_LOCAL_DESIGN.md).
+It is a research design draft, not an implemented or validated model.
 
 ## Comparison contract
 
@@ -52,36 +61,36 @@ python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -e '.[dev]'
-genept-seed --help
+dinogenept --help
 ```
 
 ## Server workflow
 
 The Mac repository is the source of truth. Code is synchronized to
-`/data/yilangliu/GenePT-Seed`; downloads, embedding generation, and benchmarks
+`/data/yilangliu/DinoGenePT`; downloads, embedding generation, and benchmarks
 run only there.
 
 ```bash
-genept-seed doctor
-genept-seed data prepare-genept --output data/genept
-genept-seed data prepare-ggi --output data/ggi
-genept-seed data ggi-genes --data data/ggi --output data/ggi/genes.txt
-genept-seed audit-texts \
+dinogenept doctor
+dinogenept data prepare-genept --output data/genept
+dinogenept data prepare-ggi --output data/ggi
+dinogenept data ggi-genes --data data/ggi --output data/ggi/genes.txt
+dinogenept audit-texts \
   --texts data/genept/NCBI_UniProt_summary_of_genes.json \
   --genes data/ggi/genes.txt \
   --output-selected data/ggi/genes-with-text.txt
-genept-seed embed \
+dinogenept embed \
   --texts data/genept/NCBI_UniProt_summary_of_genes.json \
   --genes data/ggi/genes-with-text.txt \
   --checkpoint checkpoints/doubao.sqlite3 \
   --output data/embeddings/genept_seed_doubao.npz \
   --batch-size 10 --max-workers 3 --request-interval 4
-genept-seed benchmark ggi \
+dinogenept benchmark ggi \
   --name latest-genept \
   --vectors data/genept/GenePT_gene_protein_embedding_model_3_text.pickle \
   --trusted-pickle --normalize --data data/ggi \
   --genes data/ggi/genes-with-text.txt --output results/ggi-latest.json
-genept-seed benchmark ggi \
+dinogenept benchmark ggi \
   --name genept-seed \
   --vectors data/embeddings/genept_seed_doubao.npz \
   --normalize --data data/ggi --genes data/ggi/genes-with-text.txt \
@@ -92,7 +101,7 @@ The completed-corpus GO comparison uses the same selected GGI genes and
 checkpoint-safe API client:
 
 ```bash
-genept-seed data build-go-exp-texts \
+dinogenept data build-go-exp-texts \
   --base data/genept/NCBI_UniProt_summary_of_genes.extended.json \
   --genes data/ggi/genes-with-text.txt \
   --gaf data/go-exp/2026-08-05/HUMAN-uniprot.gaf.gz \
@@ -100,7 +109,7 @@ genept-seed data build-go-exp-texts \
   --output data/genept/NCBI_UniProt_extended_GOEXP_safe_GGI_10870.json \
   --manifest data/genept/NCBI_UniProt_extended_GOEXP_safe_GGI_10870.manifest.json
 
-genept-seed embed \
+dinogenept embed \
   --texts data/genept/NCBI_UniProt_extended_GOEXP_safe_GGI_10870.json \
   --genes data/ggi/genes-with-text.txt \
   --checkpoint checkpoints/doubao-goexp-safe.sqlite3 \
@@ -115,13 +124,13 @@ historical human gene symbol. Keep the official artifact unchanged and create
 an explicitly named extension instead:
 
 ```bash
-genept-seed data extend-genept-texts \
+dinogenept data extend-genept-texts \
   --base data/genept/NCBI_UniProt_summary_of_genes.json \
   --genes configs/gradpert_missing_targets.txt \
   --output data/genept/NCBI_UniProt_summary_of_genes.extended.json \
   --manifest data/genept/NCBI_UniProt_summary_of_genes.extended.manifest.json
 
-genept-seed embed \
+dinogenept embed \
   --texts data/genept/NCBI_UniProt_summary_of_genes.extended.json \
   --genes configs/gradpert_missing_target_symbols.txt \
   --checkpoint checkpoints/gradpert-extension-doubao.sqlite3 \
@@ -151,14 +160,14 @@ targets are already members of the graph union. Build it from the frozen
 GraD-Pert canonical files rather than maintaining a handwritten list:
 
 ```bash
-genept-seed data build-gradpert-union \
+dinogenept data build-gradpert-union \
   --gradpert-root /data/yilangliu/GraD-Pert/data-vnext-a942114 \
   --extra-genes data/ggi/genes-with-text.txt \
   --output data/universes/gradpert-ggi-master-genes.txt \
   --manifest data/universes/gradpert-ggi-master-manifest.json
 
-genept-seed data prepare-knowledge-sources --output data/knowledge/current
-genept-seed data build-knowledge-texts \
+dinogenept data prepare-knowledge-sources --output data/knowledge/current
+dinogenept data build-knowledge-texts \
   --base data/corpora/seed-go-master.json \
   --genes data/universes/gradpert-ggi-master-genes.txt \
   --uniprot data/knowledge/current/uniprot-human-reviewed.tsv \
@@ -179,7 +188,7 @@ graph feature labels absent from current NCBI/HGNC/UniProt receive only the
 auditable identity string `Gene Symbol <label>` so the graph axis stays complete.
 See [`docs/GRADPERT_MASTER_KNOWLEDGE.md`](docs/GRADPERT_MASTER_KNOWLEDGE.md).
 
-After embedding, use `genept-seed data align-axis-vectors` before a strict
+After embedding, use `dinogenept data align-axis-vectors` before a strict
 downstream prior: the generic NPZ writer sorts symbols, while GraD-Pert requires
 the exact frozen graph-axis order. The aligner rejects any missing, extra, or
 duplicate symbol and writes a hash manifest.

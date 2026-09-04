@@ -2,9 +2,9 @@ import json
 
 import numpy as np
 
-from genept_seed.gradpert_union import DATASETS
-from genept_seed.knowledge_vectors import audit_knowledge_vectors
-from genept_seed.vectors import save_npz
+from dinogenept.gradpert_union import DATASETS
+from dinogenept.knowledge_vectors import audit_knowledge_vectors
+from dinogenept.vectors import save_npz
 
 
 def test_audit_knowledge_vectors_proves_exact_coverage(tmp_path):

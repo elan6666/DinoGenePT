@@ -1,6 +1,6 @@
 import json
 
-from genept_seed.experiment_comparison import (
+from dinogenept.experiment_comparison import (
     summarize_gene_disjoint_results,
     summarize_property_results,
 )

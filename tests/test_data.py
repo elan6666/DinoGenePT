@@ -3,7 +3,7 @@ import zipfile
 
 import pytest
 
-from genept_seed.data import download, extract_allowlisted, verify_md5, verify_sha256
+from dinogenept.data import download, extract_allowlisted, verify_md5, verify_sha256
 
 
 def test_checksum_and_allowlisted_extraction(tmp_path):
@@ -55,9 +55,9 @@ def test_download_retries_and_replaces_atomically(tmp_path, monkeypatch):
             raise TimeoutError("temporary")
         return Response()
 
-    monkeypatch.setattr("genept_seed.data.urllib.request.urlopen", fake_urlopen)
-    monkeypatch.setattr("genept_seed.data.shutil.which", lambda _: None)
-    monkeypatch.setattr("genept_seed.data.time.sleep", lambda _: None)
+    monkeypatch.setattr("dinogenept.data.urllib.request.urlopen", fake_urlopen)
+    monkeypatch.setattr("dinogenept.data.shutil.which", lambda _: None)
+    monkeypatch.setattr("dinogenept.data.time.sleep", lambda _: None)
     output = download("https://example.invalid/file", tmp_path / "file", max_retries=1)
     assert output.read_bytes() == b"payload"
     assert attempts == 2

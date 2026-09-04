@@ -5,7 +5,7 @@
   command, matched-evaluation invariant, and noisy/generated paths.
 - No module-level guide is needed for this small package.
 - Safe start directory is repository root locally and
-  `/data/yilangliu/GenePT-Seed` on server.
+  `/data/yilangliu/DinoGenePT` on server.
 - Subagents remain off because implementation and credential-sensitive server
   workflow overlap.
 - Root `AGENTS.md` remains ready; `CLAUDE.md` now provides parity for the same

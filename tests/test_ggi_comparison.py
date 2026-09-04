@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from genept_seed.ggi_comparison import FAIRNESS_FIELDS, build_ggi_comparison
+from dinogenept.ggi_comparison import FAIRNESS_FIELDS, build_ggi_comparison
 
 
 def _write_result(path, name, accuracy, *, random_state=42):

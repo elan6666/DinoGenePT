@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from genept_seed.corpus import (
+from dinogenept.corpus import (
     EnsemblGeneRecord,
     NCBIGeneRecord,
     UniProtRecord,

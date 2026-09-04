@@ -129,7 +129,7 @@ Run materialization only on the configured server. The examples below show one
 control; substitute the documented profile/vector labels for the others.
 
 ```bash
-genept-seed data build-knowledge-texts \
+dinogenept data build-knowledge-texts \
   --base data/corpora/seed-go-master.json \
   --genes data/universes/gradpert-ggi-master-genes.txt \
   --uniprot data/knowledge/current/uniprot-human-reviewed.tsv \
@@ -140,20 +140,20 @@ genept-seed data build-knowledge-texts \
   --output data/corpora/seed-go-protein-pathway-signor-masked-master.json \
   --manifest data/corpora/seed-go-protein-pathway-signor-masked-master.manifest.json
 
-genept-seed audit-signor-ggi-leakage \
+dinogenept audit-signor-ggi-leakage \
   --data data/ggi \
   --signor data/knowledge/current/signor.human.tsv \
   --corpus data/corpora/seed-go-protein-pathway-signor-masked-master.json \
   --output results/priority-1/signor-ggi-leakage-masked.json
 
-genept-seed benchmark ggi-gene-disjoint \
+dinogenept benchmark ggi-gene-disjoint \
   --name seed-go-protein-pathway-signor-masked \
   --vectors data/embeddings/seed-go-protein-pathway-signor-masked-master.npz \
   --data data/ggi --genes data/ggi/genes-with-text.txt --normalize \
   --seeds 42,43,44,45,46,47,48,49,50,51 --test-fraction 0.2 \
   --output results/priority-1/gd-masked.json
 
-genept-seed benchmark properties \
+dinogenept benchmark properties \
   --name seed-go-protein-pathway-signor-masked \
   --vectors data/embeddings/seed-go-protein-pathway-signor-masked-master.npz \
   --tasks data/properties/genept_property_tasks.csv \

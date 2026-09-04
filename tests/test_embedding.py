@@ -4,7 +4,7 @@ import threading
 import numpy as np
 import pytest
 
-from genept_seed.embedding import (
+from dinogenept.embedding import (
     DEFAULT_BASE_URL,
     audit_embedding_checkpoint,
     generate_embeddings,
@@ -14,7 +14,7 @@ from genept_seed.embedding import (
     text_statistics,
     validate_plan_base_url,
 )
-from genept_seed.vectors import load_npz
+from dinogenept.vectors import load_npz
 
 
 def test_plan_endpoint_guard():

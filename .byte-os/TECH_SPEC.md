@@ -2,7 +2,7 @@
 
 ## Architecture
 
-- Python 3.11+ package under `src/genept_seed`.
+- Python 3.11+ package under `src/dinogenept`.
 - Standard-library HTTP client for the OpenAI-compatible plan endpoint to keep
   dependencies small; API behavior is isolated behind an embedding client.
 - NumPy/pandas/scikit-learn for vectors and evaluation.

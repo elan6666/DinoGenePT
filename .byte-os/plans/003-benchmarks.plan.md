@@ -6,7 +6,7 @@ wave: 3
 updated_at: 2026-08-28T20:40:00+08:00
 owner_role: Research Engineer
 depends_on: [002]
-start_directory: src/genept_seed
+start_directory: src/dinogenept
 context_files: [AGENTS.md, .byte-os/PRODUCT_SPEC.md, .byte-os/RESEARCH.md]
 agents_context_stack: [AGENTS.md]
 subagent_policy: none
@@ -67,7 +67,7 @@ Plan 002.
 # Scoped Commands
 
 - Test: `python -m pytest tests/test_benchmarks.py tests/test_tasks.py tests/test_workflow.py`
-- Lint: `python -m ruff check src/genept_seed tests`
+- Lint: `python -m ruff check src/dinogenept tests`
 - Typecheck: not required
 - Build: `python -m build`
 

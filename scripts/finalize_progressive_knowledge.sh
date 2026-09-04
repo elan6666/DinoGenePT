@@ -5,7 +5,7 @@ set -euo pipefail
 # The script is safe to leave in tmux: it waits for all checkpointed embedding
 # writers, takes a non-blocking lock, and skips already materialized outputs.
 
-project_root="/data/yilangliu/GenePT-Seed"
+project_root="/data/yilangliu/DinoGenePT"
 cd "$project_root"
 
 python_bin=".venv/bin/python"
@@ -50,7 +50,7 @@ for condition in "${conditions[@]}"; do
   aligned="data/embeddings/seed-go-${condition}-master-aligned.npz"
   aligned_manifest="data/embeddings/seed-go-${condition}-master-aligned.manifest.json"
 
-  "$python_bin" -m genept_seed audit-checkpoint \
+  "$python_bin" -m dinogenept audit-checkpoint \
     --texts "$corpus" \
     --checkpoint "$checkpoint" \
     --model "$model" \
@@ -70,7 +70,7 @@ assert report["dimensions"] == [2048], report
 PY
 
   if [[ ! -s "$aligned" || ! -s "$aligned_manifest" ]]; then
-    "$python_bin" -m genept_seed data align-axis-vectors \
+    "$python_bin" -m dinogenept data align-axis-vectors \
       --source "$raw" \
       --genes "$master_genes" \
       --output "$aligned" \
@@ -79,7 +79,7 @@ PY
 done
 
 vector_audit="results/progressive-knowledge-vector-audit.json"
-"$python_bin" -m genept_seed audit-knowledge-vectors \
+"$python_bin" -m dinogenept audit-knowledge-vectors \
   --genes "$master_genes" \
   --ggi-genes "$ggi_genes" \
   --gradpert-root "$gradpert_root" \
@@ -92,7 +92,7 @@ vector_audit="results/progressive-knowledge-vector-audit.json"
 for condition in "${conditions[@]}"; do
   result="results/ggi-genept-seed-go-${condition}-l2.json"
   if [[ ! -s "$result" ]]; then
-    "$python_bin" -m genept_seed benchmark ggi \
+    "$python_bin" -m dinogenept benchmark ggi \
       --vectors "data/embeddings/seed-go-${condition}-master-aligned.npz" \
       --output "$result" \
       --name "genept-seed-go-${condition}" \
@@ -102,7 +102,7 @@ for condition in "${conditions[@]}"; do
   fi
 done
 
-"$python_bin" -m genept_seed audit-ggi-comparison \
+"$python_bin" -m dinogenept audit-ggi-comparison \
   --result results/ggi-latest-common-l2-final.json \
   --result results/ggi-genept-seed-extended-l2.json \
   --result results/ggi-genept-seed-extended-goexp-l2.json \

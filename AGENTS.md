@@ -48,6 +48,16 @@ the order of data selection, model construction and corpus supplementation.
 
 ## Server execution and performance
 
+- For long autonomous jobs (training, downloads or data waits), do not keep
+  polling in an active interactive turn. Confirm the actual process/job is live,
+  record its handle and next-step gates, then use a thread heartbeat every
+  30 minutes and yield. Stay quiet on unchanged/non-actionable state; report
+  meaningful progress, completion, failure or required user action. On completion,
+  continue the authorized goal from verified artifacts. Never duplicate jobs or
+  interpret an observation timeout as process termination. If goal pause/resume
+  is not exposed by the app tools, disclose that limitation rather than claiming
+  to have changed the goal status; waiting is not completion or blockage.
+
 - Run data downloads/processing, embeddings, training, inference and benchmarks
   on the server. Local lightweight unit tests and code checks are allowed.
 - Inspect active jobs, GPU ownership/utilization/memory and disk before launching.

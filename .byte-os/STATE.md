@@ -1,5 +1,24 @@
 # Active project state
 
+## Latest user override: GeneCompass human 500k (2026-09-07)
+
+- Download human 50k/500k/5M archives on server; choose published human500k as
+  current default, superseding Census. No automatic formal Census launch.
+- Download PID981950 / exec58135 confirmed live with growing500k .part;
+  sequential order500k,50k,5M. Exclusive .download.lock; resume only after
+  terminal state. Read archive receipts before skipping completed files.
+- Long jobs now use a30-minute thread heartbeat rather than continuous active
+  polling. Goal pause/resume API is unavailable; do not claim a status change.
+- `configs/cell/default_data_selection.json` records this decision separately
+  from durable AGENTS.md. Training/validation counts await content and metadata
+  audit: 500k published cells cannot mean 500k train plus extra heldout cells.
+- Audit actual expression values, top2048 truncation, gene identity, provenance,
+  study/donor/downstream overlap before adapting model vocabulary and launching.
+- Preserve existing Census artifacts; do not delete data. Old runtime snapshots
+  below are historical, not current launch authority.
+- Knowledge API job71852 completed all five sources (1777 union genes).
+  Matching batched CUDA two-rank capacity1506 passed; formal epochs still zero.
+
 ## Outcome contract (2026-09-07, goal active)
 
 - Native DinoGenePT: 12/768 single-direction hybrid KDA, no short convolution;

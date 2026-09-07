@@ -1,0 +1,20 @@
+{
+  "dataset": "GeneCompass human 500k",
+  "status": "user_selected_download_and_content_audit_pending",
+  "archive": "data/official/genecompass-human/randsel_50w_human.tar.gz",
+  "source_file_id": "d46129ce14de622c4a07a1d1574dddaa",
+  "published_cells": 500000,
+  "training_split": null,
+  "validation_split": null,
+  "supersedes": "configs/cell/census500k_default_recipe.json",
+  "launch_allowed": false,
+  "required_audits": [
+    "archive_integrity_and_actual_cell_count",
+    "continuous_expression_scale_and_top2048_truncation",
+    "gene_id_mapping_and_available_gene_axis",
+    "study_donor_cell_metadata_and_downstream_overlap",
+    "frozen_training_validation_split",
+    "artifact_bound_model_vocabulary_and_training_config"
+  ],
+  "note": "500k is the selected published corpus size, not yet a promise of 500k train cells plus extra validation. Never launch the superseded Census recipe as the current default."
+}

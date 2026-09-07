@@ -1,5 +1,10 @@
 # Default pretraining recipe and launch prerequisites
 
+> Superseded data choice (2026-09-07): the user selected GeneCompass human 500k.
+> See `configs/cell/default_data_selection.json`. Do not launch the Census recipe
+> below as the current default. GeneCompass archive/content/provenance audits and
+> a new vocabulary-bound training configuration must pass first.
+
 `configs/cell/census500k_default_recipe.json` is a **recipe, not a launchable
 resolved config**. Full source/count/overlap audit and a matching two-rank CUDA
 capacity receipt are mandatory. No partial-corpus, one-card or tiny-model probe

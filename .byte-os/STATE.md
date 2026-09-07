@@ -2,6 +2,14 @@
 
 ## Download recovery handoff (Sep8 03:30 server time)
 
+- Recovery preparation completed and synced as13ebe3d; controlled single-stream
+  retryPID1551138 started03:30:08 but ALSO receivedHTTP429 before any append.
+  Download is stopped, NOT progressing.6,872,367,104 bytes remain intact.
+  New log .runtime/genecompass-download-single.log preserves failure; inspect
+  matching .exit. Heartbeat `dinogenept` active20min with no active goal.
+  Next query may make ONE bounded Range probe after cooldown. If429 persists,
+  respect Retry-After if provided and extend cadence; do not relaunch. Only
+  consider another prepared recovery after endpoint accepts sustained access.
 - The four-worker downloader exited on HTTP429; session/PID gone. Preserved
   partial archive is6872367104 bytes. Exact one-byte HTTP206 Content-Range at
   that offset and total25676724557 verified after cooldown; no file changed.

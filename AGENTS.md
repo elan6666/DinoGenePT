@@ -48,20 +48,28 @@ the order of data selection, model construction and corpus supplementation.
 
 ## Server execution and performance
 
-- Use active goal mode for long-horizon work that requires ongoing reasoning
-  and implementation: experiment design, source review, coding, integration,
-  debugging, testing and delivery. Inspect an existing goal before creating
-  one; continue the current user-authorized scope rather than duplicate goals.
-- Switch supervision mode by phase, not merely by task duration. After a
-  download, training run or other unattended job is verified live and correct,
-  pause goal mode using supported controls and use scheduled checks during
-  the wait. This pauses agent supervision, NOT the remote job. When the job
-  finishes or needs intervention, return to active work/goal mode where
-  supported. Do not mark the overall goal complete just to enter a wait.
+- Use a phase-goal cycle for long-horizon work: active phase goal -> verified
+  background-job handoff and scheduled checks -> next active phase goal.
+  Keep the overall task contract in project state, separate from goal status.
+- Define each goal BEFORE starting it, with concrete deliverables and an
+  endpoint before a long unattended wait. Design, source review, coding,
+  debugging and tests belong to active goals. A preparation goal may include
+  launch and brief health verification, but excludes waiting for the entire
+  training/download run. Inspect existing goals; never duplicate or silently
+  shorten an unfinished goal merely to mark it complete.
+- When all declared phase deliverables are genuinely complete, finish that
+  phase goal and hand off to the SAME adaptive heartbeat. A completed phase
+  does not mean the overall task or background job is complete. Never stop
+  a remote job just to finish its preparation phase.
+- Scheduled checks inspect actual progress and completion receipts without
+  keeping a waiting goal active. On completion or actionable failure, define
+  the next scoped goal (verification, next-stage preparation, repair or final
+  delivery) within the user's authorized task. Repeat until the overall task
+  and retained background obligations are complete, then remove the monitor.
 - Waiting on one job must not block independent authorized work: downloads
   may continue while code/data preparation progresses, and ready datasets
-  may train while unrelated requested datasets download. Keep goal mode for
-  useful active work; switch to scheduled waiting when no such work remains.
+  may train while unrelated requested datasets download. Continue useful
+  active phase work while the heartbeat monitors independent background jobs.
   Parallel work must still respect GPU ownership, resource limits and all
   data-validation gates; it never authorizes duplicate jobs or broader scope.
 
@@ -81,10 +89,10 @@ the order of data selection, model construction and corpus supplementation.
   action. Once ready, perform the next authorized work, then schedule its checks
   as needed. Remove the monitor when its scoped task is genuinely complete.
 - Never duplicate jobs or interpret an observation timeout as termination.
-  Pause active goal mode when a supported control exists. If tools do not expose
-  pause/resume, disclose that limitation and request the UI action; do not claim
-  goal status changed or misuse complete/blocked as a pause. Scheduling changes
-  never authorize a new training run or broaden the current task's scope.
+  This cycle uses genuinely completed phase goals, not simulated pause/resume.
+  If a legacy unfinished goal cannot be edited or paused, disclose that tool
+  limitation; do not misuse complete/blocked to remove it. Scheduling or a
+  new phase goal never authorizes broader scope or an unrequested training run.
 
 - Run data downloads/processing, embeddings, training, inference and benchmarks
   on the server. Local lightweight unit tests and code checks are allowed.

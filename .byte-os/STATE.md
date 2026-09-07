@@ -9,7 +9,8 @@
   Adamson and Norman each 10 LoRA fine-tuning epochs. No ablation runs now.
 - Do not preempt/share unrelated GPU jobs. Dataset selection and model building
   precede supplemental GenePT embedding API work. Ark Agent Plan existing
-  Keychain helper/model/config must be reused secret-safely; no API calls yet.
+  Keychain helper/model/config must be reused secret-safely. The data/model gate
+  is now satisfied and supplemental API generation is running.
 - AGENTS.md holds durable engineering standards, not this campaign sequence.
 - Local /Users/elan/code/DinoGenePT; remote /data/yilangliu/DinoGenePT;
   branch codex/dinogenept-cleanup, GitHub elan6666/DinoGenePT. Preserve uv.lock.
@@ -39,9 +40,10 @@
   test-only AST execution. No upstream research-model runtime imports.
 - Own server .venv: torch2.13.0+cu130 and Census/data dependencies. Local torch
   absent; CPU integration tests run on server, never borrow GraD-Pert env.
-- Current verification: server 123 tests passed in 15.57 seconds, Ruff, native
-  pretrain CLI help, wheel and sdist pass. Local 87 passed/8 skipped, Ruff/build
-  pass (torch/reference-dependent tests skipped). No CUDA correctness claim yet.
+- Current verification: server136 tests passed in22.29s; Ruff, finetune CLI,
+  wheel and sdist pass. Local90 passed/10 skipped (torch/reference modules),
+  Ruff/build pass. Secret-pattern scan returned no matching scoped files.
+  CUDA acceptance failure is recorded separately, not hidden by unit-test passes.
 - New native CellFM CSR data loader verifies frozen source/audit/mapping/row/gene
   identities, reads X/obs/var only (not uns/DE), and retains continuous values and
   zero-expression candidate genes. Training post/teacher rows are checked against
@@ -51,10 +53,24 @@
   results/cellfm-training-io-v1.json sha efe771e14156773d66024ae4bd407098a3352903780abdc2335b551732a0934c.
 - New knowledge bank checks exact corpus/vector/model/dimension/fingerprint;
   TextBase must cover all requested genes; optional locals require source-only
-  provenance, missing combination targets omit the entire source. No API calls.
+  provenance, missing combination targets omit the entire source.
 - Native pretraining Student transfer pins checkpoint/completion/vocabulary;
   fixture weights and incomplete formal runs refused. Best may precede final
   epoch but overall run must finish. Exact weight-transfer tests passed.
+- Native 10-epoch LoRA runner/evaluator implemented. CPU fixture checks full
+  epoch/cell/bag accounting, frozen backbone and exact interrupted/resumed
+  parameters/RNG; fixtures are NOT formal training. Validation chooses strict
+  best txpert macro Pearson-delta; test runs only after ten epochs. See
+  docs/CELLFM_LORA_PROTOCOL.md. Single-GPU jobs isolate the physical UUID before
+  CUDA initialization; RNG snapshots touch only the current device.
+- Frozen real evaluation states completed, not to be regenerated:
+  data/perturbation/cellfm-evaluation-v1/adamson.json SHA
+  e2cacc19a73db3f3eff56f9934c8ed446fa7fa9fc4524747ae596d9072eb15c5;
+  norman.json SHA 2dd8f80b17bbd7a3290ffcd9eee5f5efc2fe25c94997231840e2f410e9314804.
+  26/121 val+test conditions; DE19–20/18–20. Source-matched GraD-Pert method:
+  300 ordered PCG64 replacement control draws, seed20260824, exact context
+  sampling; t-test/non-dropout/first20-then-target-exclusion; equal-condition
+  train+val Systema reference. This is METHOD parity, not canonical-data parity.
 
 ## Data progress and current live handle (2026-09-07)
 
@@ -85,15 +101,57 @@
   --output data/pretraining/census-two-atlas-500k-csr-v1.
   It holds .materialization.lock, reuses measurement presence for 2 source
   datasets, and creates 2,048-cell memory-mapped CSR shards with per-shard receipts.
-  Latest checked progress: 4 shards /8,192 cells at elapsed23:50; PID482929
-  confirmed LIVE. First 2 shards /4,096 cells independently array-hash verified;
-  later 2 have writer receipts but not yet a second independent hash pass.
+  Latest checked progress:58 shards /118,784 cells, PID482929 confirmed LIVE
+  at elapsed1h22m. All58 shards independently array-hash verified. Final full
+  corpus audit still due; manifest not yet present.
   Final manifest not yet ready.
   Prior PID479096/exec32196 terminated on modern SciPy 1D COO slicing; fixed to
   explicit 2D CSR row selection and added matrix/array tests before restarting.
   Do not restart a live materializer; inspect handle and shard receipts first.
-- Both GPUs still occupied by unrelated PIDs391010/391014 (~6GB each).
-  No DinoGenePT CUDA work launched; formal pretraining/fine-tuning epochs = 0.
+- Both unrelated GPU jobs ended; live nvidia-smi at19:40 showed no compute
+  processes. Default CUDA capacity probes now ran (see next section), but formal
+  pretraining/fine-tuning epochs remain zero. Recheck GPU ownership each launch.
+- Knowledge corpus completed at data/knowledge/cellfm-1777-v1/; union1777 output
+  genes /176 targets,125 new exact GenePT summaries beyond the old master.
+  TextBase1777 (1774 functional summaries +3 existing identity-only records),
+  GO1444, Protein1765, Pathway1256, HPA1771. Optional sources are SOURCE-ONLY;
+  missing annotations omitted, no aliases or fabricated functional text.
+  Corpus receipt SHA e268fb8d23ca1bd1f93e6c51c780810d308ed1713d63030e96dddcfb484599cb.
+- Ark generation LIVE PID506096 (original exec71852), one worker, batch10,
+  interval8sec, no automatic retries. Original authorized Keychain helper
+  injection, no persisted/printed credential. Original corpus miss count5909,
+  2104 exact cache hits. Current audit: TextBase1777/1777 complete2048D;
+  GO1444/1444 complete; Protein797/1765 cached,968 pending. Later sources
+  sequential, do not duplicate. PID506096 live at elapsed31:52.
+  Output data/embeddings/cellfm-1777-v1, checkpoint checkpoints/cellfm-1777-v1;
+  final bundle.json only after all vectors/provenance pass KnowledgeBank audit.
+
+## CUDA capacity and optimization (not epochs)
+
+- scripts/probe_pretraining_capacity.py pins a completed real raw shard and
+  full60664 vocabulary,12/768 backbone and normal-sized heads. Worst-bound
+  globals2048/2048,locals820/820; no formal checkpoint or epoch claim.
+- results/capacity-single-default-v1: two BF16 forward/backward/AdamW/EMA steps,
+  microbatch2,119,039,863 Student parameters; step2=10.094s,12,409,045,504 peak
+  allocated bytes. CUDA FP32 KDA recurrence/chunk value+gradient parity passed.
+- results/capacity-ddp-default-v1: two complete two-rank steps, microbatch4/rank;
+  step2=10.752s,0.744 cells/s total,22,912,157,696 peak allocated bytes/maxrank.
+  All five losses/gradients finite. Two steps do not establish convergence.
+- Native parallel_chunk candidate batches state-independent triangular solves;
+  exact mechanism unchanged, original chunk remains default pending audits.
+  CPU value/gradient/read-only/strong-decay parity tests pass. V3 CUDA DDP
+  step2=3.288s,2.433cells/s,23,121,669,632bytes peak, but BF16 whole-backbone
+  numerical audit FAILED on11/393216 gene outputs. Max abs0.09375; original
+  chunk remains default. Long2049-token CUDA FP32 primitive and12/768 backbone
+  FP32 parity passed. See docs/CUDA_CAPACITY_2026_09_07.md for exact receipts.
+- First candidate DDP attempt failed SAFELY before allocation on rank0: torchrun
+  creates separate process sessions, so an initialized peer was misidentified
+  as unrelated. Verified installed torch Elastic start_new_session=True;
+  guard now accepts only a verified common torchrun parent, not arbitrary
+  shell siblings. Candidate v2 refused a distinct transient PID688199 (not
+  attributed); v3 passed after free-GPU revalidation. Later external PID775988
+  occupied GPU0, system Python/cwd /home/yilangliu; do NOT touch. Numerical
+  audit used freeGPU1 only. No DinoGenePT GPU job remains live from these probes.
 
 ## Remaining critical path
 
@@ -103,15 +161,16 @@
 2. Full CellFM notebook-name equivalence remains unproven; report this run as
    released CellFM reduced-axis data plus native source-matched simulation split,
    not full GEARS/GraD-Pert data or a proven author checkpoint reproduction.
-3. Condition/context sampler, real frozen CellFM IO, source-only vector bank and
-   pretrain checkpoint/vocabulary transfer are implemented/tested. Finish the
-   10-epoch LoRA runner and fixed validation/test evaluation. Do not redo the
+3. Condition/context sampler, real frozen CellFM IO, source-only vector bank,
+   pretrain transfer and10-epoch LoRA runner/evaluator are implemented/tested.
+   Resolve artifact-bound formal configs after full inputs exist. Do not redo the
    completed results/cellfm-training-io-v1.json audit or other frozen data jobs.
    Enforce no held-out post observations in train/teacher/HVG/prototypes.
-4. After dataset/model ready, supplement independent source-only GenePT vectors
-   on server through approved Ark Keychain helper; preserve exact caches/rate cap.
-5. When GPUs truly free, full-default forward/backward/DDP capacity and BF16
-   parity/throughput audit; finish actual 2+10+10 epochs and result/performance
+4. Follow the LIVE independent source-only vector job; preserve exact caches,
+   source receipts and rate cap, do not restart a live or completed source.
+5. Finish CUDA numerical/performance optimization and stable capacity audit;
+   run actual 2+10+10 epochs when full corpus and free GPUs are ready. Preserve
+   original data/model/epoch scope. Produce final result/performance
    receipts. CPU fixture completion must never count as formal training.
 6. Continue tests/lint/build/secret scan, code checksum sync, commit/push and
    final requirement-by-requirement outcome audit. Goal remains active.

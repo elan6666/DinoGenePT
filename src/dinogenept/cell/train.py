@@ -32,17 +32,50 @@ def _dataclass(cls, values):
     return cls(**values)
 
 
-def _gpu_guard():
-    """Do not share GPUs with processes outside this torchrun process group."""
+def _same_torchrun_launcher(pid):
+    """Elastic ranks have separate sessions; only a verified launcher owns peers.
+
+    Do not whitelist siblings of an arbitrary shell/sshd or all user's jobs.
+    Read only process identity, never credential-bearing process environments.
+    """
+    if not os.environ.get("TORCHELASTIC_RUN_ID") or int(os.getenv("LOCAL_WORLD_SIZE", "1")) <= 1:
+        return False
+    parent = os.getppid()
+    try:
+        arguments = (Path("/proc") / str(parent) / "cmdline").read_bytes().split(b"\0")
+        named_launcher = any(Path(os.fsdecode(arg)).name == "torchrun" for arg in arguments if arg)
+        module_launcher = any(
+            arguments[i : i + 2] == [b"-m", b"torch.distributed.run"] for i in range(len(arguments) - 1)
+        )
+        if not (named_launcher or module_launcher):
+            return False
+        # Linux stat's comm may contain spaces or parentheses; split after its
+        # final close parenthesis. Following fields are state, ppid, pgrp, ...
+        stat = (Path("/proc") / str(pid) / "stat").read_text()
+        fields = stat[stat.rfind(")") + 2 :].split()
+        return len(fields) >= 2 and int(fields[1]) == parent
+    except (OSError, ValueError):
+        return False
+
+
+def _gpu_guard(*, selected_uuid=None):
+    """Refuse unrelated compute; accept our group or verified torchrun peers."""
     output = subprocess.check_output(
-        ["nvidia-smi", "--query-compute-apps=pid", "--format=csv,noheader,nounits"], text=True
+        ["nvidia-smi", "--query-compute-apps=gpu_uuid,pid", "--format=csv,noheader,nounits"], text=True
     )
     occupied = []
     for line in output.splitlines():
-        if line.strip().isdigit():
-            pid = int(line.strip())
+        if not line.strip():
+            continue
+        fields = [value.strip() for value in line.split(",")]
+        if len(fields) != 2 or not fields[1].isdigit():
+            raise RuntimeError("GPU ownership query returned an unrecognized row; allocation refused")
+        if selected_uuid is not None and fields[0] != selected_uuid:
+            continue
+        if fields[1].isdigit():
+            pid = int(fields[1])
             try:
-                if os.getpgid(pid) != os.getpgid(0):
+                if os.getpgid(pid) != os.getpgid(0) and not _same_torchrun_launcher(pid):
                     occupied.append(pid)
             except ProcessLookupError:
                 continue

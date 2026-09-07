@@ -61,6 +61,9 @@ def build_parser() -> argparse.ArgumentParser:
     pretrain = subparsers.add_parser("pretrain", help="run native cell pretraining on the server")
     pretrain.add_argument("--config", type=Path, required=True)
     pretrain.add_argument("--resume", type=Path)
+    finetune = subparsers.add_parser("finetune", help="run native LoRA perturbation fine-tuning on the server")
+    finetune.add_argument("--config", type=Path, required=True)
+    finetune.add_argument("--resume", type=Path)
 
     data = subparsers.add_parser("data", help="prepare pinned datasets on the server")
     data_sub = data.add_subparsers(dest="data_command", required=True)
@@ -308,6 +311,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.command == "finetune":
+        from .cell.finetune import run_finetuning
+
+        result = run_finetuning(json.loads(args.config.read_text()), resume=args.resume)
+        print(json.dumps(result, indent=2))
+        return 0
     if args.command == "pretrain":
         # Knowledge-only installations do not require torch at import time.
         from .cell.train import run_pretraining

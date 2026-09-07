@@ -1,5 +1,11 @@
 # DinoGenePT
 
+Current default-model engineering status: native LoRA runner/evaluator and
+single-/dual-RTX5090 capacity probes are implemented and tested. Formal2+10+10
+epochs are still pending complete pretraining materialization. A faster native
+KDA execution candidate is **not** promoted because its BF16 numerical gate
+failed; see [capacity and audit receipt](docs/CUDA_CAPACITY_2026_09_07.md).
+
 DinoGenePT is a research project for DINO-style cell representation learning
 and perturbation prediction with GenePT knowledge views. The current
 package preserves its auditable GenePT knowledge subsystem: it keeps the official NCBI + UniProt text and selected gene-level
@@ -12,14 +18,16 @@ project, not an official GenePT or DINOcell release.
 
 A replacement cell model is being implemented from the design in
 [`docs/CELL_DINO_KNOWLEDGE_LOCAL_DESIGN.md`](docs/CELL_DINO_KNOWLEDGE_LOCAL_DESIGN.md).
-Native backbone, five-loss pretraining runner, LoRA knowledge-local perturbation
-model and shared metric fixtures now exist. CPU tests cover exact pretraining
-resume, two-rank DDP, frozen-backbone LoRA and source omissions. The native CellFM
+Native backbone, five-loss pretraining runner, complete-epoch LoRA perturbation
+runner and shared evaluator now exist. CPU fixtures cover two pretraining epochs
+followed by ten LoRA epochs, exact resume/RNG, two-rank pretraining DDP,
+frozen-backbone LoRA and source omissions. The native CellFM
 simulation splitter matches pinned upstream fixtures. Released CellFM files,
 their reduced gene axes, native splits and exact pretrained-ID mappings are
 frozen. A 500k-train/20k-donor-heldout Census selection is frozen and raw-count
-shard extraction is underway. The complete perturbation runner and formal GPU
-training remain incomplete.
+shard extraction is underway. Real evaluator-only state is frozen. Independent
+knowledge text covers a new 1,777-gene axis union, with API vector supplementation
+underway. Formal GPU capacity, pretraining and fine-tuning remain incomplete.
 No cell-model experimental results are claimed.
 
 The current plan specifies 12 blocks / 768 hidden width, single-direction hybrid
@@ -29,7 +37,13 @@ ablations 2/4/8 in the design. The active campaign runs **only the default**:
 See [data selection](docs/PRETRAINING_DATA_SELECTION.md),
 [source fidelity](docs/NATIVE_SOURCE_LEDGER.md), and the [engineering and evaluation plan](docs/ENGINEERING_EVALUATION_DESIGN.md)
 for native implementation, two-RTX-5090 DDP, performance statistics, compact
-artifacts and exact GraD-Pert perturbation evaluation alignment.
+artifacts and GraD-Pert-method perturbation evaluation. CellFM reduced data are
+not the GraD-Pert canonical datasets; formula/procedure alignment is not score comparability.
+
+The native training entrypoints are `dinogenept pretrain --config ...` and
+`dinogenept finetune --config ... [--resume ...]`; install `.[training,census,dev]`
+on the server. They require pinned data/knowledge/checkpoint/evaluation artifacts,
+not just a dataset name. See the [current LoRA protocol](docs/CELLFM_LORA_PROTOCOL.md).
 
 ## Comparison contract
 

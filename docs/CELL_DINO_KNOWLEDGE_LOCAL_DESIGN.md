@@ -308,8 +308,11 @@ exact vocabulary identity, and refuses incomplete formal pretraining or fixture
 weights. A best checkpoint from an earlier complete epoch is valid only after
 the entire requested pretraining run has finished. Downstream optimizer/RNG and
 Teacher center are new task state; they are not resumed from stage 1.
-The ten-epoch LoRA optimization/checkpoint loop and final evaluation integration
-remain required before calling this a completed perturbation experiment.
+The ten-epoch LoRA optimization/checkpoint loop and shared evaluator are now
+implemented in `cell/finetune.py`. CPU fixtures pass full 2→10 training transfer,
+exact interrupted resume and frozen-backbone checks; this is not formal GPU
+training. See [the frozen campaign protocol](CELLFM_LORA_PROTOCOL.md) for optimizer,
+selection, GPU isolation and evaluator-only real-data state.
 
 ## 6. Execution, leakage and unresolved gates
 

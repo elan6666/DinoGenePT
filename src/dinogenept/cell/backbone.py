@@ -11,7 +11,7 @@ from torch import nn
 from torch.nn import functional as F
 from torch.utils.checkpoint import checkpoint
 
-from .kda import chunk_kda
+from .kda import chunk_kda, parallel_chunk_kda
 
 
 @dataclass(frozen=True)
@@ -30,6 +30,7 @@ class BackboneConfig:
     residual_block_size: int = 4
     ffn_expansion: int = 1
     chunk_size: int = 16
+    kda_implementation: str = "chunk"
     gradient_checkpointing: bool = True
     norm_eps: float = 1e-5
 
@@ -52,6 +53,8 @@ class BackboneConfig:
         )
         if any(x < 1 for x in values) or self.depth % self.global_every:
             raise ValueError("Invalid architecture dimensions; last layer must be global")
+        if self.kda_implementation not in {"chunk", "parallel_chunk"}:
+            raise ValueError("Unknown native KDA execution implementation")
 
 
 class RMSNorm(nn.Module):
@@ -102,6 +105,7 @@ class KDAMixer(nn.Module):
         target_logit = torch.logit(torch.tensor(0.1 / 5))
         self.dt_bias = nn.Parameter((target_logit / self.a_log.detach().exp()).repeat_interleave(self.dim))
         self.chunk_size = config.chunk_size
+        self.kernel = chunk_kda if config.kda_implementation == "chunk" else parallel_chunk_kda
 
     def forward(self, x, valid, writable):
         shape = (*x.shape[:2], self.heads, self.dim)
@@ -115,7 +119,7 @@ class KDAMixer(nn.Module):
         )
         decay = torch.where(writable[:, :, None, None], decay, 0)
         beta = self.b_proj(x).float().sigmoid() * writable.unsqueeze(-1)
-        output, _ = chunk_kda(q, k, v, decay, beta, chunk_size=self.chunk_size)
+        output, _ = self.kernel(q, k, v, decay, beta, chunk_size=self.chunk_size)
         gate = self.g_proj(x).reshape(shape).float().sigmoid()
         output = (self.o_norm(output).float() * gate).to(x.dtype).flatten(-2)
         return self.o_proj(output) * valid.unsqueeze(-1)

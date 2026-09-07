@@ -82,6 +82,7 @@ class CellFMDataset:
             if obs[field].astype(str).tolist() != frozen_obs[field].astype(str).tolist():
                 raise ValueError(f"Frozen observation metadata differs: {field}")
         split = json.loads((directory / "split.json").read_text())
+        self.split_conditions = split["conditions"]
         self.index = PopulationIndex(frozen_obs.row_id, frozen_obs.condition, frozen_obs.cell_type, split["conditions"])
         actual_targets = {gene for condition in self.index.conditions for gene in targets(condition)}
         if actual_targets != set(target_symbols):

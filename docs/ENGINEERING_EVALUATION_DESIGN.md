@@ -81,11 +81,17 @@ Recheck explicit GPU UUIDs, active jobs and capacity at launch. Authorization
 to use two cards does not authorize killing existing processes. No training
 or performance benchmark was run during the design inspection.
 
-Default proposal: two-process DDP, each GPU holding a complete student and
+Pretraining default: two-process DDP, each GPU holding a complete student and
 no-grad EMA teacher. Reduce student gradients; update teacher locally after
 synchronized optimizer steps. Reduce center sums/counts and synchronize routing
 buffers according to their own contract. Do not default to one teacher GPU
 and one student GPU, or treat two cards as one 64-GB memory pool.
+
+Implemented stage-2 runner uses one process per dataset with explicit physical
+GPU UUID isolation, allowing independent datasets on separate available cards.
+It does not reuse static pretraining DDP for variable source availability. RNG
+checkpoints access only the current device; no other-card context is initialized
+merely to save RNG. See `CELLFM_LORA_PROTOCOL.md` for the exact defaults.
 
 | Setting | Initial capacity-test proposal, not measured fit |
 |---|---|
@@ -99,9 +105,11 @@ and one student GPU, or treat two cards as one 64-GB memory pool.
 | Student activation checkpointing | Enabled with reproducible RNG behavior |
 | Data workers | Start 2 per rank, bounded prefetch depth 2 |
 
-Capacity probes try microbatches 4/8/16 with accumulation 16/8/4 respectively.
-Include two teacher globals, student LC2/LC4/LC8, masked-token heads, backward,
-optimizer state and communication buckets. Leave memory headroom. Do not infer
+The active default-only capacity work has now verified microbatch4/rank on two
+cards with two Teacher globals, Student LC2, full heads, backward, optimizer
+state and communication buckets. See `CUDA_CAPACITY_2026_09_07.md`; the table's
+microbatch8 remains an earlier unmeasured proposal, not a launch configuration.
+No LC4/LC8 ablation is being run. Leave memory headroom. Do not infer
 fit solely from parameter size. Run probes only when GPUs are available.
 
 Use DDP no_sync on nonfinal accumulation steps. View-chunked backward must

@@ -28,6 +28,10 @@ dimensions need explicit mapping; do not discard these channels as a shortcut.
 Server CPU verification includes primitive parity, full five-loss orchestration,
 two-rank Gloo accumulation and exact interrupted/resumed optimizer-boundary
 continuation. These fixtures do not establish CUDA capacity or formal training.
+CUDA capacity has now been measured separately; see
+`CUDA_CAPACITY_2026_09_07.md`. Original native chunk remains the default: a faster
+algebraically equivalent scheduling candidate passed FP32 tests but failed the
+whole-backbone BF16 elementwise acceptance gate. No fused-kernel parity claim.
 
 ## Reduced default backbone now implemented
 
@@ -98,3 +102,11 @@ during backbone LoRA tuning. New task/source heads remain outside the backbone.
   evaluation-only uns annotations. Real dataset IO coverage receipt recorded.
 - `cell/transfer.py`: own weights-only checkpoint lineage gate, exact native
   Student transfer; completed two-epoch formal run required before fine-tuning.
+- `evaluation/cellfm.py`: read-only GraD-Pert276d7ba controls/state/metrics method
+  reference; own300-control PCG64 draw, t-test DE eligibility/target exclusion
+  and Systema reference. Frozen real evaluation states and limitations are in
+  `CELLFM_LORA_PROTOCOL.md`; data/split identity is NOT GraD-Pert canonical.
+- `cell/finetune.py`: own ten-complete-epoch LoRA loop, validation-only selection,
+  test after training, immutable input checks, checkpoint/RNG resume and scalar
+  performance receipts. Small CPU end-to-end/resumption tests pass, not formal
+  CUDA training results. Native optimizer defaults are explicitly adaptations.

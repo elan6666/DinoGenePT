@@ -1,5 +1,27 @@
 # Confirmed project lessons
 
+## 2026-09-07: GPU ownership is not just a process-group comparison
+
+- Torch Elastic creates each rank with start_new_session=True (verified in
+  installed subprocess_handler.py). A rank may initialize CUDA before its peer
+  queries nvidia-smi; different PGIDs do not prove unrelated ownership.
+- Only accept peers with our same verified torchrun launcher parent. Arbitrary
+  shell siblings and unrelated parents remain forbidden. Test both launch
+  styles (torchrun entrypoint and python -m torch.distributed.run), peer races
+  and rejection of unrelated jobs. Never relax the guard to same Unix user.
+- Single-GPU RNG save/restore must touch only its current device; using
+  get_rng_state_all can initialize unwanted contexts on another research GPU.
+
+## 2026-09-07: IO helper draws are not the formal evaluator's control sampler
+
+- Earlier seed42/no-replacement-when-large helper draws tested IO, not GraD-Pert
+  method fidelity. The inspected formal sampler uses seed20260824 with a
+  dataset/split/condition SHA256-derived128-bit PCG64 key, sampling truth contexts
+  and compatible controls with replacement, exactly300 ordered controls.
+- Freeze these rows before evaluation; validate the exact regeneration. Match
+  DE selection order too: filter non-dropout, first20, remove targets, no refill.
+  State metric-method alignment separately from dataset/split comparability.
+
 ## 2026-09-07: Distinguish absent genes from missing source annotations
 
 - The source-only corpus helper counted requested genes absent from both input

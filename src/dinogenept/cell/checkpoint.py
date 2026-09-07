@@ -19,11 +19,15 @@ def config_hash(config: dict) -> str:
 
 def rng_state():
     state = np.random.get_state()
+    # Do not initialize contexts on another GPU merely to serialize its RNG.
+    # Each DDP rank / single-GPU task only draws randomness on its current GPU.
+    devices = [torch.cuda.current_device()] if torch.cuda.is_initialized() else []
     return {
         "python": random.getstate(),
         "torch": torch.get_rng_state(),
         "numpy": (state[0], state[1].tolist(), state[2], state[3], state[4]),
-        "cuda": torch.cuda.get_rng_state_all() if torch.cuda.is_initialized() else [],
+        "cuda": [torch.cuda.get_rng_state(device) for device in devices],
+        "cuda_device_indices": devices,
     }
 
 
@@ -33,9 +37,11 @@ def restore_rng(state):
     name, keys, position, has_gauss, cached_gauss = state["numpy"]
     np.random.set_state((name, np.asarray(keys, dtype=np.uint32), position, has_gauss, cached_gauss))
     if state["cuda"]:
-        if len(state["cuda"]) != torch.cuda.device_count():
-            raise ValueError("Checkpoint CUDA RNG device count differs")
-        torch.cuda.set_rng_state_all([item.cpu() for item in state["cuda"]])
+        devices = state.get("cuda_device_indices", list(range(len(state["cuda"]))))
+        if len(devices) != len(state["cuda"]) or any(i < 0 or i >= torch.cuda.device_count() for i in devices):
+            raise ValueError("Checkpoint CUDA RNG device mapping differs")
+        for device, item in zip(devices, state["cuda"], strict=True):
+            torch.cuda.set_rng_state(item.cpu(), device=device)
 
 
 def save_checkpoint(path: Path, model, optimizer, *, config: dict, progress: dict, rank_rng: list[dict]):

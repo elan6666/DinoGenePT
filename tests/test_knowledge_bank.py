@@ -15,12 +15,17 @@ def pinned(path):
 
 @pytest.fixture
 def artifacts(tmp_path):
-    base = {"A": "NCBI and UniProt description A", "B": "NCBI and UniProt description B"}
+    return make_artifacts(tmp_path)
+
+
+def make_artifacts(tmp_path, genes=("A", "B")):
+    tmp_path.mkdir(exist_ok=True)
+    base = {gene: f"NCBI and UniProt description {gene}" for gene in genes}
     base_path = tmp_path / "base.json"
     atomic_write_json(base_path, base)
     entries = {}
     for source in KNOWLEDGE_SOURCES:
-        available = {"A", "B"} if source in {"TextBase", "Protein"} else {"A"} if source == "GO" else set()
+        available = set(genes) if source in {"TextBase", "Protein"} else {"A"} if source == "GO" else set()
         corpus_path = tmp_path / f"{source}.json"
         source_manifest = tmp_path / f"{source}.proof.json"
         if source == "TextBase":

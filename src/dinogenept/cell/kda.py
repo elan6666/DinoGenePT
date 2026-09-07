@@ -75,3 +75,51 @@ def chunk_kda(q, k, v, log_decay, beta, initial_state=None, *, chunk_size=16):
             ending_decay = (gi[:, :, -1:] - gi).exp()
             state = state * gi[:, :, -1].exp().unsqueeze(-1) + (ki * ending_decay).transpose(-1, -2) @ updates
         return torch.cat(outputs, dim=2).transpose(1, 2).to(dtype), state
+
+
+def parallel_chunk_kda(q, k, v, log_decay, beta, initial_state=None, *, chunk_size=16):
+    """Same delta recurrence, batched state-independent within-chunk solves.
+
+    Factor u = solve(L,beta*v) - solve(L,beta*k*exp(G)) @ S_start.
+    All L, qk and the two solves are independent across chunks. Only the
+    boundary-state recurrence remains sequential. This is a native scheduling
+    optimization of chunk_kda, not another attention mechanism or fused kernel.
+    Zero-padded suffix tokens have no state effect and their reads are removed.
+    """
+    _validate(q, k, v, log_decay, beta)
+    if chunk_size < 1:
+        raise ValueError("chunk_size must be positive")
+    dtype, length = v.dtype, q.shape[1]
+    n = min(length, chunk_size)
+    chunks = (length + n - 1) // n
+    with torch.autocast(device_type=q.device.type, enabled=False):
+
+        def packed(x):
+            x = x.float().transpose(1, 2)
+            x = torch.nn.functional.pad(x, (0, 0, 0, chunks * n - length))
+            return x.reshape(x.shape[0], x.shape[1], chunks, n, x.shape[-1])
+
+        qi, ki, vi, gi, bi = [packed(x) for x in (q, k, v, log_decay, beta.unsqueeze(-1))]
+        b, h, _, _, d = qi.shape
+        state = qi.new_zeros(b, h, d, vi.shape[-1]) if initial_state is None else initial_state.float()
+        if state.shape != (b, h, d, vi.shape[-1]):
+            raise ValueError("Initial state shape mismatch")
+        qi = qi * d**-0.5
+        gi = gi.cumsum(-2)
+        causal = torch.ones(n, n, device=q.device, dtype=torch.bool).tril()
+        decay = (gi.unsqueeze(-2) - gi.unsqueeze(-3)).masked_fill(~causal.unsqueeze(-1), -torch.inf).exp()
+        kk = torch.einsum("...id,...jd,...ijd->...ij", ki, ki, decay)
+        qk = torch.einsum("...id,...jd,...ijd->...ij", qi, ki, decay)
+        system = (kk * bi).tril(-1) + torch.eye(n, device=q.device)
+        rhs = bi * torch.cat((vi, ki * gi.exp()), dim=-1)
+        solution = torch.linalg.solve_triangular(system, rhs, upper=False, unitriangular=True)
+        base, read = solution.split((vi.shape[-1], d), dim=-1)
+        query = qi * gi.exp()
+        ending_key = ki * (gi[..., -1:, :] - gi).exp()
+        ending_gate = gi[..., -1, :].exp()
+        outputs = []
+        for chunk in range(chunks):
+            updates = base[:, :, chunk] - read[:, :, chunk] @ state
+            outputs.append(query[:, :, chunk] @ state + qk[:, :, chunk] @ updates)
+            state = state * ending_gate[:, :, chunk].unsqueeze(-1) + ending_key[:, :, chunk].transpose(-1, -2) @ updates
+        return torch.cat(outputs, dim=2)[:, :, :length].transpose(1, 2).to(dtype), state

@@ -1,5 +1,62 @@
 # Active project state
 
+## Current complex-task contract — authoritative (2026-09-08)
+
+This section supersedes conflicting historical snapshots below. The active
+goal tool cannot edit its objective; keep that unfinished goal intact and use
+this user-approved performance extension alongside its original acceptance.
+
+### Overall outcome
+
+- Native DinoGenePT default model: train all500000 GeneCompass human cells for
+  exactly1 complete pretraining epoch; no heldout validation, no5M training,
+  no perturbation fine-tuning. Preserve continuous expression values and record
+  downstream overlap as unknown; training loss is not generalization evidence.
+- Optimize project performance without changing model/loss/crop/data semantics:
+  data IO, batching/prefetch/CPU-GPU transfer, KDA/backbone execution, memory,
+  mixed precision and DDP/accumulation. Profile first, retain only verified
+  improvements, and do not guarantee100% utilization or a speedup without data.
+- Keep requested human50k/500k/5M downloads;5M transfer runs independently and
+  must not block work on the ready500k corpus. No changes/runs in GraD-Pert and
+  no preemption or sharing of unrelated GPU jobs.
+
+### Current phase: preparation, optimization, tested launch handoff
+
+1. Finalize vocabulary, all-cell data format/loader and immutable1epoch config.
+2. Verify performance changes with identical inputs and numerical/gradient
+   checks. Report IO throughput separately from model/training throughput;
+   record cache conditions, cells/s, tokens/s, data wait and peak GPU memory.
+3. Run real-data default-model1step GPU smoke with checkpoint/EMA/mask checks,
+   isolated from formal results. Recheck GPU ownership immediately before use.
+4. Launch the authorized1epoch run and verify healthy progress; preserve job
+   identity, logs, resolved config, manifest/checkpoint hashes and restart rules.
+5. Test/lint/build/CLI as applicable and sync local/server/GitHub. Only after
+   these actual phase deliverables hold, complete the existing phase goal and
+   hand off to the same heartbeat. Do not wait for the whole epoch in this goal.
+
+### Scheduled wait and next phase
+
+- Download waits normally20min, training waits1h, adapt the SAME monitor
+  `dinogenept` to concurrent needs. No repeated jobs or unchanged notifications.
+- After verified training termination, create the next scoped acceptance goal:
+  audit full500000-cell/1epoch coverage, finite losses, checkpoint and performance
+  receipts; analyze limits and deliver. Retain monitoring for unfinished
+  authorized downloads. Overall completion requires all retained obligations.
+
+### Latest verified state and immediate work
+
+- NPZ500k conversion/loader validation and no-validation fixture tests passed.
+- Lossless NPY conversion completed:500000 cells/510 shards at
+  data/pretraining/genecompass-human500k-mmap-v1, log.runtime/genecompass-mmap.log.
+- IO comparison started in tmux `dinogenept-io-benchmark`; log
+  .runtime/genecompass-io-benchmark.log and receipt
+  results/genecompass-io-comparison-v1.json. Inspect actual result before claiming
+  speedup; compare512 identical sampled cells/crops in both formats.
+- Mmap code/tests and benchmark scripts remain pending final review/commit.
+  Freeze NEW mmap smoke/formal configs; existing NPZ configs are not updated.
+- Real-data GPU smoke and formal training have NOT started. Last GPU snapshot
+  showed GPU0 occupied by unrelated PID1456767; refresh before any GPU action.
+
 ## Approved protocol: all500k, no validation, one epoch (2026-09-08)
 
 - Conversion and full native loader verification COMPLETED:500000 cells,

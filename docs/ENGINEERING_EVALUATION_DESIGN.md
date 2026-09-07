@@ -1,6 +1,7 @@
 # DinoGenePT engineering, hardware and evaluation plan
 
-Updated 2026-09-07. **Plan only: no new model code or training is implemented.**
+Updated 2026-09-07. **Native cell modules and pretraining runner are CPU-tested;
+formal data, GPU performance and experiment results remain unverified.**
 Companion to [model design](CELL_DINO_KNOWLEDGE_LOCAL_DESIGN.md).
 
 ## 1. Native package and reference-first implementation
@@ -25,17 +26,16 @@ Before implementing each component:
    KDA kernel must match the recurrence; do not replace it with an upstream
    model wrapper to claim native implementation.
 
-Proposed package layout, not currently implemented directories:
+Current native layout (extend through common interfaces for future models):
 
 ```text
 src/dinogenept/
-  models/dinogenept/          # one model; ablations selected by config
-  data/<dataset_id>/          # dataset adapters using common contracts
-  training/                  # pretrain/finetune, EMA, checkpoints
+  cell/                      # current model, losses, runners, EMA/checkpoints
+  datasets/<dataset_id>/      # dataset-specific native protocols
   evaluation/                # shared model-independent evaluator
-  execution/                 # entrypoint, DDP, profiling, receipts
-  artifacts/                 # schemas and atomic compact persistence
-configs/experiments/dinogenept/<dataset_id>/<variant>.yaml
+  cli.py                     # lazy torch pretrain entrypoint + GenePT commands
+  provenance.py              # shared checksum and atomic JSON primitives
+configs/experiments/dinogenept/<dataset_id>/<variant>.json  # planned frozen configs
 ```
 
 Different future models have their own folders but share the evaluator.

@@ -1,6 +1,6 @@
 # DinoGenePT: current model and experiment design
 
-Status: **native backbone/loss/LoRA primitives CPU-tested; full training integration
+Status: **native backbone, five-loss runner and knowledge-local model CPU-tested; formal data/CUDA integration
 and formal experimental validation pending**.
 Updated 2026-09-07, version `dinogenept_design_v2`. This replaces v1;
 historical GenePT embedding results remain unchanged.
@@ -237,6 +237,47 @@ DINO terms. No loss sweep is active. Pin decoder/optimizer/epoch settings before
 launch. The active user budget is 10 epochs per dataset with LoRA on the frozen
 backbone plus trainable new heads; CellFM's GEARS notebook uses 15 epochs, which
 is a reference rather than our current budget.
+
+### Default implementation choices (no ablation launched)
+
+For the delegated default run, choose **TextBase as the primary anchor** and
+GO/Protein/Pathway/HPA as available training-only locals. CellGene remains the
+explicit alternative anchor config, not a silently added local. TextBase must
+cover every perturbation target. Source vectors are detached, individually
+L2-normalized, then mapped by source-specific bias-free Linear(2048,768) and
+LayerNorm. Combination targets are sorted by frozen vocabulary ID with the
+matching vector rows reordered together. This is our canonical-order policy.
+
+Use LoRA rank16, alpha32, dropout0.05 at the enumerated mixer projections.
+Frozen backbone weights include gene/value embeddings, gates and norms; the
+pretrained cell projection head and new source/decoder heads are trainable.
+The cell head is initialized from pretraining, not asserted to be a new random
+head. Teacher is an EMA copy, always eval/stop-gradient, with its own center.
+
+The native low-rank full-axis decoder (`cell/perturbation.py`) is:
+
+\[
+q_{bg}=\sigma(W_g e_g + W_x x^{ctrl}_{bg}),\quad
+\Delta_{bg}=s\,q_{bg}^{\top}W_c h_b/\sqrt{128},\quad
+\hat x_{bg}=x^{ctrl}_{bg}+\Delta_{bg}.
+\]
+
+Here `e_g` is the frozen pretrained gene-ID embedding, `h_b` the conditional
+Student CLS, `W_g,W_c:768→128`, `W_x:1→128`, and scalar `s` starts at one.
+Inputs/targets use the same continuous normalized expression scale. Predictions
+are unconstrained deltas; no undocumented clipping or re-normalization. This
+factorization avoids constructing a full B×G×768 expression-token tensor and
+is a declared new decoder, **not** a claim about CellFM or DINOcell's decoder.
+
+For independent condition/context-matched bags, use
+`MSE(mean(pred),mean(train_post))`, plus 0.1 times each of primary, available-local
+mean and observed-view DINO. Teacher target is the mean of per-cell softmax
+probabilities, with temperature0.07, center momentum0.9; Student temperature0.1.
+Missing all optional locals contributes zero knowledge loss, not a fake zero
+embedding. EMA follows 0.996→1 after optimizer steps. No post-expression argument
+exists in `predict`; full post bags can only enter the training forward path.
+Actual bag construction, data provenance and ten-epoch LoRA runner remain gates
+before this module can be described as a completed perturbation experiment.
 
 ## 6. Execution, leakage and unresolved gates
 

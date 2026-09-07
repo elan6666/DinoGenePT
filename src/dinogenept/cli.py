@@ -58,6 +58,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="dinogenept")
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("doctor", help="check runtime and credential presence")
+    pretrain = subparsers.add_parser("pretrain", help="run native cell pretraining on the server")
+    pretrain.add_argument("--config", type=Path, required=True)
+    pretrain.add_argument("--resume", type=Path)
 
     data = subparsers.add_parser("data", help="prepare pinned datasets on the server")
     data_sub = data.add_subparsers(dest="data_command", required=True)
@@ -145,15 +148,11 @@ def build_parser() -> argparse.ArgumentParser:
     union.add_argument("--extra-genes", type=Path)
     union.add_argument("--output", type=Path, required=True)
     union.add_argument("--manifest", type=Path, required=True)
-    targets = data_sub.add_parser(
-        "build-gradpert-targets", help="freeze the target-gene union of all five protocols"
-    )
+    targets = data_sub.add_parser("build-gradpert-targets", help="freeze the target-gene union of all five protocols")
     targets.add_argument("--gradpert-root", type=Path, required=True)
     targets.add_argument("--output", type=Path, required=True)
     targets.add_argument("--manifest", type=Path, required=True)
-    source_only = data_sub.add_parser(
-        "build-source-only-texts", help="subtract an audited append-only corpus prefix"
-    )
+    source_only = data_sub.add_parser("build-source-only-texts", help="subtract an audited append-only corpus prefix")
     source_only.add_argument("--base", type=Path, required=True)
     source_only.add_argument("--enriched", type=Path, required=True)
     source_only.add_argument("--genes", type=Path)
@@ -241,9 +240,7 @@ def build_parser() -> argparse.ArgumentParser:
     audit.add_argument("--expected-dimension", type=int)
     audit.add_argument("--require-complete", action="store_true")
 
-    comparison = subparsers.add_parser(
-        "audit-ggi-comparison", help="enforce matched GGI receipts and compute deltas"
-    )
+    comparison = subparsers.add_parser("audit-ggi-comparison", help="enforce matched GGI receipts and compute deltas")
     comparison.add_argument("--result", type=Path, action="append", required=True)
     comparison.add_argument("--baseline", required=True)
     comparison.add_argument("--output", type=Path, required=True)
@@ -311,6 +308,13 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.command == "pretrain":
+        # Knowledge-only installations do not require torch at import time.
+        from .cell.train import run_pretraining
+
+        result = run_pretraining(json.loads(args.config.read_text()), resume=args.resume)
+        print(json.dumps(result, indent=2))
+        return 0
     if args.command == "doctor":
         report = {
             "python": platform.python_version(),
@@ -334,15 +338,11 @@ def main(argv: list[str] | None = None) -> int:
                 clean_overlaps=not args.official_overlaps,
             )
         elif args.data_command == "property-genes":
-            task_genes = {
-                gene for task in load_property_tasks(args.tasks).values() for gene in task.genes
-            }
+            task_genes = {gene for task in load_property_tasks(args.tasks).values() for gene in task.genes}
             vector_genes = []
             for path in args.vectors:
                 loaded_vectors = (
-                    load_official_pickle(path, trusted=True)
-                    if path.suffix in {".pickle", ".pkl"}
-                    else load_npz(path)
+                    load_official_pickle(path, trusted=True) if path.suffix in {".pickle", ".pkl"} else load_npz(path)
                 )
                 vector_genes.append(set(loaded_vectors.genes))
             selected = sorted(task_genes.intersection(*vector_genes))
@@ -482,13 +482,7 @@ def main(argv: list[str] | None = None) -> int:
                 requested,
                 uppercase_genes=uppercase_genes,
             )
-            report["requested_genes"] = len(
-                {
-                    gene.upper() if uppercase_genes else gene
-                    for gene in requested
-                    if gene
-                }
-            )
+            report["requested_genes"] = len({gene.upper() if uppercase_genes else gene for gene in requested if gene})
             report["selected_genes"] = len(selected)
             report["selected_coverage"] = len(selected) / report["requested_genes"]
             if args.output_selected:
@@ -514,10 +508,15 @@ def main(argv: list[str] | None = None) -> int:
                 uppercase_genes=uppercase_genes,
             )
         vectors = generate_embeddings(
-            gene_texts, embed=client.embed, model=args.model,
-            checkpoint_path=args.checkpoint, output_path=args.output,
-            batch_size=args.batch_size, max_workers=args.max_workers,
-            request_interval=args.request_interval, limit=args.limit,
+            gene_texts,
+            embed=client.embed,
+            model=args.model,
+            checkpoint_path=args.checkpoint,
+            output_path=args.output,
+            batch_size=args.batch_size,
+            max_workers=args.max_workers,
+            request_interval=args.request_interval,
+            limit=args.limit,
             expected_dimension=args.expected_dimension,
             uppercase_genes=uppercase_genes,
             profile=args.profile,
@@ -531,22 +530,16 @@ def main(argv: list[str] | None = None) -> int:
         gene_texts = load_gene_texts(args.texts, uppercase_genes=uppercase_genes)
         if args.genes:
             requested = set(args.genes.read_text(encoding="utf-8").splitlines())
-            gene_texts = select_gene_texts(
-                gene_texts, requested, uppercase_genes=uppercase_genes
-            )
+            gene_texts = select_gene_texts(gene_texts, requested, uppercase_genes=uppercase_genes)
         print(
             json.dumps(
-                audit_embedding_checkpoint(
-                    gene_texts, checkpoint_path=args.checkpoint, model=args.model
-                ),
+                audit_embedding_checkpoint(gene_texts, checkpoint_path=args.checkpoint, model=args.model),
                 indent=2,
             )
         )
         return 0
     if args.command == "merge-checkpoints":
-        gene_texts = load_gene_texts(
-            args.texts, uppercase_genes=not args.preserve_gene_case
-        )
+        gene_texts = load_gene_texts(args.texts, uppercase_genes=not args.preserve_gene_case)
         if args.genes:
             gene_texts = select_gene_texts(
                 gene_texts,
@@ -567,9 +560,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
     if args.command == "audit-ggi-comparison":
-        result = build_ggi_comparison(
-            result_paths=args.result, baseline=args.baseline, output_path=args.output
-        )
+        result = build_ggi_comparison(result_paths=args.result, baseline=args.baseline, output_path=args.output)
         print(json.dumps(result, indent=2))
         return 0
     if args.command == "audit-property-comparison":
@@ -605,9 +596,7 @@ def main(argv: list[str] | None = None) -> int:
             "dimension": int(loaded.vectors.shape[1]),
         }
         if args.expected_dimension is not None and report["dimension"] != args.expected_dimension:
-            raise ValueError(
-                f"expected {args.expected_dimension}-dimensional vectors, got {report['dimension']}"
-            )
+            raise ValueError(f"expected {args.expected_dimension}-dimensional vectors, got {report['dimension']}")
         if args.genes:
             requested = {gene for gene in args.genes.read_text().splitlines() if gene}
             if args.preserve_gene_case:
@@ -625,18 +614,12 @@ def main(argv: list[str] | None = None) -> int:
                 vector_coverage["gene_case"] = "uppercase"
             report["coverage"] = vector_coverage
             if args.require_complete and vector_coverage["missing"]:
-                raise ValueError(
-                    f"requested universe is missing embeddings: {vector_coverage['missing'][:20]}"
-                )
+                raise ValueError(f"requested universe is missing embeddings: {vector_coverage['missing'][:20]}")
         print(json.dumps(report, indent=2))
         return 0
     if args.benchmark_command in {"ggi", "ggi-gene-disjoint"}:
         if args.genes:
-            universe = {
-                gene.strip()
-                for gene in args.genes.read_text(encoding="utf-8").splitlines()
-                if gene.strip()
-            }
+            universe = {gene.strip() for gene in args.genes.read_text(encoding="utf-8").splitlines() if gene.strip()}
             vectors = select_universe_vectors(loaded, universe)
         else:
             vectors = loaded.as_dict()
@@ -658,27 +641,21 @@ def main(argv: list[str] | None = None) -> int:
         vectors = loaded.as_dict()
         allowed = None
         if args.genes:
-            allowed = {
-                gene.strip() for gene in args.genes.read_text(encoding="utf-8").splitlines() if gene.strip()
-            }
+            allowed = {gene.strip() for gene in args.genes.read_text(encoding="utf-8").splitlines() if gene.strip()}
             vectors = {gene: vector for gene, vector in vectors.items() if gene in allowed}
         rows = []
         seeds = tuple(int(value) for value in args.seeds.split(",") if value.strip())
         for task in load_property_tasks(args.tasks).values():
             rows.extend(evaluate_property_task_repeated(task, vectors, folds=args.folds, seeds=seeds))
     data_receipt = (
-        args.data / "ggi_manifest.json"
-        if args.benchmark_command in {"ggi", "ggi-gene-disjoint"}
-        else args.tasks
+        args.data / "ggi_manifest.json" if args.benchmark_command in {"ggi", "ggi-gene-disjoint"} else args.tasks
     )
     rows = [
         {
             "embedding": args.name,
             "normalization": "l2" if args.normalize else "none",
             "gene_universe": str(args.genes) if getattr(args, "genes", None) else "embedding-native",
-            "gene_universe_sha256": (
-                digest_file(args.genes) if getattr(args, "genes", None) else None
-            ),
+            "gene_universe_sha256": (digest_file(args.genes) if getattr(args, "genes", None) else None),
             "vectors_sha256": digest_file(args.vectors),
             "data_receipt_sha256": digest_file(data_receipt),
             "random_state": row.get("random_state", 42),

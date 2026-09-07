@@ -25,9 +25,9 @@ output gate, conv kernel4 (our default omits convolution). Gated MLA retains a
 shared extra key channel even with NoPE and no rotary operation. Reduced model
 dimensions need explicit mapping; do not discard these channels as a shortcut.
 
-Server CPU verification: 8 distillation/LoRA tests, 5 KDA reference/chunk tests,
-8 perturbation metric tests and 4 small-backbone tests passed. These are primitives, not a complete model
-or a claim that the planned long-sequence training kernel meets performance goals.
+Server CPU verification includes primitive parity, full five-loss orchestration,
+two-rank Gloo accumulation and exact interrupted/resumed optimizer-boundary
+continuation. These fixtures do not establish CUDA capacity or formal training.
 
 ## Reduced default backbone now implemented
 
@@ -59,3 +59,34 @@ during backbone LoRA tuning. New task/source heads remain outside the backbone.
   do not insert into every linear by substring matching.
 - New prediction/source projection heads train normally. Knowledge vectors freeze.
 - DDP capacity must be measured on unoccupied GPUs before formal training.
+
+## Native orchestration and data protocol integration
+
+- `cell/sampling.py`: CellFM weighted log1p-count cap without replacement,
+  full-library normalize/log1p before cap, independent ratio crops. Epoch/cell
+  keyed randomness; no dropped/repeated cells in balanced DDP batches. Our tiny
+  crop guard selects at least one reconstruction/hidden target rather than
+  propagating the upstream zero-length slicing corner case. Targets are 20%
+  and hidden positions 80% of targets, with this explicitly declared guard.
+- `cell/pretraining.py`: clean two-global Teacher, masked globals and clean
+  locals for Student; hidden-position-only prototype head; two per-cell MSEs,
+  paired DINO, same-global aligned iBOT, sum of two backbone-CLS KoLeo terms.
+- `cell/train.py` / checkpoint: native AdamW/DDP/BF16 entrypoint, all-cell epoch
+  accounting, EMA after optimizer, separate loader RNG and atomic weights-only
+  loadable checkpoints. CPU exact resume and two-rank tests passed. First-block
+  depth-read query/norm removed: no history exists there and unused parameters
+  caused a real DDP reducer failure. No numerical operation was removed.
+- `cell/perturbation.py`: our population-bag adaptation, not unavailable
+  DINOcell source code. LoRA on frozen backbone, reused trainable cell projection
+  head, new per-source adapters and factorized full-axis delta decoder. Missing
+  source omitted; all targets required for combinations; main-only prediction
+  API cannot consume post-treatment observations. See model design for formulas.
+- `datasets/cellfm/split.py`: fixed `simulation` protocol only. Legacy MT19937
+  and upstream reseeding preserved without mutating global NumPy RNG. Validation
+  re-splits training with fractions 0.9/0.9 and the same seed. Tests execute only
+  the pinned reference class/helper AST, never import GEARS models. Exact member
+  and subgroup parity passed on single/combo fixtures for seeds 1,3,42.
+  Reference hashes: data_utils.py
+  `776b41af9c8d49131d103ef54c8e0bea892a8313137e9c191fd8e74a41c05b58`;
+  utils.py `d24d35a50741b011e5e8078d2666aa0d1dfea535a98101691d523ab00e419a9a`.
+  Actual-data parity and representability filters remain pending the download.

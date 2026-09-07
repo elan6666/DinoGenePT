@@ -189,7 +189,10 @@ class CellBlock(nn.Module):
     def __init__(self, config, index):
         super().__init__()
         self.mixer = GatedMLA(config) if (index + 1) % config.global_every == 0 else KDAMixer(config)
-        self.mixer_read, self.ffn_read = DepthRead(config), DepthRead(config)
+        # At the first mixer there is no depth history to retrieve. Do not
+        # register dead query/norm parameters that can never receive gradients.
+        self.mixer_read = DepthRead(config) if index else None
+        self.ffn_read = DepthRead(config)
         self.mixer_norm, self.ffn_norm = RMSNorm(config.width, config.norm_eps), RMSNorm(config.width, config.norm_eps)
         self.ffn = SiTUFeedForward(config)
 

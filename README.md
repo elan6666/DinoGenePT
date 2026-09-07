@@ -12,10 +12,12 @@ project, not an official GenePT or DINOcell release.
 
 A replacement cell model is being implemented from the design in
 [`docs/CELL_DINO_KNOWLEDGE_LOCAL_DESIGN.md`](docs/CELL_DINO_KNOWLEDGE_LOCAL_DESIGN.md).
-Native backbone, LoRA, DINO-family loss primitives and perturbation metric
-fixtures now exist. They have CPU unit tests, but the end-to-end training runner,
-data/split audits and formal training remain incomplete. No cell-model results
-are claimed.
+Native backbone, five-loss pretraining runner, LoRA knowledge-local perturbation
+model and shared metric fixtures now exist. CPU tests cover exact pretraining
+resume, two-rank DDP, frozen-backbone LoRA and source omissions. The native CellFM
+simulation splitter matches pinned upstream fixtures. Real-data/split audits,
+the complete perturbation runner and formal GPU training remain incomplete.
+No cell-model experimental results are claimed.
 
 The current plan specifies 12 blocks / 768 hidden width, single-direction hybrid
 KDA, fixed DINO/iBOT/KoLeo plus two CellFM reconstruction losses, and local-count

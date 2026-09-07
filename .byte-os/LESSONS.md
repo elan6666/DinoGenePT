@@ -1,5 +1,17 @@
 # Confirmed project lessons
 
+## 2026-09-07: Single-process backward is not a DDP integration test
+
+- The first backbone block created a depth-read query/norm although no history
+  exists at that point. Single-process backward passed, but two-rank DDP failed
+  with unfinished gradient reduction because those parameters were never used.
+- Remove structurally dead parameters instead of hiding this with broad unused
+  parameter handling. Assert gradients exist for all active pretraining parameters
+  and test multi-rank accumulation across more than one optimizer step.
+- Keep forward AND backward inside no_sync on accumulation microsteps. Give
+  DataLoader its own generator so an extra iterator creation on resume does not
+  perturb the model RNG. Test interrupted vs uninterrupted weights and RNG.
+
 ## 2026-09-07: Keep user defaults separate from official reference settings
 
 - The current main experiment is 12 blocks / 768 width, single-direction

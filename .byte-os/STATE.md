@@ -1,90 +1,82 @@
 # Active project state
 
-## Active goal (latest user decisions, 2026-09-07)
+## Outcome contract (2026-09-07, goal active)
 
-- Goal mode is active: default native model, 2 full pretraining epochs,
-  Adamson and Norman each 10 LoRA fine-tuning epochs; no ablations.
-- Pretraining corpus choice delegated; continuous expression required, scGPT
-  route excluded. Candidate: 500k-human-cell stratified subset from scPRINT's
-  public CELLxGENE Census source, release 2023-12-15; not yet materialized/frozen.
-  Check actual source access, study provenance/overlap and dual-GPU throughput.
-- Finish dataset selection and model implementation before supplementing
-  independent GenePT-Seed views. Reuse previous Ark Agent Plan/keychain/model
-  and hash-exact checkpoints; no embedding API calls made in this update.
-- Native LoRA and DINO/iBOT/KoLeo/center/EMA primitives added; local original
-  suite 60 pass, torch fixtures skipped locally (torch absent). Server CPU:
-  8 LoRA/distillation + 5 KDA + 8 metric fixtures pass. KDA chunks match recurrent
-  values/gradients. Native default backbone added with four CPU fixture tests;
-  12/768 hybrid KDA/MLA + BlockAttnRes + dense SiTU width1. See source ledger
-  for reduced MLA dimensions and explicit from-scratch decay initialization.
-  Full runner, reconstruction heads/orchestration, data and GPU gates pending.
-- Server torch 2.13.0+cu130, cellxgene-census1.18.0 and data dependencies installed
-  in own .venv. Never mutate GraD-Pert environment. Both GPUs currently occupied by
-  PIDs391010/391014; no DinoGenePT GPU training started.
-- Census release 2023-12-15 inventory fetched: 651 datasets. Server artifact
-  data/pretraining/census-2023-12-15-inventory.json. Candidate metadata query:
-  Tabula Sapiens and cross-tissue immune atlas; not a frozen training manifest.
-- Candidate cell metadata command is running in exec session81061; output dir
-  data/pretraining/census-two-atlas-candidates-v1, script census_candidate_cells.py.
-  Inspect process/output before retrying. No raw expression shards downloaded.
-- AGENTS.md contains enduring standards only (native package/source fidelity,
-  local-server-GitHub synchronization, safe server use and scientific integrity).
-  Campaign sequence and budgets belong here, not in AGENTS.md.
-- Ark skill read; macOS Keychain status confirms credential present without
-  exposing it. Code defaults match doubao-embedding-vision and Agent Plan
-  /api/plan/v3. No API generation yet. After dataset/model completion use the
-  ark-keychain ssh-run helper, preserve exact caches and global rate limits.
-- Current gate: local 60 tests pass (torch-dependent tests skipped), server
-  77 tests pass on CPU; both Ruff and wheel/sdist builds pass, CLI passes.
-  Server build explicitly excludes .runtime/data/checkpoints/credentials;
-  code sync checksum dry-run clean. User-owned uv.lock remains untouched.
+- Native DinoGenePT: 12/768 single-direction hybrid KDA, no short convolution;
+  DINO+iBOT+KoLeo+CellFM two reconstruction losses, independent knowledge locals.
+- Choose audited real continuous-expression pretraining data for two RTX5090s;
+  scGPT data route excluded. Complete 2 full pretraining epochs, then CellFM
+  Adamson and Norman each 10 LoRA fine-tuning epochs. No ablation runs now.
+- Do not preempt/share unrelated GPU jobs. Dataset selection and model building
+  precede supplemental GenePT embedding API work. Ark Agent Plan existing
+  Keychain helper/model/config must be reused secret-safely; no API calls yet.
+- AGENTS.md holds durable engineering standards, not this campaign sequence.
+- Local /Users/elan/code/DinoGenePT; remote /data/yilangliu/DinoGenePT;
+  branch codex/dinogenept-cleanup, GitHub elan6666/DinoGenePT. Preserve uv.lock.
 
-## Active implementation and data update (2026-09-07)
+## Implemented and verified, not formal experimental results
 
-- User selects CellFM pretraining data and CellFM perturbation data first:
-  Adamson + Norman. Do not automatically launch the prior five-dataset scope.
-- See docs/CELLFM_DATA_PROTOCOL.md: full processed pretraining corpus access
-  remains unverified; downstream Zenodo ZIP is not evidence of full availability.
-- Official notebook uses norman-1000, simulation seed3, 15 epochs, GEARS emb/frozen.
-  Resolve archive-to-notebook preprocessing and splits before formal runs.
-- Native evaluation metrics and eight unit tests added locally; eight pass.
-  This does not constitute a cell-model implementation or training result.
-- Next: corpus provenance/access, CellFM split/axis audit, native model and
-  source-parity gates. No GPU jobs launched; do not preempt GraD-Pert jobs.
+- GenePT corpus/vector/benchmark subsystem preserved. New cell/ native
+  backbone, LoRA, distillation, sampling, pretraining orchestration, checkpoint,
+  dataset and runner; dinogenept pretrain --config ... [--resume ...].
+- KDA chunk/reference values and gradients agree on CPU. Five pretraining
+  losses, Teacher stop-gradient/EMA, masked-value exclusion, real-zero vs PAD,
+  deterministic crops, all-cell epoch coverage tested.
+- Runner fixture: two complete small CPU epochs; interrupted/resumed parameters
+  AND RNG exactly match uninterrupted run. Two-rank Gloo accumulation passes.
+  Removed dead first-block AttnRes query/norm after DDP exposed missing gradients.
+- Corpus verifier rejects modified hashes, invalid/duplicate vocabulary,
+  fractional normalized values masquerading as raw counts, invalid CSR/library
+  totals and duplicate cell IDs across train/validation shards.
+- Knowledge-local perturbation model CPU tests pass: frozen backbone stays
+  unchanged through LoRA optimizer step; missing locals omitted; partial-combo
+  vectors rejected; canonical target order; main-only inference API.
+  Default TextBase main, GO/Protein/Pathway/HPA optional independent locals;
+  rank16/alpha32/dropout.05; full-axis rank128 delta decoder. See model document.
+- Native CellFM simulation splitter matches fixed official source for single
+  and combo fixtures, seeds1/3/42, including subgroups and original row order.
+  Raw reference files stored remote .runtime/references and hash-checked by
+  test-only AST execution. No upstream research-model runtime imports.
+- Own server .venv: torch2.13.0+cu130 and Census/data dependencies. Local torch
+  absent; CPU integration tests run on server, never borrow GraD-Pert env.
+- Current verification: server 97 tests passed in 17.14 seconds, Ruff, native
+  pretrain CLI help, wheel and sdist pass. Local suite/build also pass with
+  torch/reference-dependent tests skipped. No CUDA correctness claim yet.
 
-## Current design delivery (2026-09-07)
+## Live materialization (inspect exact handles before restarting)
 
-- Authoritative replacement-model plan: docs/CELL_DINO_KNOWLEDGE_LOCAL_DESIGN.md
-  v2 and docs/ENGINEERING_EVALUATION_DESIGN.md. Older Byte OS experiment/status
-  notes describe historical GenePT work, not the current cell-model settings.
-- Main: 12/768 single-direction hybrid KDA, short convolution off; LC2/4/8,
-  FFN1/4; fixed five-loss objective, no loss ablations now.
-- Dual-5090 DDP target; per-rank batch8/accumulation8 is a capacity proposal,
-  not a tested fit. Existing GraD-Pert GPU jobs were not interrupted.
-- Native source-first package, shared GraD-Pert-aligned five-dataset evaluator,
-  performance receipts and metrics-only checkpoint retention are documented.
-- No cell-model implementation, new training, dataset download or historical
-  artifact cleanup was performed for this design delivery. Next work follows
-  the engineering plan's source-ledger/parity/capacity/integration gates.
-- Existing untracked uv.lock is user-owned and remains untouched.
+Snapshot 2026-09-07 09:59 UTC: both jobs confirmed live, not failed.
 
-## Existing implemented subsystem (historical verification below)
+- Census metadata PID448508 / original exec81061. Candidate collections:
+  Tabula Sapiens e5f58829-1a66-40b5-a624-9046778e74f5 and cross-tissue immune
+  atlas 62ef75e4-cbea-454e-a0ce-998ec40223d3. Query primary human cells in
+  Census LTS2023-12-15, nnz>=200, raw_sum>0. Metadata output expected at
+  data/pretraining/census-two-atlas-candidates-v1; not created until query ends.
+  Process RSS grew to ~1.2GB; no raw expression shards downloaded.
+- Inventory already exists: data/pretraining/census-2023-12-15-inventory.json,
+  651 source datasets. Candidate target 500k stratified training cells, subject
+  to actual eligibility, donor/study overlap audit and real GPU throughput.
+- CellFM archive PID457997 / original exec7856: scripts/prepare_cellfm_data.py
+  --output data/official/cellfm-15138665. CellFM_data.zip.part ~1.4GB of
+  5,296,319,440 bytes at snapshot. Publisher MD5 pinned; will extract ONLY
+  adamson.h5ad and norman.h5ad after full checksum and write archive_receipt.json.
+- Both GPUs still occupied by unrelated PIDs391010/391014 (~6GB each).
+  No DinoGenePT CUDA work launched; formal pretraining/fine-tuning epochs = 0.
 
-- Project identity: DinoGenePT. The current implementation temporarily retains
-  only the GenePT-Seed corpus, embedding, provenance, vector-audit, and
-  gene-level evaluation subsystem while the replacement cell model is designed.
-- Local source root is `/Users/elan/code/DinoGenePT`; server materialization
-  root is `/data/yilangliu/DinoGenePT`.
-- `src/dinogenept` is the packaged Python module. The retired DINO self-distillation,
-  cell-model backbones, GEARS/Scouter adapters, training configs, Trackio, and
-  architecture ablations have been removed from the current tree.
-- NCBI + UniProt Base, GO-EXP, Protein, Reactome/SIGNOR, HPA, GraD-Pert axis
-  coverage, checkpoint-safe Ark embedding generation, and matched GGI/property
-  evaluations remain supported.
-- Existing compact GenePT result receipts under `docs/results` remain tracked;
-  raw datasets, embeddings, checkpoints, and full logs remain server-only.
-- The knowledge-subsystem local gate passes 52 tests, Ruff, shell syntax, wheel/sdist,
-  module CLI, and installed entry-point checks.
-- Four pre-cleanup uncommitted files from the retired training/Trackio path are
-  recoverable from Git stash
-  `backup-before-genept-only-cleanup-2026-09-04`.
+## Remaining critical path
+
+1. Poll live jobs; freeze source/donor/assay/overlap audit, vocabulary and
+   actual raw-count pretraining shards. Manifest labels alone do not prove audit.
+   Ensure efficient random sparse access rather than repeated NPZ decompression.
+2. Inspect real CellFM artifacts, axis, scale, stored DE/splits and notebook
+   norman-1000 discrepancy. Fixture split parity is not actual-data parity.
+3. Finish condition/context bag data pipeline and 10-epoch LoRA runner,
+   pretrain checkpoint/vocabulary transfer, fixed validation/test evaluation.
+   Enforce no held-out post observations in train/teacher/HVG/prototypes.
+4. After dataset/model ready, supplement independent source-only GenePT vectors
+   on server through approved Ark Keychain helper; preserve exact caches/rate cap.
+5. When GPUs truly free, full-default forward/backward/DDP capacity and BF16
+   parity/throughput audit; finish actual 2+10+10 epochs and result/performance
+   receipts. CPU fixture completion must never count as formal training.
+6. Continue tests/lint/build/secret scan, code checksum sync, commit/push and
+   final requirement-by-requirement outcome audit. Goal remains active.

@@ -2,6 +2,12 @@
 
 ## Authoritative preparation/monitor handoff (2026-09-08, latest)
 
+- Preparation goal is now complete after verification and commit80ded9f was
+  pushed/synchronized. Replacement heartbeat `dinogenept` was then created
+  ACTIVE every20minutes (verified app result), with no active goal overlap.
+  Current phase: resource wait plus retained download. No new training process
+  was started. Next: disable heartbeat once both GPUs are available, then
+  proceed with the documented GPU smoke and formal-epoch handoff.
 - New Codex goal covers verified launch preparation AND the monitor design;
   it excludes waiting for GPU availability and the full epoch. This supersedes
   older goal descriptions below. Overall deliverable remains all500000 cells,

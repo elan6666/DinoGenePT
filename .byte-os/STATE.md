@@ -2,6 +2,11 @@
 
 ## Controlling scope override: stop before formal training (2026-09-07)
 
+- Latest LR policy: scLong source-first epoch warmup/cosine/restarts, floor1e-6,
+  launch peak5e-5, warmup5, initial cycle15, multiplier2, gamma0.9.
+  See configs/cell/lr_sclong.json and docs/SCLONG_LR.md. The official README
+  overrides the Python CLI's1e-4 fallback. No optimizer-step reinterpretation.
+
 - The latest user request REPLACES the earlier full-epoch completion target:
   finish all pre-training preparation, including real-data training smoke tests,
   then complete the goal. Do NOT launch full pretraining or full fine-tuning.

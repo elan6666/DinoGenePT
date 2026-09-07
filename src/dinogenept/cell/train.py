@@ -23,6 +23,7 @@ from .checkpoint import load_checkpoint, rng_state, save_checkpoint
 from .dataset import PretrainingDataset
 from .pretraining import HeadConfig, PretrainingSystem
 from .sampling import CropConfig, collate_crops, epoch_batches
+from .schedule import learning_rate
 
 
 def _dataclass(cls, values):
@@ -115,15 +116,22 @@ def _checkpoint(path, model, optimizer, config, progress, rank, world):
         dist.barrier()
 
 
-def run_pretraining(config: dict, *, resume: Path | None = None):
+def run_pretraining(config: dict, *, resume: Path | None = None, smoke_one_step: bool = False):
     """Config is resolved JSON; a unit_fixture run can never claim formal completion."""
     config = json.loads(json.dumps(config))
+    if config.get("execution_mode", "formal") != "formal":
+        raise ValueError("Smoke resolved configs cannot launch or resume formal training")
+    if smoke_one_step and resume is not None:
+        raise ValueError("One-step smoke requires a fresh run, not a resume checkpoint")
+    if smoke_one_step:
+        config["execution_mode"] = "smoke_one_step"
     rank, world, local_rank = (
         int(os.getenv("RANK", "0")),
         int(os.getenv("WORLD_SIZE", "1")),
         int(os.getenv("LOCAL_RANK", "0")),
     )
     training = config["training"]
+    training.setdefault("lr_scheduler", "sclong_epoch_restarts")
     if world != training["world_size"] or training["epochs"] < 1 or training["accumulation"] < 1:
         raise ValueError("World size/epoch/accumulation mismatch")
     if training["device"] not in {"cpu", "cuda"} or training["checkpoint_steps"] < 1:
@@ -227,14 +235,15 @@ def run_pretraining(config: dict, *, resume: Path | None = None):
                 torch.cuda.reset_peak_memory_stats()
             started = time.monotonic()
             step = progress["completed_steps"]
-            warmup = max(1, math.ceil(total_steps * 0.1))
-            if step < warmup:
-                lr_factor = (step + 1) / warmup
-            else:
-                phase = (step - warmup) / max(1, total_steps - warmup - 1)
-                lr_factor = 0.01 + 0.99 * (1 + math.cos(math.pi * phase)) / 2
+            current_lr = learning_rate(
+                training["lr_scheduler"],
+                training["learning_rate"],
+                epoch=epoch,
+                step=step,
+                total_steps=total_steps,
+            )
             for group in optimizer.param_groups:
-                group["lr"] = training["learning_rate"] * lr_factor
+                group["lr"] = current_lr
             for index in range(window_start, window_end):
                 before_data = time.monotonic()
                 batch = _move(next(iterator), device)
@@ -305,6 +314,27 @@ def run_pretraining(config: dict, *, resume: Path | None = None):
                 }
                 with (output / "metrics.jsonl").open("a") as handle:
                     handle.write(json.dumps(record, allow_nan=False) + "\n")
+            if smoke_one_step:
+                _checkpoint(output / "smoke.pt", model, optimizer, config, progress, rank, world)
+                if rank == 0:
+                    atomic_write_json(
+                        output / "smoke.json",
+                        {
+                            "status": "smoke_completed",
+                            "purpose": "smoke_one_step",
+                            "data_purpose": purpose,
+                            "formal_transfer_eligible": False,
+                            "full_epoch_completed": False,
+                            "data_manifest_sha256": actual_hash,
+                            "checkpoint_sha256": digest_file(output / "smoke.pt"),
+                            "world_size": world,
+                            **progress,
+                        },
+                    )
+                if world > 1:
+                    dist.barrier()
+                    dist.destroy_process_group()
+                return progress
             if (step + 1) % training["checkpoint_steps"] == 0:
                 _checkpoint(output / "last.pt", model, optimizer, config, progress, rank, world)
         # Epoch validation never updates centers/teacher and uses held-out donors.

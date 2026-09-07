@@ -1,0 +1,12 @@
+{
+  "lr_scheduler": "sclong_epoch_restarts",
+  "learning_rate": 0.00005,
+  "interval": "epoch",
+  "min_lr": 0.000001,
+  "first_cycle_steps": 15,
+  "warmup_steps": 5,
+  "cycle_mult": 2,
+  "gamma": 0.9,
+  "upstream_revision": "41b72021540918e4386c4f2264351d7a6cbeed99",
+  "note": "Apply lr_scheduler and learning_rate to native training options. Remaining fields document this versioned schedule, not optimizer keyword arguments. Peak 5e-5 matches the official README launch argument; Python CLI fallback is 1e-4."
+}

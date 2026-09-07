@@ -26,6 +26,7 @@ from dinogenept.provenance import atomic_write_json, digest_file
 
 from .checkpoint import load_checkpoint, rng_state, save_checkpoint
 from .perturbation import PerturbationConfig, PerturbationSystem
+from .schedule import learning_rate
 from .train import _dataclass, _gpu_guard
 from .transfer import load_pretrained_student
 
@@ -41,12 +42,15 @@ class FineTuneOptions:
     gene_cap: int = 2048
     evaluation_batch: int = 8
     checkpoint_steps: int = 50
-    learning_rate: float = 1e-4
+    learning_rate: float = 5e-5
+    lr_scheduler: str = "sclong_epoch_restarts"
     weight_decay: float = 0.01
     betas: tuple = (0.9, 0.999)
     gradient_clip: float = 1.0
 
     def __post_init__(self):
+        if self.lr_scheduler not in {"sclong_epoch_restarts", "legacy_step_cosine"}:
+            raise ValueError("Unknown learning-rate schedule")
         if (
             min(
                 self.epochs,
@@ -168,9 +172,13 @@ def run_finetuning(config, *, resume=None):
         identifier = identifiers[options.cuda_index].strip() if identifiers is not None else str(options.cuda_index)
         if not identifier or identifier == "-1":
             raise ValueError("Requested CUDA device is hidden")
-        uuids = subprocess.check_output(
-            ["nvidia-smi", "-i", identifier, "--query-gpu=uuid", "--format=csv,noheader"], text=True
-        ).strip().splitlines()
+        uuids = (
+            subprocess.check_output(
+                ["nvidia-smi", "-i", identifier, "--query-gpu=uuid", "--format=csv,noheader"], text=True
+            )
+            .strip()
+            .splitlines()
+        )
         if len(uuids) != 1 or not uuids[0].startswith("GPU-"):
             raise ValueError("Cannot resolve the exact requested GPU without initializing CUDA")
         _gpu_guard(selected_uuid=uuids[0])
@@ -279,14 +287,15 @@ def _run(config, options, purpose, output, device, resume):
             window = bags[position : position + options.accumulation]
             cells = sum(len(b.primary_post) for b in window)
             step = progress["completed_steps"]
-            warmup = max(1, math.ceil(total_steps * 0.1))
-            factor = (
-                (step + 1) / warmup
-                if step < warmup
-                else (0.01 + 0.99 * (1 + math.cos(math.pi * (step - warmup) / max(1, total_steps - warmup - 1))) / 2)
+            current_lr = learning_rate(
+                options.lr_scheduler,
+                options.learning_rate,
+                epoch=epoch,
+                step=step,
+                total_steps=total_steps,
             )
             for group in optimizer.param_groups:
-                group["lr"] = options.learning_rate * factor
+                group["lr"] = current_lr
             optimizer.zero_grad(set_to_none=True)
             if device.type == "cuda":
                 torch.cuda.synchronize()

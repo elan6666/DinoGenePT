@@ -61,6 +61,7 @@ def build_parser() -> argparse.ArgumentParser:
     pretrain = subparsers.add_parser("pretrain", help="run native cell pretraining on the server")
     pretrain.add_argument("--config", type=Path, required=True)
     pretrain.add_argument("--resume", type=Path)
+    pretrain.add_argument("--smoke-one-step", action="store_true", help="one optimizer step; no formal checkpoint")
     finetune = subparsers.add_parser("finetune", help="run native LoRA perturbation fine-tuning on the server")
     finetune.add_argument("--config", type=Path, required=True)
     finetune.add_argument("--resume", type=Path)
@@ -321,7 +322,9 @@ def main(argv: list[str] | None = None) -> int:
         # Knowledge-only installations do not require torch at import time.
         from .cell.train import run_pretraining
 
-        result = run_pretraining(json.loads(args.config.read_text()), resume=args.resume)
+        result = run_pretraining(
+            json.loads(args.config.read_text()), resume=args.resume, smoke_one_step=args.smoke_one_step
+        )
         print(json.dumps(result, indent=2))
         return 0
     if args.command == "doctor":

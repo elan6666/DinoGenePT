@@ -30,6 +30,8 @@ def load_pretrained_student(
     receipt = json.loads(completion.read_text())
     payload = torch.load(checkpoint, map_location="cpu", weights_only=True)
     config = payload.get("config", {})
+    if config.get("execution_mode", "formal") != "formal":
+        raise ValueError("Smoke checkpoints cannot initialize a pretrained campaign")
     if payload.get("schema") != "dinogenept.training.v1" or payload.get("config_sha256") != config_hash(config):
         raise ValueError("Invalid pretraining checkpoint schema/config")
     epochs = config["training"]["epochs"]

@@ -90,6 +90,36 @@ def fixture_config(root):
     }
 
 
+def test_one_step_smoke_is_isolated_from_formal_training(tmp_path):
+    torch.set_num_threads(1)
+    config = fixture_config(tmp_path / "data")
+    result = train.run_pretraining(config, smoke_one_step=True)
+    output = tmp_path / "data/run"
+    assert result["completed_steps"] == 1 and result["epoch"] == 0
+    assert not (output / "completion.json").exists()
+    assert not (output / "last.pt").exists()
+    receipt = json.loads((output / "smoke.json").read_text())
+    assert receipt["status"] == "smoke_completed"
+    assert receipt["formal_transfer_eligible"] is False
+    assert receipt["checkpoint_sha256"] == digest_file(output / "smoke.pt")
+    payload = torch.load(output / "smoke.pt", weights_only=True)
+    assert payload["config"]["execution_mode"] == "smoke_one_step"
+    assert payload["progress"] == result
+    with pytest.raises(ValueError, match="Smoke checkpoints"):
+        load_pretrained_student(
+            output / "smoke.pt",
+            output / "smoke.json",
+            tmp_path / "data/genes.json",
+            checkpoint_sha256=digest_file(output / "smoke.pt"),
+            completion_sha256=digest_file(output / "smoke.json"),
+            purpose="unit_fixture",
+        )
+    with pytest.raises(ValueError, match="Smoke resolved configs"):
+        train.run_pretraining(payload["config"])
+    with pytest.raises(ValueError, match="fresh run"):
+        train.run_pretraining(config, resume=output / "smoke.pt", smoke_one_step=True)
+
+
 @pytest.mark.parametrize("backend,workers", [("chunk", 0), ("batched_chunk", 0), ("batched_chunk", 1)])
 def test_two_full_epochs_and_exact_resume(tmp_path, monkeypatch, backend, workers):
     torch.set_num_threads(1)

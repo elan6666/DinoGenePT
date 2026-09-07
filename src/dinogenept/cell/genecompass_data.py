@@ -31,6 +31,7 @@ class GeneCompassDataset:
             raise ValueError("Row total differs")
         self.gene_count = m["vocabulary"]["genes"]
         self.crops, self.epoch, self.cache = crops, 0, OrderedDict()
+        self.validated = set()
 
     def _path(self, name):
         path = (self.root / name).resolve()
@@ -39,7 +40,9 @@ class GeneCompassDataset:
         return path
 
     def verify(self):
-        entries = [self.manifest["vocabulary"], *self.shards]
+        entries = [self.manifest["vocabulary"]]
+        for shard in self.shards:
+            entries.extend(shard["arrays"].values() if shard.get("format") == "npy" else [shard])
         if len({e["path"] for e in entries}) != len(entries):
             raise ValueError("Duplicate corpus path")
         for entry in entries:
@@ -54,13 +57,23 @@ class GeneCompassDataset:
 
     def _read(self, index):
         if index not in self.cache:
-            with np.load(self._path(self.shards[index]["path"]), allow_pickle=False) as data:
-                ids, values = data["gene_ids"], data["expression"]
-            if (ids.shape != values.shape or ids.shape != (self.shards[index]["cells"], 2048)
+            shard = self.shards[index]
+            if shard.get("format") == "npy":
+                if set(shard["arrays"]) != {"gene_ids", "expression"}:
+                    raise ValueError("Missing mapped arrays")
+                ids, values = [np.load(self._path(shard["arrays"][key]["path"]),
+                                       mmap_mode="r", allow_pickle=False)
+                               for key in ("gene_ids", "expression")]
+            else:
+                with np.load(self._path(shard["path"]), allow_pickle=False) as data:
+                    ids, values = data["gene_ids"], data["expression"]
+            if index not in self.validated and (
+                    ids.shape != values.shape or ids.shape != (self.shards[index]["cells"], 2048)
                     or not np.issubdtype(ids.dtype, np.integer) or ids.min() < 0
                     or ids.max() > self.gene_count or not np.isfinite(values).all()
                     or (values[ids > 0] <= 0).any() or (values[ids == 0] != 0).any()):
                 raise ValueError("Invalid native shard")
+            self.validated.add(index)
             self.cache[index] = (ids, values)
             if len(self.cache) > 2:
                 self.cache.popitem(last=False)

@@ -44,9 +44,13 @@ def test_policy_and_bad_input():
         learning_rate("unknown", 5e-5, epoch=0, step=0, total_steps=10)
 
 
-def test_current_campaign_is_30_epochs_but_not_authorized_to_launch():
+def test_current_campaign_is_one_epoch_with_explicit_data_protocol():
     selection = json.loads((Path(__file__).parents[1] / "configs/cell/default_data_selection.json").read_text())
-    assert selection["pretraining_epochs"] == selection["finetuning_epochs"] == 30
+    assert selection["pretraining_epochs"] == 1
+    assert selection["protocol"] == "genecompass_all_cells_one_epoch_no_validation"
+    assert selection["training_split"] == "all_500000_published_cells"
+    assert selection["validation_split"] == "none"
+    assert selection["downstream_overlap"] == "unknown_no_source_cell_metadata"
     assert selection["finetuning_method"] == "lora"
     assert selection["launch_allowed"] is False
-    assert selection["current_execution_scope"] == "preparation_and_one_step_smoke_only"
+    assert selection["current_execution_scope"] == "human500k_full_one_epoch_pretraining_only"

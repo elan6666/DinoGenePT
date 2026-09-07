@@ -64,3 +64,21 @@ def test_reject_artifact_escape(tmp_path):
     path.write_text(json.dumps(record))
     with pytest.raises(ValueError, match="escapes"):
         GeneCompassDataset(path, CropConfig()).verify()
+
+
+def test_memory_mapped_shards_preserve_values(tmp_path):
+    path, record = corpus(tmp_path)
+    arrays = {}
+    with np.load(tmp_path / "shard.npz", allow_pickle=False) as source:
+        for key in ("gene_ids", "expression"):
+            target = tmp_path / f"{key}.npy"
+            np.save(target, source[key], allow_pickle=False)
+            arrays[key] = dict(path=target.name, sha256=digest_file(target))
+    record["shards"] = [dict(format="npy", arrays=arrays, cells=2)]
+    path.write_text(json.dumps(record))
+    data = GeneCompassDataset(path, CropConfig(global_scale=(1, 1)))
+    data.verify()
+    ids, values = data._read(0)
+    assert isinstance(ids, np.memmap) and isinstance(values, np.memmap)
+    assert data.validated == {0}
+    np.testing.assert_array_equal(data[0]["views"][0]["expression"], np.array([0.3, 0.8], dtype=np.float32))

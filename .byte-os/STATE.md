@@ -37,6 +37,16 @@
 
 ## Latest user override: GeneCompass human 500k (2026-09-07)
 
+- Content audit COMPLETED (read final JSON): exactly500000 rows across17 shards;
+  all expression values finite/nonnegative with fractional float32 values.
+  All shards have only input_ids/values/length/species. Both JSON sidecars were
+  inspected and contain no study/donor/original-cell provenance. Therefore
+  downstream non-overlap and study/donor split cannot currently be certified.
+  Do not rerun completed content audit or mark formal_eligible true. Vocabulary
+  binding remains pending; seek source provenance before any formal split claim.
+  Human5M download PID1486064 remains live, latest logged1335885824 bytes of
+  25676724557; preserve same20-minute monitor and existing checkpoint.
+
 - Full archive listing passed:17 regular Arrow shards plus state.json and
   dataset_info.json, no other files observed. Read-only streaming content audit
   now runs in tmux `dinogenept-genecompass-content-audit`, PID1494327.

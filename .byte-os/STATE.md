@@ -37,6 +37,14 @@
 
 ## Latest user override: GeneCompass human 500k (2026-09-07)
 
+- Full archive listing passed:17 regular Arrow shards plus state.json and
+  dataset_info.json, no other files observed. Read-only streaming content audit
+  now runs in tmux `dinogenept-genecompass-content-audit`, PID1494327.
+  Log `.runtime/genecompass-500k-content-audit.log`, output
+  `results/genecompass-500k-content-audit.json`. Several shards already decoded
+  with continuous fractional values and four fields; final totals and metadata
+  require the completed JSON. No extraction or training performed.
+
 - Latest check (2026-09-08 CST): human500k and human50k archives are final,
   with expected sizes and downloader gzip-CRC/SHA256 receipts. Human500k SHA:
   767e52d093ed7cf7e8355d6c7fb3a8b5a59d3b31bcc80658340fa2faec2d2a3f;

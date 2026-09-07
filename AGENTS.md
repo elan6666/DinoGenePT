@@ -48,6 +48,23 @@ the order of data selection, model construction and corpus supplementation.
 
 ## Server execution and performance
 
+- Use active goal mode for long-horizon work that requires ongoing reasoning
+  and implementation: experiment design, source review, coding, integration,
+  debugging, testing and delivery. Inspect an existing goal before creating
+  one; continue the current user-authorized scope rather than duplicate goals.
+- Switch supervision mode by phase, not merely by task duration. After a
+  download, training run or other unattended job is verified live and correct,
+  pause goal mode using supported controls and use scheduled checks during
+  the wait. This pauses agent supervision, NOT the remote job. When the job
+  finishes or needs intervention, return to active work/goal mode where
+  supported. Do not mark the overall goal complete just to enter a wait.
+- Waiting on one job must not block independent authorized work: downloads
+  may continue while code/data preparation progresses, and ready datasets
+  may train while unrelated requested datasets download. Keep goal mode for
+  useful active work; switch to scheduled waiting when no such work remains.
+  Parallel work must still respect GPU ownership, resource limits and all
+  data-validation gates; it never authorizes duplicate jobs or broader scope.
+
 - Use adaptive scheduled checks instead of continuously active goal-mode
   supervision for long unattended jobs. The agent selects the check interval
   from the current phase, expected duration, failure risk and intervention needs:

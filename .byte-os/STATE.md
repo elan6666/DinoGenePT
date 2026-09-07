@@ -37,6 +37,19 @@
 
 ## Latest user override: GeneCompass human 500k (2026-09-07)
 
+- Latest check (2026-09-08 CST): human500k and human50k archives are final,
+  with expected sizes and downloader gzip-CRC/SHA256 receipts. Human500k SHA:
+  767e52d093ed7cf7e8355d6c7fb3a8b5a59d3b31bcc80658340fa2faec2d2a3f;
+  human50k SHA:3d4ed25fa8dd48f616fd6267e9647fc55fcf1da2b0467d95e634a7db80c38f8b.
+  These are local integrity hashes, not publisher checksums. Content/provenance
+  audit remains pending. Archive listing exec65564 returned only its first
+  member before remote process disappeared; do not claim full listing audited.
+- Human5M downloader had exited with440401920 bytes preserved. Resumed under
+  durable tmux `dinogenept-genecompass-download`, PID1486064; log
+  `.runtime/genecompass-download-resume.log`. Resume offset accepted and file
+  grew to441450496 bytes. Check this tmux/process, NOT obsolete exec33494 or
+  PID981950; retain20-minute monitoring and do not duplicate the job.
+
 - Download recovery at 2026-09-07 15:14 UTC: original PID981950 absent and
   no matching downloader process remained; original exec58135 was not evidence
   of a live remote process. Preserved 2,540,699,648-byte500k partial and resumed

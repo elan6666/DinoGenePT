@@ -2,6 +2,18 @@
 
 ## Approved protocol: all500k, no validation, one epoch (2026-09-08)
 
+- Conversion and full native loader verification COMPLETED:500000 cells,
+  510 shards,23113 human vocabulary genes. Manifest SHA256
+  92efa32e20eeb8e291f19bd6a9f196c326bf817a370c1453112eb74b3e684d31.
+  Frozen smoke config:.runtime/genecompass500k-smoke-config.json; formal config
+  resolver targets .runtime/genecompass500k-one-epoch-config.json. Neither is
+  training completion. Confirm config files before reuse; do not overwrite.
+- Nine local loader/crop tests passed; seven server loader+no-validation runner
+  tests passed, including an actual tiny CPU-fixture epoch with null validation,
+  no best.pt and exact cell coverage. This is NOT the real GPU smoke requirement.
+  Current remaining gate: GPU availability, real default dual-rank1step smoke,
+  then formal launch and healthy-process handoff. No formal run launched yet.
+
 - Implementation progress: scripts/materialize_genecompass.py binds the pinned
   official token dictionary with opcode-only parsing and checksum validation;
   validates human IDs, PAD/value alignment, lengths and gene uniqueness.

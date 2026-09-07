@@ -19,6 +19,31 @@ from dinogenept.cell.transfer import load_pretrained_student  # noqa: E402
 from dinogenept.provenance import digest_file  # noqa: E402
 
 
+def test_published_protocol_no_validation_epoch(tmp_path):
+    from test_genecompass_dataset import corpus
+
+    config = fixture_config(tmp_path / "legacy")
+    root = tmp_path / "published"
+    root.mkdir()
+    manifest, record = corpus(root)
+    record["purpose"] = "unit_fixture"
+    manifest.write_text(json.dumps(record))
+    config.update(protocol=record["protocol"], data_manifest=str(manifest),
+                  data_manifest_sha256=digest_file(manifest), output=str(tmp_path / "run"))
+    config["backbone"]["genes"] = 2
+    config["training"]["epochs"] = 1
+    config["training"]["microbatch"] = 2
+    train.run_pretraining(config)
+    receipt = json.loads((tmp_path / "run/completion.json").read_text())
+    assert receipt["cells_seen"] == receipt["training_cells"] == 2
+    assert receipt["epoch"] == receipt["epochs"] == 1
+    assert receipt["validation_cells"] == 0
+    assert receipt["best_validation"] is None
+    assert receipt["downstream_overlap"] == "unknown"
+    assert (tmp_path / "run/last.pt").exists()
+    assert not (tmp_path / "run/best.pt").exists()
+
+
 def fixture_config(root):
     root.mkdir()
     vocab = root / "genes.json"

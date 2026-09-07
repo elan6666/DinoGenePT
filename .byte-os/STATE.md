@@ -1,7 +1,7 @@
 # Active project state
 
-Latest monitor Sep8 05:13:42: no active goal; same downloader1565317 alive,
-7786725376/25676724557 bytes, approximately0.250MB/s since resume. No exit
+Latest monitor Sep8 05:34:17: no active goal; same downloader1565317 alive,
+8105492480/25676724557 bytes, approximately0.252MB/s since resume. No exit
 receipt or new429 in current log. GPU0 remains occupied by1456767; no500k
 smoke/completion receipts. Continue same20min query quietly, no restart.
 

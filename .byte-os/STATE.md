@@ -1,5 +1,22 @@
 # Active project state
 
+## Bounded download preparation (Sep8 04:10+ server time)
+
+- One1MiB probe at retained offset passed206, exact Content-Range and length.
+  GPU0 remains occupied;500k training not launched. No partial file mutation.
+- Implemented --bounded --workers1 --request-interval10: one8MiB request at
+  a time, ten seconds between completed chunks; exact range/length gates,
+  contiguous prefix, lock and final gzip/SHA checks retained. Any failure
+  exits, no automatic retry. This is not evidence of sustained recovery yet.
+- After preparation goal completion launch once in tmux
+  dinogenept-genecompass-download; new .runtime/genecompass-download-paced.log
+  and .runtime/genecompass-download-paced.exit. Keep earlier logs unchanged.
+- Reactivate same dinogenept heartbeat20min after launch; inspect NEW log and
+  actual bytes/PID. Completion requires final integrity receipt;40min no growth
+  triggers inspection. On429 stop, respect Retry-After and lengthen cooldown;
+  do not repeat this retry automatically. Duration hours-scale, refine only
+  from observed rate. Overall50万1epoch and5M-download-only scope unchanged.
+
 ## Monitor observation (Sep8 03:50 server time)
 
 - No active goal. GPU0 still occupied by1456767; no500k smoke/formal outputs.

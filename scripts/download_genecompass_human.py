@@ -30,7 +30,7 @@ def range_block(url, start, end, total):
         return content
 
 
-def parallel_resume(url, part, size, workers):
+def parallel_resume(url, part, size, workers, request_interval=0):
     """Bound memory to workers*8MiB; persist only a contiguous completed prefix."""
     offset = part.stat().st_size if part.exists() else 0
     started, initial = time.monotonic(), offset
@@ -47,12 +47,20 @@ def parallel_resume(url, part, size, workers):
                 offset += len(content)
             print(json.dumps(dict(file=part.name, bytes=offset, total=size, workers=workers,
                                   bytes_per_second=(offset-initial)/(time.monotonic()-started))), flush=True)
+            if offset < size and request_interval:
+                time.sleep(request_interval)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--workers", type=int, choices=(1, 2, 4), default=1)
+    parser.add_argument("--bounded", action="store_true", help="bounded ranges also for one worker")
+    parser.add_argument("--request-interval", type=float, default=0, help="seconds between range batches")
     args = parser.parse_args()
+    if not 0 <= args.request_interval <= 3600:
+        parser.error("request interval must be finite and between 0 and 3600")
+    if args.request_interval and not args.bounded:
+        parser.error("request interval requires --bounded")
     root = Path("data/official/genecompass-human")
     root.mkdir(parents=True, exist_ok=True)
     with (root / ".download.lock").open("a") as lock:
@@ -69,8 +77,8 @@ def main():
             if offset > size:
                 raise ValueError("Partial archive exceeds expected size")
             url = "https://china.scidb.cn/download?fileId=" + fid
-            if offset < size and args.workers > 1:
-                parallel_resume(url, part, size, args.workers)
+            if offset < size and (args.workers > 1 or args.bounded):
+                parallel_resume(url, part, size, args.workers, args.request_interval)
                 offset = part.stat().st_size
             if offset < size:
                 request = urllib.request.Request(url, headers={"Range": f"bytes={offset}-"})

@@ -144,7 +144,10 @@ def run_pretraining(config: dict, *, resume: Path | None = None, smoke_one_step:
     device = torch.device(f"cuda:{local_rank}" if training["device"] == "cuda" else "cpu")
     if purpose == "formal_pretraining" and device.type != "cuda":
         raise ValueError("Formal training requires the audited server GPUs")
-    if purpose == "formal_pretraining" and training["epochs"] != 30:
+    published_protocol = config.get("protocol") == "genecompass_all_cells_one_epoch_no_validation"
+    if published_protocol and training["epochs"] != 1:
+        raise ValueError("Published all-cells protocol requires exactly one epoch")
+    if purpose == "formal_pretraining" and not published_protocol and training["epochs"] != 30:
         raise ValueError("Formal pretraining configuration requires 30 complete epochs")
     if device.type == "cuda":
         _gpu_guard()
@@ -157,8 +160,16 @@ def run_pretraining(config: dict, *, resume: Path | None = None, smoke_one_step:
     torch.manual_seed(seed + rank)
     crops = _dataclass(CropConfig, config["crops"])
     manifest = Path(config["data_manifest"])
-    dataset = PretrainingDataset(manifest, "train", crops)
-    validation = PretrainingDataset(manifest, "validation", crops)
+    if published_protocol:
+        from .genecompass_data import GeneCompassDataset
+
+        dataset = GeneCompassDataset(manifest, crops)
+        if len(dataset) != 500000:
+            raise ValueError("Published protocol requires all500000 cells")
+        validation = None
+    else:
+        dataset = PretrainingDataset(manifest, "train", crops)
+        validation = PretrainingDataset(manifest, "validation", crops)
     if dataset.manifest.get("purpose") != purpose:
         raise ValueError("Data purpose and run purpose differ")
     actual_hash = digest_file(manifest)
@@ -341,10 +352,12 @@ def run_pretraining(config: dict, *, resume: Path | None = None, smoke_one_step:
                 _checkpoint(output / "last.pt", model, optimizer, config, progress, rank, world)
         # Epoch validation never updates centers/teacher and uses held-out donors.
         model.eval()
-        validation.epoch = 0
-        val_batches = list(epoch_batches(len(validation), training["microbatch"], world, rank, seed=seed, epoch=0))
+        if validation is not None:
+            validation.epoch = 0
+        val_batches = (list(epoch_batches(len(validation), training["microbatch"], world, rank, seed=seed, epoch=0))
+                       if validation is not None else [])
         val_loader = DataLoader(
-            validation,
+            validation if validation is not None else [],
             batch_sampler=val_batches,
             collate_fn=collate_crops,
             num_workers=0,
@@ -363,8 +376,9 @@ def run_pretraining(config: dict, *, resume: Path | None = None, smoke_one_step:
                 for key in ("expression", "cell_expression"):
                     val_stats[key] += float(result[key]) * n
         val_stats = _reduce(val_stats, device)
-        metric = (val_stats["expression"] + val_stats["cell_expression"]) / val_stats["cells"]
-        improved = progress["best_validation"] is None or metric < progress["best_validation"]
+        metric = ((val_stats["expression"] + val_stats["cell_expression"]) / val_stats["cells"]
+                  if validation is not None else None)
+        improved = metric is not None and (progress["best_validation"] is None or metric < progress["best_validation"])
         progress.update(epoch=epoch + 1, next_batch=0)
         if improved:
             progress["best_validation"] = metric
@@ -392,7 +406,9 @@ def run_pretraining(config: dict, *, resume: Path | None = None, smoke_one_step:
             "purpose": purpose,
             "epochs": training["epochs"],
             "training_cells": len(dataset),
-            "validation_cells": len(validation),
+            "validation_cells": len(validation) if validation is not None else 0,
+            "protocol": config.get("protocol", "heldout_validation"),
+            "downstream_overlap": dataset.manifest.get("downstream_overlap", "see_leakage_audit"),
             **progress,
             "total_steps": total_steps,
             "elapsed_seconds_this_invocation": time.monotonic() - train_start,

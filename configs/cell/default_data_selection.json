@@ -1,25 +1,27 @@
 {
   "dataset": "GeneCompass human 500k",
-  "status": "user_selected_download_and_content_audit_pending",
+  "status": "content_audited_vocabulary_and_loader_pending",
   "archive": "data/official/genecompass-human/randsel_50w_human.tar.gz",
   "source_file_id": "d46129ce14de622c4a07a1d1574dddaa",
   "published_cells": 500000,
-  "training_split": null,
-  "validation_split": null,
+  "training_split": "all_500000_published_cells",
+  "validation_split": "none",
+  "downstream_overlap": "unknown_no_source_cell_metadata",
+  "protocol": "genecompass_all_cells_one_epoch_no_validation",
   "supersedes": "configs/cell/census500k_default_recipe.json",
   "launch_allowed": false,
   "learning_rate_policy": "configs/cell/lr_sclong.json",
-  "pretraining_epochs": 30,
+  "pretraining_epochs": 1,
   "finetuning_epochs": 30,
   "finetuning_method": "lora",
-  "current_execution_scope": "preparation_and_one_step_smoke_only",
+  "current_execution_scope": "human500k_full_one_epoch_pretraining_only",
   "required_audits": [
     "archive_integrity_and_actual_cell_count",
     "continuous_expression_scale_and_top2048_truncation",
     "gene_id_mapping_and_available_gene_axis",
-    "study_donor_cell_metadata_and_downstream_overlap",
-    "frozen_training_validation_split",
+    "record_unresolved_downstream_overlap_without_claiming_pass",
+    "frozen_all_cells_training_no_validation_protocol",
     "artifact_bound_model_vocabulary_and_training_config"
   ],
-  "note": "500k is the selected published corpus size, not yet a promise of 500k train cells plus extra validation. Never launch the superseded Census recipe as the current default."
+  "note": "User approved all 500000 published cells for one epoch with no heldout validation. Training loss is not generalization evidence. No 5M training or perturbation fine-tuning. Launch remains gated on vocabulary, loader and real-data smoke verification."
 }

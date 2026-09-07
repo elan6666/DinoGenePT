@@ -39,7 +39,8 @@ def cell_rng(seed: int, epoch: int, cell_id: str) -> np.random.Generator:
     return np.random.default_rng(int.from_bytes(digest[:16], "little"))
 
 
-def sample_crops(gene_ids, counts, library_size: float, *, cell_id: str, epoch: int, config: CropConfig):
+def sample_crops(gene_ids, counts, library_size: float | None, *, cell_id: str, epoch: int,
+                 config: CropConfig, expression_scale: str = "raw_counts"):
     ids = np.asarray(gene_ids)
     counts = np.asarray(counts, dtype=np.float64)
     if ids.ndim != 1 or counts.shape != ids.shape or not np.issubdtype(ids.dtype, np.integer):
@@ -48,8 +49,14 @@ def sample_crops(gene_ids, counts, library_size: float, *, cell_id: str, epoch: 
         raise ValueError("Measured genes must have positive unique IDs")
     if not np.isfinite(counts).all() or np.any(counts < 0):
         raise ValueError("Counts must be finite and nonnegative")
-    if not math.isfinite(library_size) or library_size <= 0 or counts.sum() > library_size * (1 + 1e-5):
-        raise ValueError("Invalid full-cell library size")
+    if expression_scale not in {"raw_counts", "genecompass_published_continuous"}:
+        raise ValueError("Unknown expression scale")
+    if expression_scale == "raw_counts":
+        if (library_size is None or not math.isfinite(library_size) or library_size <= 0
+                or counts.sum() > library_size * (1 + 1e-5)):
+            raise ValueError("Invalid full-cell library size")
+    elif library_size is not None:
+        raise ValueError("Published continuous values must not supply a fabricated library size")
     indices = np.flatnonzero(counts > 0)
     if not indices.size:
         raise ValueError("Pretraining cell has no positive mapped counts")
@@ -58,7 +65,8 @@ def sample_crops(gene_ids, counts, library_size: float, *, cell_id: str, epoch: 
         weights = np.log1p(counts[indices])
         indices = rng.choice(indices, size=config.cap, replace=False, p=weights / weights.sum())
     indices = indices[np.argsort(ids[indices])]
-    expression = np.log1p(1e4 * counts / library_size).astype(np.float32)
+    expression = (np.log1p(1e4 * counts / library_size) if expression_scale == "raw_counts"
+                  else counts).astype(np.float32)
     views = []
     for view_id in range(2 + config.local_count):
         scale = config.global_scale if view_id < 2 else config.local_scale

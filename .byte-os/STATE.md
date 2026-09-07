@@ -1,5 +1,33 @@
 # Active project state
 
+## Approved protocol: all500k, no validation, one epoch (2026-09-08)
+
+- Implementation progress: scripts/materialize_genecompass.py binds the pinned
+  official token dictionary with opcode-only parsing and checksum validation;
+  validates human IDs, PAD/value alignment, lengths and gene uniqueness.
+  Background tmux `dinogenept-genecompass-materialize` writes
+  data/pretraining/genecompass-human500k-v1; log.runtime/genecompass-materialize.log.
+  Last observed282706 rows; no final manifest yet. Do not duplicate conversion.
+- Native GeneCompassDataset and published continuous crop path implemented;
+  train.py accepts the explicit one-epoch/no-validation protocol and records
+  null validation metric, no best-validation checkpoint. Server19 existing/new
+  runner+sampling tests passed. New loader-specific tests/full real-data checks
+  and resolved config still required before launch. GPU0 observed occupied by
+  PID1456767; do not preempt it or launch dual-GPU training while occupied.
+
+- User accepted the source-aligned all-cells protocol: all500000 published
+  cells participate in one complete pretraining epoch, no validation split.
+  Missing study/donor/original-cell metadata is an acknowledged limitation,
+  not a reason to fabricate provenance or block this approved pretraining run.
+  Record downstream_overlap=unknown; do not present training loss as heldout
+  performance or claim downstream contamination was ruled out.
+- This supersedes the unresolved protocol decision below. Finish vocabulary
+  binding and continuous-scale loader, isolated smoke, then launch on available
+  server GPUs. No5M training and no perturbation fine-tuning. Download in parallel.
+- Preserve published continuous expression without raw-count renormalization.
+  Current selection config now freezes this protocol and one-epoch budget;
+  launch_allowed stays false until integration/smoke checks pass.
+
 ## Latest execution authorization: human500k full one epoch (2026-09-08)
 
 - User explicitly replaces the preparation-only restriction below: finish

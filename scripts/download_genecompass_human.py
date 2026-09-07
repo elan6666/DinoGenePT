@@ -1,5 +1,7 @@
 """Download three user-selected public archives on the server; never extract code."""
 
+import argparse
+import concurrent.futures
 import fcntl
 import gzip
 import json
@@ -16,7 +18,41 @@ FILES = [
 ]
 
 
+def range_block(url, start, end, total):
+    """Reject ignored ranges or changed length before appending any bytes."""
+    request = urllib.request.Request(url, headers={"Range": f"bytes={start}-{end}"})
+    with urllib.request.urlopen(request, timeout=90) as response:
+        if response.status != 206 or response.headers.get("Content-Range") != f"bytes {start}-{end}/{total}":
+            raise ValueError("Invalid bounded range response")
+        content = response.read(end - start + 2)
+        if len(content) != end - start + 1:
+            raise ValueError("Incomplete bounded range response")
+        return content
+
+
+def parallel_resume(url, part, size, workers):
+    """Bound memory to workers*8MiB; persist only a contiguous completed prefix."""
+    offset = part.stat().st_size if part.exists() else 0
+    started, initial = time.monotonic(), offset
+    chunk = 8 * 1024 * 1024
+    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool, part.open("ab") as stream:
+        while offset < size:
+            ranges = [(start, min(start + chunk, size) - 1)
+                      for start in range(offset, min(offset + workers * chunk, size), chunk)]
+            futures = [pool.submit(range_block, url, start, end, size) for start, end in ranges]
+            for future in futures:
+                content = future.result()
+                stream.write(content)
+                stream.flush()
+                offset += len(content)
+            print(json.dumps(dict(file=part.name, bytes=offset, total=size, workers=workers,
+                                  bytes_per_second=(offset-initial)/(time.monotonic()-started))), flush=True)
+
+
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--workers", type=int, choices=(1, 2, 4), default=1)
+    args = parser.parse_args()
     root = Path("data/official/genecompass-human")
     root.mkdir(parents=True, exist_ok=True)
     with (root / ".download.lock").open("a") as lock:
@@ -33,6 +69,9 @@ def main():
             if offset > size:
                 raise ValueError("Partial archive exceeds expected size")
             url = "https://china.scidb.cn/download?fileId=" + fid
+            if offset < size and args.workers > 1:
+                parallel_resume(url, part, size, args.workers)
+                offset = part.stat().st_size
             if offset < size:
                 request = urllib.request.Request(url, headers={"Range": f"bytes={offset}-"})
                 with urllib.request.urlopen(request, timeout=90) as response:

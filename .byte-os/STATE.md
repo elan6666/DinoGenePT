@@ -37,6 +37,15 @@
 
 ## Latest user override: GeneCompass human 500k (2026-09-07)
 
+- User-requested download acceleration: source supports exact HTTP206 ranges.
+  Bounded probe: single8MiB in12.485s (671889 B/s); four8MiB ranges in34.720s
+  (966437 B/s aggregate) while original downloader was still active. Added
+  opt-in --workers4, bounded8MiB chunks, strict Content-Range/length checks and
+  contiguous-prefix append. Old PID1486064 verified by cwd and interrupted with
+  SIGINT; partial preserved. Replacement uses same tmux
+  `dinogenept-genecompass-download`, now --workers4, log
+  `.runtime/genecompass-download-parallel.log`. Final gzip/SHA gate unchanged.
+
 - Content audit COMPLETED (read final JSON): exactly500000 rows across17 shards;
   all expression values finite/nonnegative with fractional float32 values.
   All shards have only input_ids/values/length/species. Both JSON sidecars were

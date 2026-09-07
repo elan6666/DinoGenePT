@@ -1,5 +1,17 @@
 # Active project state
 
+## Monitor observation (Sep8 03:50 server time)
+
+- No active goal. GPU0 still occupied by1456767; no500k smoke/formal outputs.
+- Failed single-stream exit code1 verified; partial still6872367104 bytes.
+  One permitted cooldown probe returned206 with exact one-byte Content-Range
+  and total25676724557. This does NOT prove sustained access: the preceding
+  recovery also passed a one-byte probe before streaming returned429.
+- No restart this check. Next scheduled check may use one bounded1MiB Range
+  probe at the same offset (discard probe bytes); verify206/exact range/length.
+  Only then consider a bounded, paced recovery design after stopping monitor.
+  Keep20min query cadence and silence unchanged resource/download state.
+
 ## Download recovery handoff (Sep8 03:30 server time)
 
 - Recovery preparation completed and synced as13ebe3d; controlled single-stream

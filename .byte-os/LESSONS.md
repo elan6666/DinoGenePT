@@ -104,6 +104,11 @@
   evaluation settings unless a separately named ablation changes them.
 ## 2026-09-07: Separate durable standards from campaign instructions
 
+- Download concurrency is not a durable speed guarantee: the GeneCompass
+  four-worker8MiB range downloader hitHTTP429 after6.87GB. Preserve its
+  contiguous prefix and failure log; verify the resume range, then reduce to
+  a single streaming request. Never blindly restart the same parallel load.
+
 - Mistake: put current execution order, training budgets and model hyperparameters
   into AGENTS.md. User clarified that AGENTS.md is for enduring standards.
 - Prevention: keep model/data choices, order, epochs and API-generation gates

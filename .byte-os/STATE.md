@@ -1,5 +1,22 @@
 # Active project state
 
+## Download recovery handoff (Sep8 03:30 server time)
+
+- The four-worker downloader exited on HTTP429; session/PID gone. Preserved
+  partial archive is6872367104 bytes. Exact one-byte HTTP206 Content-Range at
+  that offset and total25676724557 verified after cooldown; no file changed.
+- Recovery preparation: existing --workers1 uses one streaming HTTP request
+  from the retained prefix, validates resume and final size/gzip/SHA. Completed
+  500k/50k archives are verified and skipped, not redownloaded. No code change.
+- Launch intent after this preparation goal completes: same download session
+  name, --workers1, new .runtime/genecompass-download-single.log, shell exit
+  code .runtime/genecompass-download-single.exit. Preserve the old error log.
+  One controlled retry, not an unlimited restart loop. On another429 stop and
+  reassess server cooldown; monitor partial bytes and tail this NEW log.
+- Same heartbeat paused before recovery goal; reactivate20min after launch
+  with verified process identity.40min without byte growth triggers inspection.
+  GPU0 remains occupied by1456767;500k smoke/formal outputs remain absent.
+
 ## Authoritative preparation/monitor handoff (2026-09-08, latest)
 
 - Preparation goal is now complete after verification and commit80ded9f was

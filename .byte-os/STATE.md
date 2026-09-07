@@ -1,5 +1,31 @@
 # Active project state
 
+## Controlling scope override: stop before formal training (2026-09-07)
+
+- The latest user request REPLACES the earlier full-epoch completion target:
+  finish all pre-training preparation, including real-data training smoke tests,
+  then complete the goal. Do NOT launch full pretraining or full fine-tuning.
+- Retain the native default architecture and selected GeneCompass human500k
+  corpus. Finish requested downloads, integrity/provenance/scale/gene audits,
+  safe loading and vocabulary binding, frozen splits/configs and performance
+  instrumentation. Do not bypass leakage gates or silently change datasets.
+- Verify one real optimizer step on the selected pretraining data with the
+  default model, and Adamson/Norman LoRA forward/backward/update smoke paths.
+  Reuse valid existing checks where applicable; the old Census-vocabulary
+  capacity probe does not alone prove GeneCompass data integration.
+- Smoke checkpoints must be labeled non-formal and isolated from formal
+  transfer eligibility. Never fake a completed two-epoch receipt to test LoRA.
+- Final gate: finite losses/gradients, correct Teacher EMA/frozen LoRA backbone,
+  masks/coverage, checkpoint IO, relevant tests/lint/build/CLI, verified
+  local/server/GitHub synchronization, concise handoff and launch instructions.
+  Then remove this goal's heartbeat and complete the user-revised goal.
+- Downloads/data waits: monitor every20 minutes. Training: every1 hour.
+  Confirm actual live jobs and correct progress before yielding. Do not poll
+  on every automatic continuation. Goal pause/resume is not tool-exposed;
+  disclose this rather than misusing complete/blocked as a pause.
+- All full-epoch requirements and launch directions below are historical and
+  superseded by this section; they are not current execution authority.
+
 ## Latest user override: GeneCompass human 500k (2026-09-07)
 
 - Source audit now pinned at upstream59e5e48: see
@@ -13,7 +39,7 @@
 - Download PID981950 / exec58135 confirmed live with growing500k .part;
   sequential order500k,50k,5M. Exclusive .download.lock; resume only after
   terminal state. Read archive receipts before skipping completed files.
-- Long jobs now use a30-minute thread heartbeat rather than continuous active
+- Downloads now use a20-minute thread heartbeat rather than continuous active
   polling. Goal pause/resume API is unavailable; do not claim a status change.
 - `configs/cell/default_data_selection.json` records this decision separately
   from durable AGENTS.md. Training/validation counts await content and metadata

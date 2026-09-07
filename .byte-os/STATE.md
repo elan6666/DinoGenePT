@@ -1,5 +1,33 @@
 # Active project state
 
+## Authoritative preparation/monitor handoff (2026-09-08, latest)
+
+- New Codex goal covers verified launch preparation AND the monitor design;
+  it excludes waiting for GPU availability and the full epoch. This supersedes
+  older goal descriptions below. Overall deliverable remains all500000 cells,
+  no validation, continuous expression, one epoch, overlap unknown;5M download
+  only. No perturbation fine-tuning or GraD-Pert operations.
+- Safe launcher: scripts/launch_genecompass.py. Requires idle GPUs, exclusive
+  lock and fresh output; formal mode requires successful matching smoke source,
+  config, checkpoint, metrics and exit evidence. Twelve gate tests passed.
+  Server smoke --check-only passed (NOT GPU authorization); train --check-only
+  correctly refused missing real smoke. Real GPU smoke has NOT run.
+- Monitoring design and launch intent: docs/GENECOMPASS_MONITOR_PLAN.md.
+  User now explicitly authorizes replacement monitor after genuine goal
+  completion. Resource/download20min, training1h, same heartbeat, quiet while
+  unchanged. Disable before next goal. No active monitor during preparation.
+- Current GPU0 is occupied by unrelated PID1456767; do not preempt or silently
+  reduce world_size2.5M downloader1513852 (started Sep8 01:56:32 server time),
+  tmux dinogenept-genecompass-download, four workers, observed6.067/25.677GB
+  at approximately0.9MB/s. Keep it running; it does not block500k readiness.
+- Native mmap conversion and IO comparison remain verified as documented;
+  do not rerun them. No end-to-end GPU speedup claimed. Routine server tests
+  MUST use CUDA_VISIBLE_DEVICES= to avoid allocating on occupied GPUs.
+- Preparation verification: all180 server CPU-isolated tests passed; local
+  twelve launcher tests passed; full server Ruff and scoped local Ruff passed;
+  wheel/sdist build, CLI and git diff whitespace checks passed. Formal launch
+  rejection without smoke was also checked directly on the server.
+
 ## Latest supervision override: mutually exclusive (2026-09-08)
 
 - User explicitly requires no active heartbeat while goal mode is active.

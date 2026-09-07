@@ -18,7 +18,7 @@ library normalization. Native vocabulary contains23113 human genes.
   All crop hashes identical. This ~9x result concerns CPU reading/cropping,
   NOT GPU or end-to-end training speed. Server receipt:
   `results/genecompass-io-comparison-v1.json`.
-- CPU-isolated server suite:168 tests passed; wheel/sdist build passed locally.
+- CPU-isolated server suite:180 tests passed; wheel/sdist build passed locally.
   Real default GPU smoke and training speed measurements remain outstanding.
 
 ## Launch gates and commands
@@ -29,18 +29,16 @@ output directory without explicit checkpoint resume. Never preempt other work.
 The following are prepared commands, NOT evidence that either run started.
 
 ```bash
-CUDA_VISIBLE_DEVICES=0,1 .venv/bin/torchrun --standalone --nproc_per_node=2 \
-  --no-python .venv/bin/dinogenept pretrain \
-  --config .runtime/genecompass500k-mmap-smoke-config.json --smoke-one-step
+.venv/bin/python scripts/launch_genecompass.py smoke
 ```
 
 Confirm finite losses/gradients, one update, Teacher EMA and non-formal smoke
-receipt/checkpoint before accepting preparation. Then, after phase handoff:
+receipt/checkpoint before accepting the GPU execution stage. This preparation
+stage only validates the launcher and CPU gate tests, not real GPU readiness.
+Then, after smoke exits successfully:
 
 ```bash
-CUDA_VISIBLE_DEVICES=0,1 .venv/bin/torchrun --standalone --nproc_per_node=2 \
-  --no-python .venv/bin/dinogenept pretrain \
-  --config .runtime/genecompass500k-mmap-one-epoch-config.json
+.venv/bin/python scripts/launch_genecompass.py train
 ```
 
 Run under a unique tmux session with durable logs and record its actual PID,
@@ -52,7 +50,9 @@ Use last.pt, not nonexistent best.pt, for this no-validation protocol.
 
 ## Monitoring
 
-Reuse heartbeat `dinogenept`: downloads20min, training1h, adapt for concurrent
-needs. Preserve active5M download; it is not a training prerequisite. No5M
-training or perturbation fine-tuning. Training completion starts a new scoped
-validation phase; preparation completion alone is not overall task completion.
+The old heartbeat was deleted. The newly authorized replacement must only be
+registered after this preparation goal completes; see
+[the monitor plan](GENECOMPASS_MONITOR_PLAN.md). No active goal and enabled
+monitor overlap. Preserve active5M download; it is not a training prerequisite.
+No5M training or perturbation fine-tuning. Training completion starts a scoped
+validation phase; preparation completion alone is not overall completion.

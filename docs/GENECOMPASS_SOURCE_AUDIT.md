@@ -31,6 +31,18 @@ of the downloaded release. Do not silently switch datasets or launch training.
 
 ## Archive audit consequences
 
+### Preliminary member schema (not an integrity audit)
+
+On 2026-09-07, a read-only streaming inspection of the in-progress
+`randsel_50w_human.tar.gz.part` read only the first 64 KiB of the first regular
+tar member, `./randsel_50w_human/data-00014-of-00017.arrow`. PyArrow decoded
+its IPC schema as `input_ids: list<int32>`, `values: list<float32>`,
+`length: list<int16>`, and `species: list<int16>`, with Hugging Face feature
+metadata. No files were extracted and no records were used for training.
+This confirms those four fields in this member only; it does not establish
+complete archive contents, the value transformation, integrity, or absence of
+provenance sidecars. Full archive and provenance checks remain mandatory.
+
 - Inspect actual Arrow/schema/sidecars after archive integrity verification.
   The release may contain metadata beyond what this example exports.
 - If metadata is absent, do not claim donor/study-disjoint validation or

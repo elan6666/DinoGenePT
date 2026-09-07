@@ -1,5 +1,22 @@
 # Active project state
 
+## Latest handoff status (2026-09-08)
+
+- Performance changes committed/pushed as f4fb9ea and synchronized. Full
+  GPU-isolated CPU suite168 tests passed; local wheel/sdist build and changed
+  file Ruff checks passed. CLI confirms --smoke-one-step. IO comparison and
+  prepared commands documented in docs/GENECOMPASS_PRETRAINING_HANDOFF.md.
+- Mmap configs exist at .runtime/genecompass500k-mmap-smoke-config.json and
+  .runtime/genecompass500k-mmap-one-epoch-config.json; neither has been launched.
+- Still missing: real default dual-rank GPU smoke, GPU performance evidence,
+  and an active scheduled handoff. GPU0 remains occupied by PID1456767; no
+  preemption allowed. The 5M downloader PID1513852 remains live.
+- Automation `dinogenept` was found deleted; update returned "does not exist".
+  Do not claim an active heartbeat or silently recreate a user-deleted monitor.
+  User requested concise checks; confirm recreation before registering anew.
+- Existing preparation goal is unfinished, NOT complete. No full epoch has
+  run. Keep current corpus and code; do not repeat conversion or IO benchmark.
+
 ## Current complex-task contract — authoritative (2026-09-08)
 
 This section supersedes conflicting historical snapshots below. The active

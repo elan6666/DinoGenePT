@@ -20,6 +20,8 @@ training = [
   "torch>=2.6",
   "anndata>=0.11",
   "h5py>=3.12",
+  "pandas>=2.2",
+  "pyarrow>=17",
 ]
 census = ["cellxgene-census>=1.17"]
 dev = [

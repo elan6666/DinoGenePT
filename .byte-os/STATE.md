@@ -39,9 +39,22 @@
   test-only AST execution. No upstream research-model runtime imports.
 - Own server .venv: torch2.13.0+cu130 and Census/data dependencies. Local torch
   absent; CPU integration tests run on server, never borrow GraD-Pert env.
-- Current verification: server 111 tests passed in 16.08 seconds, Ruff, native
-  pretrain CLI help, wheel and sdist pass. Local suite/build also pass with
-  torch/reference-dependent tests skipped. No CUDA correctness claim yet.
+- Current verification: server 123 tests passed in 15.57 seconds, Ruff, native
+  pretrain CLI help, wheel and sdist pass. Local 87 passed/8 skipped, Ruff/build
+  pass (torch/reference-dependent tests skipped). No CUDA correctness claim yet.
+- New native CellFM CSR data loader verifies frozen source/audit/mapping/row/gene
+  identities, reads X/obs/var only (not uns/DE), and retains continuous values and
+  zero-expression candidate genes. Training post/teacher rows are checked against
+  train condition/context. Predict has no truth input. Server real IO audit passed:
+  Adamson 30,779 train-post cells /3,872 bags/52 groups; Norman38,457/4,856/103.
+  Every train condition plus all val/test groups was materialized. Receipt
+  results/cellfm-training-io-v1.json sha efe771e14156773d66024ae4bd407098a3352903780abdc2335b551732a0934c.
+- New knowledge bank checks exact corpus/vector/model/dimension/fingerprint;
+  TextBase must cover all requested genes; optional locals require source-only
+  provenance, missing combination targets omit the entire source. No API calls.
+- Native pretraining Student transfer pins checkpoint/completion/vocabulary;
+  fixture weights and incomplete formal runs refused. Best may precede final
+  epoch but overall run must finish. Exact weight-transfer tests passed.
 
 ## Data progress and current live handle (2026-09-07)
 
@@ -72,7 +85,10 @@
   --output data/pretraining/census-two-atlas-500k-csr-v1.
   It holds .materialization.lock, reuses measurement presence for 2 source
   datasets, and creates 2,048-cell memory-mapped CSR shards with per-shard receipts.
-  Last emitted state: fetching train shard0. No verified raw shards yet at snapshot.
+  Latest checked progress: 4 shards /8,192 cells at elapsed23:50; PID482929
+  confirmed LIVE. First 2 shards /4,096 cells independently array-hash verified;
+  later 2 have writer receipts but not yet a second independent hash pass.
+  Final manifest not yet ready.
   Prior PID479096/exec32196 terminated on modern SciPy 1D COO slicing; fixed to
   explicit 2D CSR row selection and added matrix/array tests before restarting.
   Do not restart a live materializer; inspect handle and shard receipts first.
@@ -87,8 +103,10 @@
 2. Full CellFM notebook-name equivalence remains unproven; report this run as
    released CellFM reduced-axis data plus native source-matched simulation split,
    not full GEARS/GraD-Pert data or a proven author checkpoint reproduction.
-3. Condition/context bag sampler is implemented/tested; finish 10-epoch LoRA runner,
-   pretrain checkpoint/vocabulary transfer, fixed validation/test evaluation.
+3. Condition/context sampler, real frozen CellFM IO, source-only vector bank and
+   pretrain checkpoint/vocabulary transfer are implemented/tested. Finish the
+   10-epoch LoRA runner and fixed validation/test evaluation. Do not redo the
+   completed results/cellfm-training-io-v1.json audit or other frozen data jobs.
    Enforce no held-out post observations in train/teacher/HVG/prototypes.
 4. After dataset/model ready, supplement independent source-only GenePT vectors
    on server through approved Ark Keychain helper; preserve exact caches/rate cap.

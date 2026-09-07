@@ -31,6 +31,10 @@ def build_source_only_corpus(
             for line in genes_path.read_text(encoding="utf-8").splitlines()
             if line.strip()
         }
+        if allowed - set(base_raw):
+            raise ValueError(
+                f"requested genes absent from source corpus universe: {sorted(allowed - set(base_raw))[:20]}"
+            )
     output: dict[str, str] = {}
     unchanged = 0
     for gene, base_value in base_raw.items():

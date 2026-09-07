@@ -1,5 +1,15 @@
 # Confirmed project lessons
 
+## 2026-09-07: Distinguish absent genes from missing source annotations
+
+- The source-only corpus helper counted requested genes absent from both input
+  corpora in its requested total, but omitted them from available/missing counts.
+- Reject requested genes outside the input corpus universe. A mapped gene with
+  no GO/Protein/etc suffix is a legitimate missing annotation; a gene not present
+  in the source universe is an incomplete materialization, not the same case.
+- Training must additionally pin text fingerprints and exact source-only/vector
+  receipts; matching dimensions or a filename containing GO is insufficient.
+
 ## 2026-09-07: Bound downloads and preserve progress on each retry
 
 - A fresh curl invocation used internal --retry with no initial resume option.

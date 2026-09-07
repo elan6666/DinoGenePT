@@ -15,6 +15,7 @@ from dinogenept.cell.backbone import BackboneConfig  # noqa: E402
 from dinogenept.cell.dataset import PretrainingDataset  # noqa: E402
 from dinogenept.cell.pretraining import HeadConfig  # noqa: E402
 from dinogenept.cell.sampling import CropConfig  # noqa: E402
+from dinogenept.cell.transfer import load_pretrained_student  # noqa: E402
 from dinogenept.provenance import digest_file  # noqa: E402
 
 
@@ -120,6 +121,31 @@ def test_two_full_epochs_and_exact_resume(tmp_path, monkeypatch):
     assert [x["step"] for x in steps] == [1, 2, 3, 4]
     for record in steps:
         assert sum(record["weighted_losses"].values()) == pytest.approx(record["total"], rel=1e-6)
+
+    checkpoint, completion, vocabulary = (
+        tmp_path / "data/run/best.pt",
+        tmp_path / "data/run/completion.json",
+        tmp_path / "data/genes.json",
+    )
+    kwargs = {"checkpoint_sha256": digest_file(checkpoint), "completion_sha256": digest_file(completion)}
+    pretrained, identity = load_pretrained_student(checkpoint, completion, vocabulary, purpose="unit_fixture", **kwargs)
+    selected = torch.load(checkpoint, weights_only=True)
+    assert identity["source_branch"] == "student" and identity["completed_pretraining_epochs"] == 2
+    for key, value in pretrained.state_dict().items():
+        torch.testing.assert_close(value, selected["model"][f"student.{key}"], rtol=0, atol=0)
+    with pytest.raises(ValueError, match="formal campaign"):
+        load_pretrained_student(checkpoint, completion, vocabulary, **kwargs)
+    incomplete = tmp_path / "incomplete.json"
+    incomplete.write_text(json.dumps({**receipt, "cells_seen": 19}))
+    with pytest.raises(ValueError, match="incomplete"):
+        load_pretrained_student(
+            checkpoint,
+            incomplete,
+            vocabulary,
+            purpose="unit_fixture",
+            checkpoint_sha256=digest_file(checkpoint),
+            completion_sha256=digest_file(incomplete),
+        )
 
 
 def test_mismatched_manifest_and_formal_cpu_are_rejected(tmp_path):

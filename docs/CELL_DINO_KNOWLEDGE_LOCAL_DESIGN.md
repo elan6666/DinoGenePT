@@ -289,9 +289,27 @@ Fine-tuning gene candidates include real zero-expression positions. Uniform
 capping of the measured canonical axis (max2048), followed by pretrained-ID
 sorting, is a declared stage-2 sampling choice; observed-view augmentation masks
 20%, teacher views remain clean. No second normalization or binning is applied.
-Both delivered CellFM axes fit below this cap. The complete ten-epoch LoRA runner
-and formal data/evaluation integration remain gates before calling this a
-completed perturbation experiment.
+Both delivered CellFM axes fit below this cap. The native data interface now
+validates frozen H5AD/observation/split/mapping/vocabulary hashes and identities,
+loads only X/obs/var (not uns/DE), retains host CSR storage and densifies only
+requested bags. Actual Adamson/Norman data IO passed for every train condition
+and all validation/test control/truth populations. This is data integration,
+not a completed ten-epoch LoRA run or numerical model result.
+
+`datasets/knowledge.py` requires TextBase coverage on the requested complete
+gene axis. GO/Protein/Pathway/HPA require source-only corpus receipts and exact
+embedding text/model/dimension fingerprints; cumulative corpus provenance is
+rejected. A local is omitted if any combination target lacks that source. Empty
+sources need no API call/artifact and are never converted to zero vectors.
+
+`cell/transfer.py` initializes from the selected **pretraining Student**, not
+the EMA Teacher. It pins the checkpoint and full-run completion receipt, checks
+exact vocabulary identity, and refuses incomplete formal pretraining or fixture
+weights. A best checkpoint from an earlier complete epoch is valid only after
+the entire requested pretraining run has finished. Downstream optimizer/RNG and
+Teacher center are new task state; they are not resumed from stage 1.
+The ten-epoch LoRA optimization/checkpoint loop and final evaluation integration
+remain required before calling this a completed perturbation experiment.
 
 ## 6. Execution, leakage and unresolved gates
 

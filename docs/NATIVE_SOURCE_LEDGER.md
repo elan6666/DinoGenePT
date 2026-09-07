@@ -89,4 +89,12 @@ during backbone LoRA tuning. New task/source heads remain outside the backbone.
   Reference hashes: data_utils.py
   `776b41af9c8d49131d103ef54c8e0bea892a8313137e9c191fd8e74a41c05b58`;
   utils.py `d24d35a50741b011e5e8078d2666aa0d1dfea535a98101691d523ab00e419a9a`.
-  Actual-data parity and representability filters remain pending the download.
+  Released Adamson/Norman input files are now extracted and source/hash checked;
+  all delivered target/output genes map exactly to the frozen Census vocabulary.
+  Split reference parity above is fixture-level; no claim of full GraD-Pert data
+  or proven norman-1000 notebook-file identity.
+- `datasets/cellfm/dataset.py`: own frozen sparse-data/bag interface; AnnData's
+  public read_elem is used solely for X/obs/var encoded storage, not models or
+  evaluation-only uns annotations. Real dataset IO coverage receipt recorded.
+- `cell/transfer.py`: own weights-only checkpoint lineage gate, exact native
+  Student transfer; completed two-epoch formal run required before fine-tuning.

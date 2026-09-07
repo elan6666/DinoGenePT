@@ -31,6 +31,23 @@ of the downloaded release. Do not silently switch datasets or launch training.
 
 ## Archive audit consequences
 
+### Official token dictionary audit
+
+The pinned repository's `prior_knowledge/human_mouse_tokens.pickle` is Git blob
+`24ffded13058b548e134bee3f7dac109f41299d1`, 1,144,041 bytes, SHA256
+`b86750520401bee48e777e65d68f4fd1ba1eade3cd5f7b391bb90d014e72e525`.
+Server retrieval through the GitHub blob API succeeded after a raw endpoint
+timeout. Inspection used `pickletools.genops`, not pickle deserialization:
+only framing, dictionary, memoization, string, integer and termination opcodes
+were accepted, and alternating string/integer pairs were checked for unique
+keys and values. The dictionary contains 50,558 entries, with contiguous IDs
+0–50,557: 23,113 ENSG-prefixed human entries, 27,443 ENSMUSG-prefixed mouse
+entries, `<pad>` = 0 and `<mask>` = 1. This is a verified candidate vocabulary,
+not yet proof that every released archive token follows this version.
+Validate actual token/species coverage before freezing the native mapping;
+do not infer expression scale, study provenance or downstream gene coverage
+from dictionary membership alone.
+
 ### Preliminary member schema (not an integrity audit)
 
 On 2026-09-07, a read-only streaming inspection of the in-progress

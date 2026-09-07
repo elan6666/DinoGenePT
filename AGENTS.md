@@ -3,6 +3,8 @@
 This file contains durable project standards, not a campaign plan. Put current
 goals, execution order, datasets, epochs, hyperparameters and ablation choices
 in `.byte-os/STATE.md`, design documents and versioned experiment configs.
+Keep one-off task ordering and completion gates out of this file, including
+the order of data selection, model construction and corpus supplementation.
 
 ## Native package and source fidelity
 
@@ -12,11 +14,17 @@ in `.byte-os/STATE.md`, design documents and versioned experiment configs.
   Pin source revisions, understand its inputs/masks/normalization, and implement
   the behavior in our package. Document adaptations and test numerical parity.
   Do not guess undocumented behavior or present a proposal as verified code.
+- If upstream code or a relevant detail is unavailable, record the uncertainty
+  in the design/source ledger. Clearly distinguish our proposed adaptation
+  from an upstream implementation; do not claim fidelity without evidence.
 - Do not import or wrap upstream research-model implementations as our model:
   CellFM, Kimi, DINO, scGPT, scFoundation, GEARS, Scouter and GraD-Pert are
   source references, not runtime model dependencies. This restriction does
   **not** prohibit foundational libraries such as PyTorch, NumPy, SciPy,
   CUDA/NCCL, HDF5, AnnData or public data-access clients.
+- In particular, `import torch` is allowed; delegating our backbone or training
+  algorithm to a CellFM or other upstream model package is not. Own the model
+  implementation, configuration, training entry points and evaluation wiring.
 - Respect upstream licenses and attribution. Do not confuse implementing a
   published mechanism with permission to redistribute all upstream code.
 - Organize different models and datasets separately with dataset-specific

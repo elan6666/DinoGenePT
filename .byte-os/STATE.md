@@ -1,5 +1,24 @@
 # Active project state
 
+## Latest execution authorization: human500k full one epoch (2026-09-08)
+
+- User explicitly replaces the preparation-only restriction below: finish
+  GeneCompass human500k preparation and train the default model for ONE complete
+  pretraining epoch. Do not train human5M or run perturbation fine-tuning.
+- Preserve the existing requested downloads; human5M download is not a
+  prerequisite for human500k preparation/training. Update the same heartbeat
+  from20-minute download checks to hourly checks when training is launched.
+- Existing30-epoch defaults are historical campaign settings, not this run's
+  budget. Implement a versioned one-epoch config and explicit validation;
+  do not counterfeit a30-epoch completion or repurpose smoke receipts.
+- The downloaded corpus lacks study/donor/original-cell IDs. Its source-level
+  non-overlap audit is unresolved, not passed. User authorization to train does
+  not by itself select a replacement provenance/split protocol. Obtain that
+  decision before replacing the current audited-donor split contract.
+- Existing raw-count loader rejects these fractional preprocessed values;
+  native continuous-value loading must preserve the published scale and never
+  relabel values raw_counts or normalize by the truncated top2048 sum.
+
 ## Controlling scope override: stop before formal training (2026-09-07)
 
 - Latest formal budgets: pretraining30 epochs and LoRA fine-tuning30 epochs

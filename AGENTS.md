@@ -48,17 +48,26 @@ the order of data selection, model construction and corpus supplementation.
 
 ## Server execution and performance
 
-- For long autonomous jobs (training, downloads or data waits), do not keep
-  polling in an active interactive turn. Confirm the actual process/job is live,
-  record its handle and next-step gates, then use a thread heartbeat every
-  20 minutes for downloads/data waits, or every 1 hour for training, and yield.
-  Verify the job and its correctness checks before handing off monitoring.
-  Stay quiet on unchanged/non-actionable state; report
-  meaningful progress, completion, failure or required user action. On completion,
-  continue the authorized goal from verified artifacts. Never duplicate jobs or
-  interpret an observation timeout as process termination. If goal pause/resume
-  is not exposed by the app tools, disclose that limitation rather than claiming
-  to have changed the goal status; waiting is not completion or blockage.
+- Use adaptive scheduled checks instead of continuously active goal-mode
+  supervision for long unattended jobs. The agent selects the check interval
+  from the current phase, expected duration, failure risk and intervention needs:
+  downloads/data waits default to every 20 minutes; training defaults to every
+  1 hour. These are phase-dependent defaults, not one fixed campaign interval.
+- Before handing off, verify the actual job is live and progressing correctly,
+  and record its handle, artifacts, correctness checks and next-step gates.
+  Reassess the interval on each scheduled check. When the phase changes (for
+  example download -> training), update the SAME thread heartbeat's interval
+  and instructions to match the new phase. Do not create duplicate monitors.
+- Yield during unattended waits; do not poll or emit repetitive status messages
+  on every automatic goal continuation. Stay quiet on unchanged/non-actionable
+  state. Notify only meaningful progress, completion, failure or required user
+  action. Once ready, perform the next authorized work, then schedule its checks
+  as needed. Remove the monitor when its scoped task is genuinely complete.
+- Never duplicate jobs or interpret an observation timeout as termination.
+  Pause active goal mode when a supported control exists. If tools do not expose
+  pause/resume, disclose that limitation and request the UI action; do not claim
+  goal status changed or misuse complete/blocked as a pause. Scheduling changes
+  never authorize a new training run or broaden the current task's scope.
 
 - Run data downloads/processing, embeddings, training, inference and benchmarks
   on the server. Local lightweight unit tests and code checks are allowed.

@@ -37,6 +37,13 @@
 
 ## Latest user override: GeneCompass human 500k (2026-09-07)
 
+- Download recovery at 2026-09-07 15:14 UTC: original PID981950 absent and
+  no matching downloader process remained; original exec58135 was not evidence
+  of a live remote process. Preserved 2,540,699,648-byte500k partial and resumed
+  with the same exclusive-lock downloader, PID1462303 / exec33494. HTTP resume
+  offset accepted and file grew to2,542,796,800 bytes. No final integrity receipt
+  yet; continue20-minute checks, do not duplicate the resumed process.
+
 - Source audit now pinned at upstream59e5e48: see
   docs/GENECOMPASS_SOURCE_AUDIT.md. Example exports top2048 and only four
   fields (no study/donor/cell IDs); active median division +log2(1+x), not

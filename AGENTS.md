@@ -51,6 +51,12 @@ the order of data selection, model construction and corpus supplementation.
 - Use a phase-goal cycle for long-horizon work: active phase goal -> verified
   background-job handoff and scheduled checks -> next active phase goal.
   Keep the overall task contract in project state, separate from goal status.
+- Active goal mode and active scheduled monitoring for this task are mutually
+  exclusive. Prepare the concise monitor specification near phase completion,
+  but register/activate it only AFTER the phase goal genuinely finishes.
+  Before starting the next goal, disable/remove the preceding monitor.
+  Existing background downloads/jobs may keep running during active goals;
+  this exclusivity governs agent supervision, not server process concurrency.
 - Define each goal BEFORE starting it, with concrete deliverables and an
   endpoint before a long unattended wait. Design, source review, coding,
   debugging and tests belong to active goals. A preparation goal may include
@@ -69,7 +75,8 @@ the order of data selection, model construction and corpus supplementation.
 - Waiting on one job must not block independent authorized work: downloads
   may continue while code/data preparation progresses, and ready datasets
   may train while unrelated requested datasets download. Continue useful
-  active phase work while the heartbeat monitors independent background jobs.
+  active phase work without a simultaneous heartbeat; hand off all remaining
+  unattended jobs to one concise monitor only after the phase goal finishes.
   Parallel work must still respect GPU ownership, resource limits and all
   data-validation gates; it never authorizes duplicate jobs or broader scope.
 

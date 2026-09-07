@@ -1,5 +1,15 @@
 # Active project state
 
+## Latest supervision override: mutually exclusive (2026-09-08)
+
+- User explicitly requires no active heartbeat while goal mode is active.
+  Design the next concise check at preparation completion; activate it only
+  after the goal genuinely completes. Disable/remove it before the next goal.
+  Server downloads may continue during active implementation. Supersedes
+  earlier references to simultaneous goal and heartbeat supervision below.
+- Current heartbeat is absent. Do not recreate it during this active goal.
+  GPU0 still occupied by PID1456767 at this check; GPU smoke remains pending.
+
 ## Latest handoff status (2026-09-08)
 
 - Performance changes committed/pushed as f4fb9ea and synchronized. Full

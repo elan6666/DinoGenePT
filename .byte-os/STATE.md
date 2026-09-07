@@ -2,6 +2,11 @@
 
 ## Bounded download preparation (Sep8 04:10+ server time)
 
+- Preparation verified locally/server (two pacing/failure tests, Ruff, CLI),
+  synced/pushed c0fd426, goal completed. Controlled download started04:12:26,
+  PID1565317, shell1565316. First exact8MiB appended:6880755712 total bytes;
+  process alive. This verifies resumed progress, not final integrity/completion.
+  Same heartbeat restoredACTIVE20min; no active goal.
 - One1MiB probe at retained offset passed206, exact Content-Range and length.
   GPU0 remains occupied;500k training not launched. No partial file mutation.
 - Implemented --bounded --workers1 --request-interval10: one8MiB request at

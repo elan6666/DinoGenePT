@@ -2,8 +2,7 @@
 
 DinoGenePT is a research project for DINO-style cell representation learning
 and perturbation prediction with GenePT knowledge views. The current
-implemented package intentionally contains only its auditable GenePT knowledge
-subsystem: it keeps the official NCBI + UniProt text and selected gene-level
+package preserves its auditable GenePT knowledge subsystem: it keeps the official NCBI + UniProt text and selected gene-level
 evaluation protocols while replacing the embedding backbone with
 `doubao-embedding-vision` through the Volcano Ark Agent Plan endpoint.
 
@@ -11,9 +10,21 @@ The previous cell-model implementation was removed for redesign; the project
 identity and Python package remain DinoGenePT. This is an independent research
 project, not an official GenePT or DINOcell release.
 
-A proposed future downstream cell model is recorded separately in
+A replacement cell model is being implemented from the design in
 [`docs/CELL_DINO_KNOWLEDGE_LOCAL_DESIGN.md`](docs/CELL_DINO_KNOWLEDGE_LOCAL_DESIGN.md).
-It is a research design draft, not an implemented or validated model.
+Native backbone, LoRA, DINO-family loss primitives and perturbation metric
+fixtures now exist. They have CPU unit tests, but the end-to-end training runner,
+data/split audits and formal training remain incomplete. No cell-model results
+are claimed.
+
+The current plan specifies 12 blocks / 768 hidden width, single-direction hybrid
+KDA, fixed DINO/iBOT/KoLeo plus two CellFM reconstruction losses, and local-count
+ablations 2/4/8 in the design. The active campaign runs **only the default**:
+2 pretraining epochs, then Adamson and Norman each 10 LoRA fine-tuning epochs.
+See [data selection](docs/PRETRAINING_DATA_SELECTION.md),
+[source fidelity](docs/NATIVE_SOURCE_LEDGER.md), and the [engineering and evaluation plan](docs/ENGINEERING_EVALUATION_DESIGN.md)
+for native implementation, two-RTX-5090 DDP, performance statistics, compact
+artifacts and exact GraD-Pert perturbation evaluation alignment.
 
 ## Comparison contract
 

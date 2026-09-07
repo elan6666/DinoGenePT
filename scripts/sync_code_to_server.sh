@@ -16,6 +16,7 @@ fi
 
 rsync ${mode:+"$mode"} --checksum --recursive --delete --verbose \
   --exclude '.git/' \
+  --exclude '.DS_Store' \
   --exclude '/.venv/' \
   --exclude '/.runtime/' \
   --exclude '/.env' \

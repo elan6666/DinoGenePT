@@ -1,5 +1,17 @@
 # Confirmed project lessons
 
+## 2026-09-07: Bound downloads and preserve progress on each retry
+
+- A fresh curl invocation used internal --retry with no initial resume option.
+  After its 1800-second transfer timeout, it truncated a ~1.5GB archive prefix.
+- Retry in our own loop with --retry 0 and --continue-at - on EVERY attempt.
+  Never fall back to opening the partial file with wb after curl failure; urllib
+  resumption must validate HTTP206 and the Content-Range start before appending.
+- Inspect remote ZIP directory before large downloads when only a few members
+  are needed. CellFM target files occupy only the first ~196MB of a 5.3GB stored
+  archive. Reusing the prefix plus entry CRC32/local SHA256 is efficient, but
+  must never be described as full-archive MD5 verification.
+
 ## 2026-09-07: Single-process backward is not a DDP integration test
 
 - The first backbone block created a depth-read query/norm although no history

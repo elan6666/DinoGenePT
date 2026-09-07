@@ -39,38 +39,55 @@
   test-only AST execution. No upstream research-model runtime imports.
 - Own server .venv: torch2.13.0+cu130 and Census/data dependencies. Local torch
   absent; CPU integration tests run on server, never borrow GraD-Pert env.
-- Current verification: server 97 tests passed in 17.14 seconds, Ruff, native
+- Current verification: server 111 tests passed in 16.08 seconds, Ruff, native
   pretrain CLI help, wheel and sdist pass. Local suite/build also pass with
   torch/reference-dependent tests skipped. No CUDA correctness claim yet.
 
-## Live materialization (inspect exact handles before restarting)
+## Data progress and current live handle (2026-09-07)
 
-Snapshot 2026-09-07 09:59 UTC: both jobs confirmed live, not failed.
-
-- Census metadata PID448508 / original exec81061. Candidate collections:
-  Tabula Sapiens e5f58829-1a66-40b5-a624-9046778e74f5 and cross-tissue immune
-  atlas 62ef75e4-cbea-454e-a0ce-998ec40223d3. Query primary human cells in
-  Census LTS2023-12-15, nnz>=200, raw_sum>0. Metadata output expected at
-  data/pretraining/census-two-atlas-candidates-v1; not created until query ends.
-  Process RSS grew to ~1.2GB; no raw expression shards downloaded.
-- Inventory already exists: data/pretraining/census-2023-12-15-inventory.json,
-  651 source datasets. Candidate target 500k stratified training cells, subject
-  to actual eligibility, donor/study overlap audit and real GPU throughput.
-- CellFM archive PID457997 / original exec7856: scripts/prepare_cellfm_data.py
-  --output data/official/cellfm-15138665. CellFM_data.zip.part ~1.4GB of
-  5,296,319,440 bytes at snapshot. Publisher MD5 pinned; will extract ONLY
-  adamson.h5ad and norman.h5ad after full checksum and write archive_receipt.json.
+- Census candidate metadata completed: 812,914 normal primary human cells,
+  785,863 after excluding Smart-seq2. Frozen 500,000 train +20,000 validation
+  cells, 60,664 Ensembl-ID vocabulary, 26 tissue labels. Donor/cell overlaps zero.
+  Train contributions 289,059 Tabula Sapiens +210,941 cross-tissue immune atlas;
+  heldout donors A29/637C/TSP7/TSP12. Selection artifact:
+  data/pretraining/census-two-atlas-500k-selection-v1/selection.json.
+- CellFM target H5ADs are fully extracted and CRC/SHA256 verified; full archive
+  MD5 NOT verified. A curl retry truncation bug was fixed and tested. The two
+  files occupy only the first ~196MB of the stored ZIP; reused the preserved
+  ~209MB prefix +4,135 remote directory bytes, then stopped our full downloader.
+  Old download PIDs457997/457998 and471872/471873 are stopped; do NOT restart them.
+  Preserve prefix at data/official/cellfm-15138665/CellFM_data.zip.part.
+  Receipt: same folder/range_receipt.json.
+- Adamson: 47,795 cells x1,069 genes, 78 targets; simulation seed3 condition
+  splits including train ctrl =53/6/20, cell splits34731/2689/10375.
+  Norman:80,506x1,049,100 targets; condition splits104/24/97, cells42095/10552/27859.
+  Original continuous log1p X retained without second normalization. Provided
+  HVG axes/DE rankings inherited, not claimed train-only upstream HVG fitting.
+  Artifacts data/perturbation/cellfm-v1/{adamson,norman}/ contain audit/split/
+  axis/observations/evaluation-only DE/exact gene_mapping.json. Every output
+  and target symbol maps uniquely to the pretrained IDs; no aliases or drops.
+- Raw Census materializer is LIVE: PID482929, exec38004, script
+  scripts/materialize_census.py --selection data/pretraining/census-two-atlas-500k-selection-v1
+  --inventory data/pretraining/census-2023-12-15-inventory.json
+  --output data/pretraining/census-two-atlas-500k-csr-v1.
+  It holds .materialization.lock, reuses measurement presence for 2 source
+  datasets, and creates 2,048-cell memory-mapped CSR shards with per-shard receipts.
+  Last emitted state: fetching train shard0. No verified raw shards yet at snapshot.
+  Prior PID479096/exec32196 terminated on modern SciPy 1D COO slicing; fixed to
+  explicit 2D CSR row selection and added matrix/array tests before restarting.
+  Do not restart a live materializer; inspect handle and shard receipts first.
 - Both GPUs still occupied by unrelated PIDs391010/391014 (~6GB each).
   No DinoGenePT CUDA work launched; formal pretraining/fine-tuning epochs = 0.
 
 ## Remaining critical path
 
-1. Poll live jobs; freeze source/donor/assay/overlap audit, vocabulary and
-   actual raw-count pretraining shards. Manifest labels alone do not prove audit.
-   Ensure efficient random sparse access rather than repeated NPZ decompression.
-2. Inspect real CellFM artifacts, axis, scale, stored DE/splits and notebook
-   norman-1000 discrepancy. Fixture split parity is not actual-data parity.
-3. Finish condition/context bag data pipeline and 10-epoch LoRA runner,
+1. Finish live raw-count extraction and independently verify frozen selection,
+   donor/cell membership, counts and measurement metadata. Memory-mapped sparse
+   storage implemented; whole-corpus readiness requires all 520,000 cells.
+2. Full CellFM notebook-name equivalence remains unproven; report this run as
+   released CellFM reduced-axis data plus native source-matched simulation split,
+   not full GEARS/GraD-Pert data or a proven author checkpoint reproduction.
+3. Condition/context bag sampler is implemented/tested; finish 10-epoch LoRA runner,
    pretrain checkpoint/vocabulary transfer, fixed validation/test evaluation.
    Enforce no held-out post observations in train/teacher/HVG/prototypes.
 4. After dataset/model ready, supplement independent source-only GenePT vectors

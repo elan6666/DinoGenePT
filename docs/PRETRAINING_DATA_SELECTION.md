@@ -59,6 +59,34 @@ or memory fit has been verified yet; both GPUs have unrelated active jobs.
 - [Census dataset inventory and deduplication](https://chanzuckerberg.github.io/cellxgene-census/notebooks/api_demo/census_datasets.html)
 - [scFoundation preprocessing](https://github.com/biomap-research/scFoundation/tree/main/preprocessing)
 
-Current status: preferred source and target size chosen; collection allowlist,
-download, leakage/coverage audit, final counts and capacity receipt pending.
-`scripts/census_inventory.py` produces metadata only, not an approved manifest.
+## Frozen selection and live extraction (2026-09-07)
+
+Candidate metadata returned 812,914 primary normal-human cells. Excluding
+27,051 Smart-seq2 cells leaves 785,863 droplet cells (four explicit 10x assay
+ontology IDs). The two source publications are [Tabula Sapiens](https://doi.org/10.1126/science.abl4896)
+and the [cross-tissue immune atlas](https://doi.org/10.1126/science.abl5197), both
+published 13 May 2022. These donor-tissue studies are distinct from the K562
+CRISPR studies [Adamson GSE90546](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE90546)
+and [Norman GSE133344](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE133344).
+This is a study/population provenance argument, not a genome-level identity test.
+
+- Frozen train: 500,000 cells, including 289,059 Tabula Sapiens and 210,941 immune
+  atlas cells across 26 tissue labels. Largest-remainder proportional quotas
+  within study/donor/tissue/assay; without replacement, <=65% from either study.
+- Validation: 20,000 cells from held-out donors A29, 637C, TSP7 and TSP12.
+  Donor and Census cell-ID overlaps with training are both zero. Donors were
+  chosen using seed42 keyed hashes, before reading expression or model results.
+- Frozen Census vocabulary: 60,664 Ensembl IDs, PAD reserved as native ID0.
+  Adamson 1,069/1,069 and Norman 1,049/1,049 output symbols map uniquely and
+  exactly; all 78 and 100 perturbation targets map. No aliasing/row removal.
+- Raw extraction is now running via the official data client, in 2,048-cell
+  read-only-memory-mapped CSR shards. Dataset-specific measurement presence has
+  been retrieved and agrees with selected cells' measured-gene counts. Per-shard
+  checks enforce raw integer counts, full-library sums and measured coordinates.
+- The selection is not a completed raw corpus or proof of CUDA capacity. Only
+  the final checksum/row/donor/measurement audit may publish training_ready.
+
+Server artifacts: `data/pretraining/census-two-atlas-500k-selection-v1/` and
+`data/pretraining/census-two-atlas-500k-csr-v1/`. Tools are
+`freeze_census_selection.py` and `materialize_census.py`; the latter has an
+exclusive file lock and per-shard receipts for exact resume.

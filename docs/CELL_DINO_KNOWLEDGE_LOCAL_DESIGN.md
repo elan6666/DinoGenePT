@@ -276,8 +276,22 @@ probabilities, with temperature0.07, center momentum0.9; Student temperature0.1.
 Missing all optional locals contributes zero knowledge loss, not a fake zero
 embedding. EMA follows 0.996→1 after optimizer steps. No post-expression argument
 exists in `predict`; full post bags can only enter the training forward path.
-Actual bag construction, data provenance and ten-epoch LoRA runner remain gates
-before this module can be described as a completed perturbation experiment.
+`datasets/populations.py` now constructs condition/context-matched bags.
+Every train post cell is a primary reconstruction target once per epoch;
+within-condition chunks are balanced at <=8 cells. Teacher/observed post bags
+and control bags are independent size8 draws, without replacement when the pool
+is large enough and with replacement only for a smaller pool. This is unpaired
+population learning, not fabricated single-cell pairing. Condition bags are
+shuffled deterministically each epoch. Held-out post rows cannot enter these
+training samplers. Evaluation uses frozen ordered 300-control draws per condition.
+
+Fine-tuning gene candidates include real zero-expression positions. Uniform
+capping of the measured canonical axis (max2048), followed by pretrained-ID
+sorting, is a declared stage-2 sampling choice; observed-view augmentation masks
+20%, teacher views remain clean. No second normalization or binning is applied.
+Both delivered CellFM axes fit below this cap. The complete ten-epoch LoRA runner
+and formal data/evaluation integration remain gates before calling this a
+completed perturbation experiment.
 
 ## 6. Execution, leakage and unresolved gates
 

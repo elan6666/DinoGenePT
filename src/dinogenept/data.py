@@ -63,51 +63,73 @@ def download(
     chunk_size: int = 1024 * 1024,
     max_retries: int = 4,
 ) -> Path:
+    """Resume each retry explicitly; never let curl or fallback truncate progress."""
+    if max_retries < 0 or chunk_size < 1:
+        raise ValueError("Invalid download retry/chunk configuration")
     destination.parent.mkdir(parents=True, exist_ok=True)
     temporary = destination.with_suffix(destination.suffix + ".part")
     curl = shutil.which("curl")
     if curl:
-        command = [
-            curl,
-            "--location",
-            "--fail",
-            "--silent",
-            "--show-error",
-            "--retry",
-            str(max_retries),
-            "--connect-timeout",
-            "20",
-            "--max-time",
-            "1800",
-            "--output",
-            str(temporary),
-        ]
-        if temporary.exists() and temporary.stat().st_size:
-            command.extend(["--continue-at", "-"])
-        if url.startswith("https://api.github.com/"):
-            command.extend(["--header", "Accept: application/vnd.github.raw+json"])
-        command.append(url)
-        try:
-            subprocess.run(command, check=True)  # noqa: S603 - argument vector, no shell
-            temporary.replace(destination)
-            return destination
-        except subprocess.CalledProcessError:
-            pass
-    headers = {"User-Agent": "DinoGenePT/0.1"}
-    if url.startswith("https://api.github.com/"):
-        headers["Accept"] = "application/vnd.github.raw+json"
-    request = urllib.request.Request(url, headers=headers)
-    for attempt in range(max_retries + 1):
-        try:
-            with urllib.request.urlopen(request, timeout=300) as response, temporary.open("wb") as handle:
-                shutil.copyfileobj(response, handle, length=chunk_size)
-            temporary.replace(destination)
-            return destination
-        except (TimeoutError, urllib.error.URLError):
-            temporary.unlink(missing_ok=True)
-            if attempt == max_retries:
-                raise
-            time.sleep(min(2**attempt, 30))
+        for attempt in range(max_retries + 1):
+            command = [
+                curl,
+                "--location",
+                "--fail",
+                "--silent",
+                "--show-error",
+                "--retry",
+                "0",
+                "--connect-timeout",
+                "20",
+                "--max-time",
+                "1800",
+                "--continue-at",
+                "-",
+                "--output",
+                str(temporary),
+            ]
+            if url.startswith("https://api.github.com/"):
+                command.extend(["--header", "Accept: application/vnd.github.raw+json"])
+            command.append(url)
+            try:
+                subprocess.run(command, check=True)  # noqa: S603 - vector, no shell
+                temporary.replace(destination)
+                return destination
+            except subprocess.CalledProcessError:
+                if attempt == max_retries:
+                    raise  # Preserve partial bytes; no truncating fallback.
+                time.sleep(min(2**attempt, 30))
+    else:
+        for attempt in range(max_retries + 1):
+            offset = temporary.stat().st_size if temporary.exists() else 0
+            headers = {"User-Agent": "DinoGenePT/0.1"}
+            if url.startswith("https://api.github.com/"):
+                headers["Accept"] = "application/vnd.github.raw+json"
+            if offset:
+                headers["Range"] = f"bytes={offset}-"
+            request = urllib.request.Request(url, headers=headers)
+            try:
+                with urllib.request.urlopen(request, timeout=300) as response:
+                    status = getattr(response, "status", 200)
+                    response_headers = getattr(response, "headers", {})
+                    if offset and (
+                        status != 206 or not response_headers.get("Content-Range", "").startswith(f"bytes {offset}-")
+                    ):
+                        raise RuntimeError("Server did not honor resume offset; partial download preserved")
+                    expected = response_headers.get("Content-Length")
+                    written = 0
+                    with temporary.open("ab" if offset else "wb") as handle:
+                        while data := response.read(chunk_size):
+                            handle.write(data)
+                            written += len(data)
+                    if expected is not None and written != int(expected):
+                        raise TimeoutError("Response ended before declared Content-Length")
+                temporary.replace(destination)
+                return destination
+            except (TimeoutError, urllib.error.URLError, ConnectionError):
+                if attempt == max_retries:
+                    raise
+                time.sleep(min(2**attempt, 30))
     raise AssertionError("unreachable")
 
 

@@ -42,6 +42,7 @@ class PretrainingDataset:
         self.ends = np.cumsum([x["cells"] for x in self.shards]).tolist()
         self.cache_shards, self.crops, self.epoch = cache_shards, crops, 0
         self.cache = OrderedDict()
+        self.validated = set()
         self.gene_count = int(self.manifest["vocabulary"]["genes"])
         if self.gene_count < 1:
             raise ValueError("Empty vocabulary")
@@ -53,12 +54,32 @@ class PretrainingDataset:
         return path
 
     def verify(self):
-        entries = [self.manifest["vocabulary"], *self.manifest["shards"]]
+        entries = [self.manifest["vocabulary"]]
+        for shard in self.manifest["shards"]:
+            entries.extend(shard["arrays"].values() if shard.get("format") == "csr_npy" else [shard])
         if len({entry["path"] for entry in entries}) != len(entries):
             raise ValueError("Repeated artifact path in corpus manifest")
         for entry in entries:
             if digest_file(self._path(entry["path"])) != entry["sha256"]:
                 raise ValueError(f"Corpus checksum changed: {entry['path']}")
+        expected_rows = None
+        if self.manifest.get("purpose") == "formal_pretraining":
+            import pandas as pd
+
+            selection_path = self._path("selection.json")
+            if digest_file(selection_path) != self.manifest["leakage_audit"]["selection_sha256"]:
+                raise ValueError("Source/donor selection receipt changed")
+            selection = json.loads(selection_path.read_text())
+            for name, checksum in selection["files_sha256"].items():
+                if digest_file(self._path(name)) != checksum:
+                    raise ValueError("Frozen selection metadata changed")
+            presence = self.manifest["measurement_presence"]
+            if digest_file(self._path(presence["path"])) != presence["sha256"]:
+                raise ValueError("Measured/unmeasured gene metadata changed")
+            frames = {split: pd.read_parquet(self._path(f"{split}_obs.parquet")) for split in ("train", "validation")}
+            if set(frames["train"].donor_key) & set(frames["validation"].donor_key):
+                raise ValueError("Donor overlap in frozen pretraining metadata")
+            expected_rows = {split: set(frame.soma_joinid.astype(str)) for split, frame in frames.items()}
         vocabulary = json.loads(self._path(self.manifest["vocabulary"]["path"]).read_text())
         if (
             not isinstance(vocabulary, list)
@@ -70,13 +91,24 @@ class PretrainingDataset:
         seen = set()
         for split in ("train", "validation"):
             reader = PretrainingDataset(self.path, split, self.crops, cache_shards=1)
+            split_rows = set()
             for shard_id in range(len(reader.shards)):
                 values = reader._read(shard_id)
                 ids = set(values["row_ids"].astype(str).tolist())
                 if seen & ids:
                     raise ValueError("Cell repeated across corpus shards/splits")
                 seen.update(ids)
+                split_rows.update(ids)
+            if expected_rows is not None and split_rows != expected_rows[split]:
+                raise ValueError("Materialized rows do not exactly match the frozen split")
+        self.validated.update(range(len(self.shards)))
         return digest_file(self.path)
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # Spawn workers reopen read-only memory maps, never pickle a shard cache.
+        state["cache"] = OrderedDict()
+        return state
 
     def __len__(self):
         return self.ends[-1]
@@ -86,9 +118,26 @@ class PretrainingDataset:
             self.cache.move_to_end(shard_id)
             return self.cache[shard_id]
         entry = self.shards[shard_id]
-        with np.load(self._path(entry["path"]), allow_pickle=False) as loaded:
-            data = {key: loaded[key] for key in ("data", "indices", "indptr", "row_ids", "library_sum")}
-        n = entry["cells"]
+        keys = ("data", "indices", "indptr", "row_ids", "library_sum")
+        if entry.get("format") == "csr_npy":
+            if set(entry["arrays"]) != set(keys):
+                raise ValueError("Memory-mapped CSR requires all five named arrays")
+            data = {
+                key: np.load(self._path(entry["arrays"][key]["path"]), mmap_mode="r", allow_pickle=False)
+                for key in keys
+            }
+        else:
+            with np.load(self._path(entry["path"]), allow_pickle=False) as loaded:
+                data = {key: loaded[key] for key in keys}
+        if shard_id not in self.validated:
+            self._validate_shard(data, entry["cells"])
+            self.validated.add(shard_id)
+        self.cache[shard_id] = data
+        while len(self.cache) > self.cache_shards:
+            self.cache.popitem(last=False)
+        return data
+
+    def _validate_shard(self, data, n):
         if data["indptr"].shape != (n + 1,) or data["row_ids"].shape != (n,) or data["library_sum"].shape != (n,):
             raise ValueError("Shard cell metadata mismatch")
         if not np.issubdtype(data["indices"].dtype, np.integer) or not np.issubdtype(data["indptr"].dtype, np.integer):
@@ -118,10 +167,6 @@ class PretrainingDataset:
             raise ValueError("Each CSR row must have unique ascending gene indices")
         if np.unique(data["row_ids"]).size != n:
             raise ValueError("Duplicate cell IDs within shard")
-        self.cache[shard_id] = data
-        while len(self.cache) > self.cache_shards:
-            self.cache.popitem(last=False)
-        return data
 
     def __getitem__(self, index):
         if not 0 <= index < len(self):

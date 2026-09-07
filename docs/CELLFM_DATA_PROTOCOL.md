@@ -69,4 +69,39 @@ Choose validation-only checkpoint selection before formal runs.
 - [Official data archive](https://zenodo.org/records/15138665)
 - [Pinned perturbation notebook](https://github.com/biomed-AI/CellFM/blob/bfed59c0e34103231165d69b97927ecc888d623c/tutorials/Perturbation/GenePerturbation.ipynb)
 
-Status: source audit in progress; no CellFM data training has been launched.
+## Observed official files (2026-09-07)
+
+The official ZIP directory uses ZIP_STORED for both target files. Both were
+extracted from an already downloaded prefix; only 4,135 additional directory
+bytes were transferred. ZipExtFile checked entry CRC32 and SHA-256 was recorded.
+**The full 5.3GB archive MD5 was not verified on this selective path.** Keep that
+scope distinct from full-archive validation. The ~209MB prefix remains recoverable.
+
+| Delivered file | Cells | Gene axis | Noncontrol conditions | Targets | Train/val/test conditions, including train ctrl |
+|---|---:|---:|---:|---:|---|
+| adamson.h5ad | 47,795 | 1,069 | 78 | 78 | 53 / 6 / 20 |
+| norman.h5ad | 80,506 | 1,049 | 224 | 100 | 104 / 24 / 97 |
+
+Simulation seed3 train/val/test cell counts are 34,731/2,689/10,375 for Adamson
+and 42,095/10,552/27,859 for Norman. All cells have K562 context. Output axes
+already contain every perturbation target, with no new representability filter.
+The native splitter was source-parity tested separately. Counts here describe
+the supplied CellFM files, not the larger GEARS/GraD-Pert datasets.
+
+All stored nonzero X values are fractional float32, consistent with the provided
+log1p metadata; retain X exactly, without re-normalization or binning. The original
+normalization target cannot be inferred from the reduced matrix. Published axes
+contain 1,000/984 HVG-marked genes respectively. Their upstream selection may
+have used all cells: no claim of strict train-only upstream HVG selection is
+made. Our pipeline does not refit HVGs. The norman-1000 notebook label is
+consistent with a reduced-axis dataset but is not a proven filename alias.
+
+DE rankings span the delivered axes exactly and are saved separately as
+evaluation-only data. Native frozen axis/split/mapping receipts are in
+`data/perturbation/cellfm-v1/{adamson,norman}/`. CellFM source SHA-256 values:
+
+- Adamson: `6cfc5781032410db907b19fc557f599f6f322f9a6454226edcc097e748c78585`.
+- Norman: `d6c945f3a4ca920c3f77c542ca9800075cc5f41162af3465872e67c4cd0ca60b`.
+
+Status: raw files, reduced axes, native splits and exact pretrained-ID mappings
+are frozen. Fine-tuning/evaluation integration and formal runs remain pending.

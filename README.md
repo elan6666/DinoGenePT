@@ -15,8 +15,11 @@ A replacement cell model is being implemented from the design in
 Native backbone, five-loss pretraining runner, LoRA knowledge-local perturbation
 model and shared metric fixtures now exist. CPU tests cover exact pretraining
 resume, two-rank DDP, frozen-backbone LoRA and source omissions. The native CellFM
-simulation splitter matches pinned upstream fixtures. Real-data/split audits,
-the complete perturbation runner and formal GPU training remain incomplete.
+simulation splitter matches pinned upstream fixtures. Released CellFM files,
+their reduced gene axes, native splits and exact pretrained-ID mappings are
+frozen. A 500k-train/20k-donor-heldout Census selection is frozen and raw-count
+shard extraction is underway. The complete perturbation runner and formal GPU
+training remain incomplete.
 No cell-model experimental results are claimed.
 
 The current plan specifies 12 blocks / 768 hidden width, single-direction hybrid

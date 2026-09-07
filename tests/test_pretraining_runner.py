@@ -90,9 +90,12 @@ def fixture_config(root):
     }
 
 
-def test_two_full_epochs_and_exact_resume(tmp_path, monkeypatch):
+@pytest.mark.parametrize("backend,workers", [("chunk", 0), ("batched_chunk", 0), ("batched_chunk", 1)])
+def test_two_full_epochs_and_exact_resume(tmp_path, monkeypatch, backend, workers):
     torch.set_num_threads(1)
     config = fixture_config(tmp_path / "data")
+    config["backbone"]["kda_implementation"] = backend
+    config["training"]["workers"] = workers
     train.run_pretraining(config)
     baseline = torch.load(tmp_path / "data/run/last.pt", weights_only=True)
     receipt = json.loads((tmp_path / "data/run/completion.json").read_text())
@@ -166,8 +169,10 @@ def _distributed_worker(rank, config, port):
     train.run_pretraining(config)
 
 
-def test_two_rank_cpu_accumulation_covers_every_cell(tmp_path):
+@pytest.mark.parametrize("backend", ["chunk", "batched_chunk"])
+def test_two_rank_cpu_accumulation_covers_every_cell(tmp_path, backend):
     config = fixture_config(tmp_path / "data")
+    config["backbone"]["kda_implementation"] = backend
     config["training"]["world_size"] = 2
     with socket.socket() as sock:
         sock.bind(("127.0.0.1", 0))

@@ -86,6 +86,20 @@ def parallel_chunk_kda(q, k, v, log_decay, beta, initial_state=None, *, chunk_si
     optimization of chunk_kda, not another attention mechanism or fused kernel.
     Zero-padded suffix tokens have no state effect and their reads are removed.
     """
+    return _packed_chunk_kda(q, k, v, log_decay, beta, initial_state, chunk_size=chunk_size, factor_state=True)
+
+
+def batched_chunk_kda(q, k, v, log_decay, beta, initial_state=None, *, chunk_size=16):
+    """Batch pair coefficients, but preserve original residual-before-solve order.
+
+    Unlike parallel_chunk_kda, never distribute solve across the state product.
+    This sacrifices some parallel work to avoid amplifying changed FP32 rounding
+    through the subsequent BF16 projections. Numerical acceptance is separate.
+    """
+    return _packed_chunk_kda(q, k, v, log_decay, beta, initial_state, chunk_size=chunk_size, factor_state=False)
+
+
+def _packed_chunk_kda(q, k, v, log_decay, beta, initial_state, *, chunk_size, factor_state):
     _validate(q, k, v, log_decay, beta)
     if chunk_size < 1:
         raise ValueError("chunk_size must be positive")
@@ -111,15 +125,21 @@ def parallel_chunk_kda(q, k, v, log_decay, beta, initial_state=None, *, chunk_si
         kk = torch.einsum("...id,...jd,...ijd->...ij", ki, ki, decay)
         qk = torch.einsum("...id,...jd,...ijd->...ij", qi, ki, decay)
         system = (kk * bi).tril(-1) + torch.eye(n, device=q.device)
-        rhs = bi * torch.cat((vi, ki * gi.exp()), dim=-1)
-        solution = torch.linalg.solve_triangular(system, rhs, upper=False, unitriangular=True)
-        base, read = solution.split((vi.shape[-1], d), dim=-1)
+        key = ki * gi.exp()
+        if factor_state:
+            rhs = bi * torch.cat((vi, key), dim=-1)
+            solution = torch.linalg.solve_triangular(system, rhs, upper=False, unitriangular=True)
+            base, read = solution.split((vi.shape[-1], d), dim=-1)
         query = qi * gi.exp()
         ending_key = ki * (gi[..., -1:, :] - gi).exp()
         ending_gate = gi[..., -1, :].exp()
         outputs = []
         for chunk in range(chunks):
-            updates = base[:, :, chunk] - read[:, :, chunk] @ state
+            if factor_state:
+                updates = base[:, :, chunk] - read[:, :, chunk] @ state
+            else:
+                residual = (vi[:, :, chunk] - key[:, :, chunk] @ state) * bi[:, :, chunk]
+                updates = torch.linalg.solve_triangular(system[:, :, chunk], residual, upper=False, unitriangular=True)
             outputs.append(query[:, :, chunk] @ state + qk[:, :, chunk] @ updates)
             state = state * ending_gate[:, :, chunk].unsqueeze(-1) + ending_key[:, :, chunk].transpose(-1, -2) @ updates
         return torch.cat(outputs, dim=2)[:, :, :length].transpose(1, 2).to(dtype), state

@@ -205,6 +205,9 @@ def run_pretraining(config: dict, *, resume: Path | None = None):
             batch_sampler=batches[start_batch:],
             collate_fn=collate_crops,
             num_workers=training.get("workers", 0),
+            # NCCL is not fork-safe. Workers reopen mmap shards through the
+            # dataset's explicit pickle contract, never inherit CUDA contexts.
+            multiprocessing_context="spawn" if training.get("workers", 0) else None,
             pin_memory=device.type == "cuda",
             # Loader iterator creation must not consume model RNG on resume.
             generator=torch.Generator().manual_seed(seed + epoch),

@@ -32,6 +32,10 @@ CUDA capacity has now been measured separately; see
 `CUDA_CAPACITY_2026_09_07.md`. Original native chunk remains the default: a faster
 algebraically equivalent scheduling candidate passed FP32 tests but failed the
 whole-backbone BF16 elementwise acceptance gate. No fused-kernel parity claim.
+Follow-up: order-preserving `batched_chunk` passes full2048-token/60664-vocabulary
+FP32/BF16 forward audits and long-sequence CUDA gradients, with matched single-
+card performance evidence. Matching two-rank capacity is still needed before
+the proposed formal recipe can launch. See `DEFAULT_PRETRAINING_LAUNCH.md`.
 
 ## Reduced default backbone now implemented
 

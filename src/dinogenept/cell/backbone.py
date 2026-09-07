@@ -11,7 +11,7 @@ from torch import nn
 from torch.nn import functional as F
 from torch.utils.checkpoint import checkpoint
 
-from .kda import chunk_kda, parallel_chunk_kda
+from .kda import batched_chunk_kda, chunk_kda, parallel_chunk_kda
 
 
 @dataclass(frozen=True)
@@ -53,7 +53,7 @@ class BackboneConfig:
         )
         if any(x < 1 for x in values) or self.depth % self.global_every:
             raise ValueError("Invalid architecture dimensions; last layer must be global")
-        if self.kda_implementation not in {"chunk", "parallel_chunk"}:
+        if self.kda_implementation not in {"chunk", "parallel_chunk", "batched_chunk"}:
             raise ValueError("Unknown native KDA execution implementation")
 
 
@@ -105,7 +105,9 @@ class KDAMixer(nn.Module):
         target_logit = torch.logit(torch.tensor(0.1 / 5))
         self.dt_bias = nn.Parameter((target_logit / self.a_log.detach().exp()).repeat_interleave(self.dim))
         self.chunk_size = config.chunk_size
-        self.kernel = chunk_kda if config.kda_implementation == "chunk" else parallel_chunk_kda
+        self.kernel = {"chunk": chunk_kda, "parallel_chunk": parallel_chunk_kda, "batched_chunk": batched_chunk_kda}[
+            config.kda_implementation
+        ]
 
     def forward(self, x, valid, writable):
         shape = (*x.shape[:2], self.heads, self.dim)

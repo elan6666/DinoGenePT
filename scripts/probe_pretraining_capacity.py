@@ -19,7 +19,7 @@ import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel
 
 from dinogenept.cell.backbone import BackboneConfig
-from dinogenept.cell.kda import chunk_kda, parallel_chunk_kda, recurrent_kda
+from dinogenept.cell.kda import batched_chunk_kda, chunk_kda, parallel_chunk_kda, recurrent_kda
 from dinogenept.cell.pretraining import HeadConfig, PretrainingSystem
 from dinogenept.cell.sampling import CropConfig, collate_crops, sample_crops
 from dinogenept.cell.train import _gpu_guard, _move
@@ -57,14 +57,16 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--microbatch", type=int, default=2)
     parser.add_argument("--steps", type=int, default=2)
-    parser.add_argument("--kernel", choices=("chunk", "parallel_chunk"), default="chunk")
+    parser.add_argument("--kernel", choices=("chunk", "parallel_chunk", "batched_chunk"), default="chunk")
     args = parser.parse_args()
     if args.microbatch < 2 or args.steps < 1:
         raise ValueError("Need >=2 distinct cells per rank and >=1 step")
     rank, world, local_rank = (
         int(os.getenv(key, default)) for key, default in (("RANK", "0"), ("WORLD_SIZE", "1"), ("LOCAL_RANK", "0"))
     )
-    _gpu_guard()
+    visible = os.getenv("CUDA_VISIBLE_DEVICES", "")
+    selected_uuid = visible if world == 1 and visible.startswith("GPU-") and "," not in visible else None
+    _gpu_guard(selected_uuid=selected_uuid)
     torch.cuda.set_device(local_rank)
     device = torch.device("cuda", local_rank)
     if world > 1:
@@ -105,7 +107,10 @@ def main():
             )
         )
     batch = _move(collate_crops(rows), device)
-    parity = kernel_parity(device, chunk_kda if args.kernel == "chunk" else parallel_chunk_kda)
+    parity = kernel_parity(
+        device,
+        {"chunk": chunk_kda, "parallel_chunk": parallel_chunk_kda, "batched_chunk": batched_chunk_kda}[args.kernel],
+    )
     torch.manual_seed(42 + rank)
     config, heads = BackboneConfig(genes=len(genes), kda_implementation=args.kernel), HeadConfig()
     model = PretrainingSystem(config, heads).to(device).train()
@@ -130,8 +135,7 @@ def main():
         "total_parameters": sum(p.numel() for p in model.parameters()),
         "view_lengths": [view["gene_ids"].shape[1] for view in batch["views"]],
         "source_sha256": {
-            str(path): digest_file(path)
-            for path in [Path(__file__), *sorted(Path("src/dinogenept/cell").glob("*.py"))]
+            str(path): digest_file(path) for path in [Path(__file__), *sorted(Path("src/dinogenept/cell").glob("*.py"))]
         },
     }
     if rank == 0:

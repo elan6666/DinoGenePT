@@ -40,10 +40,10 @@
   test-only AST execution. No upstream research-model runtime imports.
 - Own server .venv: torch2.13.0+cu130 and Census/data dependencies. Local torch
   absent; CPU integration tests run on server, never borrow GraD-Pert env.
-- Current verification: server136 tests passed in22.29s; Ruff, finetune CLI,
-  wheel and sdist pass. Local90 passed/10 skipped (torch/reference modules),
+- Current verification: server147 tests passed in42.29s; Ruff, native CLI,
+  wheel and sdist pass. Local90 passed/11 skipped (torch/reference modules),
   Ruff/build pass. Secret-pattern scan returned no matching scoped files.
-  CUDA acceptance failure is recorded separately, not hidden by unit-test passes.
+  Old factored-backend failure and new order-preserving pass are both retained.
 - New native CellFM CSR data loader verifies frozen source/audit/mapping/row/gene
   identities, reads X/obs/var only (not uns/DE), and retains continuous values and
   zero-expression candidate genes. Training post/teacher rows are checked against
@@ -128,6 +128,33 @@
 
 ## CUDA capacity and optimization (not epochs)
 
+- New progress after6a9456a: native `batched_chunk` keeps original residual-before-
+  solve order, only batches pair coefficients. Full12/768/60664-vocabulary,
+  2048-token numerical gate PASSED without changing thresholds; BF16 forward
+  CLS/genes bitwise equal in the audited fixture. Receipt
+  results/kda-batched-full-cuda-numerics-v1.json SHA
+  d4c2df7ad089477d4e264e94515e0d006eb531d42269be0b6e70f7e702025eaa.
+- Same-card real upper-bound batch4/ten-update comparison: warm median10.098s
+  original versus3.991s batched (~2.53x); finite updates, candidate22,635,177,472
+  bytes peak allocated. Training trajectories are NOT bitwise equal. No formal
+  epochs. See docs/DEFAULT_PRETRAINING_LAUNCH.md for evidence and limitations.
+- Original `chunk` remains library default; proposed formal recipe explicitly
+  selects `batched_chunk` but requires matching two-rank capacity before launch.
+  Recipe500k/20k,2epochs,microbatch4/rank,accum16,effective128,AdamW peak1e-4,
+  betas.9/.95,wd.01,clip1,10%warmup/cosine are declared native adaptations.
+  scripts/resolve_pretraining_config.py refuses incomplete data, mismatched
+  model/source/microbatch/world size or incomplete/failed numerical evidence.
+- Latest live CPU/API check: raw133,120cells/65shards, no final manifest;
+  PID482929 live elapsed1:42:06. TextBase1777,GO1444,Protein1765 complete2048D;
+  Pathway725/1256cached,531pending; PID506096 live elapsed51:38. Do not duplicate.
+  External GPU0 PID775988 still live (~4.3GB); no DinoGenePT GPU probe is live.
+- Superseding last check: raw137,216cells/67shards, PID482929 live1:51:06;
+  Pathway1256/1256 completed2048D, HPA377/1771cached,1394pending;
+  PID506096 live1:00:38. GPU0 PID775988 still live32:42, not ours.
+- DataLoader now explicitly uses spawn for workers>0, per installed PyTorch
+  NCCL fork-safety warning. A spawned-loader complete-epoch/exact-resume fixture
+  passes. Never inherit GPU contexts into forked data workers.
+
 - scripts/probe_pretraining_capacity.py pins a completed real raw shard and
   full60664 vocabulary,12/768 backbone and normal-sized heads. Worst-bound
   globals2048/2048,locals820/820; no formal checkpoint or epoch claim.
@@ -168,7 +195,9 @@
    Enforce no held-out post observations in train/teacher/HVG/prototypes.
 4. Follow the LIVE independent source-only vector job; preserve exact caches,
    source receipts and rate cap, do not restart a live or completed source.
-5. Finish CUDA numerical/performance optimization and stable capacity audit;
+5. Full numerical and single-card batched_chunk probes now pass. When both
+   GPUs are free, finish matching two-rank batched_chunk capacity. Once full
+   data exists, resolve the formal recipe with source/hash gates; then
    run actual 2+10+10 epochs when full corpus and free GPUs are ready. Preserve
    original data/model/epoch scope. Produce final result/performance
    receipts. CPU fixture completion must never count as formal training.

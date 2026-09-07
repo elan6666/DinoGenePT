@@ -2,11 +2,11 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-from dinogenept.cell.kda import chunk_kda, parallel_chunk_kda, recurrent_kda  # noqa: E402
+from dinogenept.cell.kda import batched_chunk_kda, chunk_kda, parallel_chunk_kda, recurrent_kda  # noqa: E402
 
 
 @pytest.mark.parametrize("size", [1, 4, 16])
-@pytest.mark.parametrize("implementation", [chunk_kda, parallel_chunk_kda])
+@pytest.mark.parametrize("implementation", [chunk_kda, parallel_chunk_kda, batched_chunk_kda])
 def test_chunk_matches_recurrence_values_and_gradients(size, implementation):
     torch.manual_seed(7)
     shape = (2, 9, 2, 4)
@@ -27,7 +27,7 @@ def test_chunk_matches_recurrence_values_and_gradients(size, implementation):
         torch.testing.assert_close(a, b, atol=5e-6, rtol=5e-5)
 
 
-@pytest.mark.parametrize("implementation", [chunk_kda, parallel_chunk_kda])
+@pytest.mark.parametrize("implementation", [chunk_kda, parallel_chunk_kda, batched_chunk_kda])
 def test_read_only_tokens_do_not_change_state_or_later_output(implementation):
     torch.manual_seed(12)
     q, k, v = [torch.randn(1, 5, 2, 3) for _ in range(3)]
@@ -41,7 +41,7 @@ def test_read_only_tokens_do_not_change_state_or_later_output(implementation):
     torch.testing.assert_close(state, short_state)
 
 
-@pytest.mark.parametrize("implementation", [chunk_kda, parallel_chunk_kda])
+@pytest.mark.parametrize("implementation", [chunk_kda, parallel_chunk_kda, batched_chunk_kda])
 def test_strong_decay_does_not_create_future_overflow(implementation):
     torch.manual_seed(20)
     q, k, v = [torch.randn(1, 64, 1, 4, requires_grad=True) for _ in range(3)]

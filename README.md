@@ -2,9 +2,11 @@
 
 Current default-model engineering status: native LoRA runner/evaluator and
 single-/dual-RTX5090 capacity probes are implemented and tested. Formal2+10+10
-epochs are still pending complete pretraining materialization. A faster native
-KDA execution candidate is **not** promoted because its BF16 numerical gate
-failed; see [capacity and audit receipt](docs/CUDA_CAPACITY_2026_09_07.md).
+epochs are still pending complete pretraining materialization. The factored
+KDA candidate failed its BF16 gate; a new order-preserving batched version passes
+full-input numerical and single-card tests, with matching two-rank validation
+still required. See [launch recipe and evidence](docs/DEFAULT_PRETRAINING_LAUNCH.md)
+and [earlier capacity audit](docs/CUDA_CAPACITY_2026_09_07.md).
 
 DinoGenePT is a research project for DINO-style cell representation learning
 and perturbation prediction with GenePT knowledge views. The current

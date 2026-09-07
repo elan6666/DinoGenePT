@@ -16,9 +16,11 @@ from dinogenept.evaluation.cellfm import prepare_evaluation  # noqa: E402
 from dinogenept.provenance import atomic_write_json, digest_file  # noqa: E402
 
 
-def test_two_epoch_transfer_ten_epoch_lora_and_exact_resume(tmp_path, frozen, monkeypatch):  # noqa: F811
+@pytest.mark.parametrize("backend", ["chunk", "batched_chunk"])
+def test_two_epoch_transfer_ten_epoch_lora_and_exact_resume(tmp_path, frozen, monkeypatch, backend):  # noqa: F811
     torch.set_num_threads(1)
     pre = fixture_config(tmp_path / "pretraining")
+    pre["backbone"]["kda_implementation"] = backend
     run_pretraining(pre)
     data_config, _ = frozen
     vocab = tmp_path / "pretraining/genes.json"

@@ -8,7 +8,7 @@ from pathlib import Path
 import torch
 
 from dinogenept.cell.backbone import BackboneConfig, CellBackbone
-from dinogenept.cell.kda import chunk_kda, parallel_chunk_kda
+from dinogenept.cell.kda import batched_chunk_kda, chunk_kda, parallel_chunk_kda
 from dinogenept.cell.train import _gpu_guard
 from dinogenept.provenance import atomic_write_json, digest_file
 
@@ -22,7 +22,12 @@ def difference(actual, expected):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--kernel", choices=("parallel_chunk", "batched_chunk"), default="parallel_chunk")
+    parser.add_argument("--tokens", type=int, default=256)
+    parser.add_argument("--genes", type=int, default=256)
     args = parser.parse_args()
+    if args.tokens < 2 or args.genes < args.tokens:
+        raise ValueError("Numerical fixture needs distinct genes covering the token axis")
     if args.output.exists():
         raise FileExistsError("Preserve previous numerical evidence")
     visible = os.getenv("CUDA_VISIBLE_DEVICES", "")
@@ -39,7 +44,8 @@ def main():
     g[:, ::5] = 0
     beta[:, ::5] = 0  # read-only slots including the first and chunk-boundary tokens
     values, gradients = [], []
-    for kernel in (chunk_kda, parallel_chunk_kda):
+    selected_kernel = {"parallel_chunk": parallel_chunk_kda, "batched_chunk": batched_chunk_kda}[args.kernel]
+    for kernel in (chunk_kda, selected_kernel):
         leaves = [x.detach().clone().requires_grad_() for x in (q, k, v, g, beta)]
         output, state = kernel(*leaves)
         gradients.append(
@@ -51,13 +57,13 @@ def main():
         torch.testing.assert_close(actual, expected, atol=2e-5, rtol=2e-4)
         records.append(difference(actual, expected))
     del leaves, output, state, gradients, values, q, k, v, g, beta
-    config = BackboneConfig(genes=256)
+    config = BackboneConfig(genes=args.genes)
     torch.manual_seed(7)
     reference = CellBackbone(config).to(device).eval()
-    candidate = CellBackbone(replace(config, kda_implementation="parallel_chunk")).to(device).eval()
+    candidate = CellBackbone(replace(config, kda_implementation=args.kernel)).to(device).eval()
     candidate.load_state_dict(reference.state_dict(), strict=True)
-    ids = torch.arange(1, 257, device=device).expand(2, -1)
-    expression = torch.rand(2, 256, device=device) * 4
+    ids = torch.arange(1, args.tokens + 1, device=device).expand(2, -1)
+    expression = torch.rand(2, args.tokens, device=device) * 4
     valid = torch.ones_like(ids, dtype=torch.bool)
     valid[0, -7:] = False
     hidden = torch.zeros_like(valid)
@@ -93,6 +99,8 @@ def main():
             "torch": str(torch.__version__),
             "gpu": torch.cuda.get_device_name(),
             "backbone": asdict(config),
+            "candidate_kernel": args.kernel,
+            "backbone_tokens": args.tokens,
             "long_kernel_shape": [1, 2049, 6, 128],
             "read_only_every": 5,
             "kernel_fp32_atol": 2e-5,

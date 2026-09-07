@@ -1,5 +1,24 @@
 # Confirmed project lessons
 
+## 2026-09-07: Explicitly spawn DataLoader workers with NCCL
+
+- Installed PyTorch DDP documentation warns NCCL is not fork-safe. The runner
+  previously relied on the platform's default multiprocessing start method.
+- Select multiprocessing_context=spawn whenever workers>0. Reopen read-only
+  mmap shards in each worker; do not inherit GPU contexts. Verify the complete
+  epoch and exact resume tests with a real spawned loader, not only workers=0.
+
+## 2026-09-07: Preserve operation order before relaxing precision gates
+
+- Factoring a triangular solve into separate value/state terms passed FP32
+  primitive tests but failed whole-backbone BF16 acceptance. Keep the failed
+  receipt and original tolerances; mathematical equivalence is not bitwise
+  finite-precision equivalence.
+- Batching pair coefficients while retaining residual-before-solve order
+  passed the same gate at full2048tokens/60664vocabulary. Confirm token-axis
+  and vocabulary scope, not just a256-token fixture. Forward equality still
+  does not imply equal optimizer trajectories; report this distinction.
+
 ## 2026-09-07: GPU ownership is not just a process-group comparison
 
 - Torch Elastic creates each rank with start_new_session=True (verified in

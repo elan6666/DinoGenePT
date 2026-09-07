@@ -9,6 +9,10 @@
   "supersedes": "configs/cell/census500k_default_recipe.json",
   "launch_allowed": false,
   "learning_rate_policy": "configs/cell/lr_sclong.json",
+  "pretraining_epochs": 30,
+  "finetuning_epochs": 30,
+  "finetuning_method": "lora",
+  "current_execution_scope": "preparation_and_one_step_smoke_only",
   "required_audits": [
     "archive_integrity_and_actual_cell_count",
     "continuous_expression_scale_and_top2048_truncation",

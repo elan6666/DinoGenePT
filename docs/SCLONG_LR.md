@@ -22,6 +22,9 @@ Peak `p = 5e-5 * 0.9**c`; learning rate is
 `1e-6 + (p-1e-6)*t/5` for `t<5`, otherwise
 `1e-6 + (p-1e-6)*(1+cos(pi*(t-5)/(T-5)))/2`.
 Cycle starts are e=0,15,40,85. Epochs 1 and 2 use `1e-6` and `1.08e-5`.
+The current planned budgets are 30 pretraining epochs and 30 LoRA epochs per
+dataset. Each stage starts its own schedule at e=0. A 30-epoch stage completes
+cycle 0 and runs 15 epochs of cycle 1; it does not complete two full cycles.
 The last discrete epoch before restart approaches but does not reach the floor;
 restart returns to the floor. There is no within-epoch LR interpolation.
 

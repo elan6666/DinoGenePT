@@ -110,6 +110,7 @@ def test_two_epoch_transfer_ten_epoch_lora_and_exact_resume(tmp_path, frozen, mo
 
 
 def test_formal_finetune_rejects_cpu_and_shortened_epochs():
-    for training in ({"device": "cpu"}, {"epochs": 1}):
-        with pytest.raises(ValueError, match="CUDA and ten"):
+    assert finetune.FineTuneOptions().epochs == 30
+    for training in ({"device": "cpu"}, {"epochs": 1}, {"epochs": 10}, {"epochs": 29}):
+        with pytest.raises(ValueError, match="CUDA and 30"):
             finetune.run_finetuning({"purpose": "formal_finetuning", "training": training})

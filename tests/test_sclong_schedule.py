@@ -42,3 +42,11 @@ def test_policy_and_bad_input():
             sclong_learning_rate(value)
     with pytest.raises(ValueError):
         learning_rate("unknown", 5e-5, epoch=0, step=0, total_steps=10)
+
+
+def test_current_campaign_is_30_epochs_but_not_authorized_to_launch():
+    selection = json.loads((Path(__file__).parents[1] / "configs/cell/default_data_selection.json").read_text())
+    assert selection["pretraining_epochs"] == selection["finetuning_epochs"] == 30
+    assert selection["finetuning_method"] == "lora"
+    assert selection["launch_allowed"] is False
+    assert selection["current_execution_scope"] == "preparation_and_one_step_smoke_only"

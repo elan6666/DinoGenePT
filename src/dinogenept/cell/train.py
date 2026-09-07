@@ -144,6 +144,8 @@ def run_pretraining(config: dict, *, resume: Path | None = None, smoke_one_step:
     device = torch.device(f"cuda:{local_rank}" if training["device"] == "cuda" else "cpu")
     if purpose == "formal_pretraining" and device.type != "cuda":
         raise ValueError("Formal training requires the audited server GPUs")
+    if purpose == "formal_pretraining" and training["epochs"] != 30:
+        raise ValueError("Formal pretraining configuration requires 30 complete epochs")
     if device.type == "cuda":
         _gpu_guard()
         torch.cuda.set_device(device)

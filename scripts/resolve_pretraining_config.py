@@ -76,8 +76,8 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     recipe = json.loads(args.recipe.read_text())
-    if recipe.get("schema") != "dinogenept.pretraining.recipe.v1" or recipe["training"]["epochs"] != 2:
-        raise ValueError("Not the full two-epoch campaign recipe")
+    if recipe.get("schema") != "dinogenept.pretraining.recipe.v1" or recipe["training"]["epochs"] != 30:
+        raise ValueError("Not the full 30-epoch campaign recipe")
     capacity, numerical = [json.loads(path.read_text()) for path in (args.capacity, args.numerical)]
     validate_capacity(recipe, capacity, numerical)
     for receipt, required in (

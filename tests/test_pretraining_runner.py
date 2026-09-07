@@ -189,6 +189,9 @@ def test_mismatched_manifest_and_formal_cpu_are_rejected(tmp_path):
     config["purpose"] = "formal_pretraining"
     with pytest.raises(ValueError, match="audited server GPUs"):
         train.run_pretraining(config)
+    config["training"]["device"] = "cuda"
+    with pytest.raises(ValueError, match="30 complete epochs"):
+        train.run_pretraining(config)
 
 
 def _distributed_worker(rank, config, port):

@@ -40,7 +40,7 @@ def load_pretrained_student(
         or receipt.get("purpose") != purpose
         or config.get("purpose", "formal_pretraining") != purpose
         or epochs < 1
-        or (purpose == "formal_pretraining" and epochs != 2)
+        or (purpose == "formal_pretraining" and epochs != 30)
         or receipt.get("epochs") != epochs
         or receipt.get("epoch") != epochs
         or receipt.get("next_batch") != 0
@@ -49,7 +49,7 @@ def load_pretrained_student(
         or receipt.get("total_steps", 0) < 1
         or receipt.get("completed_steps") != receipt.get("total_steps")
     ):
-        raise ValueError("Pretraining run is incomplete or not the requested two-epoch formal campaign")
+        raise ValueError("Pretraining run is incomplete or not the requested 30-epoch formal campaign")
     progress = payload["progress"]
     if (
         not 1 <= progress["epoch"] <= epochs

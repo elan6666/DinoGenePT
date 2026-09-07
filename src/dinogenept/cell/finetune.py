@@ -33,7 +33,7 @@ from .transfer import load_pretrained_student
 
 @dataclass(frozen=True)
 class FineTuneOptions:
-    epochs: int = 10
+    epochs: int = 30
     accumulation: int = 4
     seed: int = 42
     device: str = "cuda"
@@ -160,8 +160,8 @@ def run_finetuning(config, *, resume=None):
         raise ValueError("Unknown fine-tuning purpose")
     if int(os.getenv("WORLD_SIZE", "1")) != 1:
         raise ValueError("This conditional-LoRA runner is one process per dataset, not static-graph DDP")
-    if purpose == "formal_finetuning" and (options.device != "cuda" or options.epochs != 10):
-        raise ValueError("Formal LoRA campaign requires CUDA and ten complete epochs")
+    if purpose == "formal_finetuning" and (options.device != "cuda" or options.epochs != 30):
+        raise ValueError("Formal LoRA campaign requires CUDA and 30 complete epochs")
     if options.device == "cuda":
         if torch.cuda.is_initialized():
             raise RuntimeError("Start each single-GPU fine-tuning job in a fresh process for explicit GPU isolation")

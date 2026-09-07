@@ -2,6 +2,12 @@
 
 ## Latest user override: GeneCompass human 500k (2026-09-07)
 
+- Source audit now pinned at upstream59e5e48: see
+  docs/GENECOMPASS_SOURCE_AUDIT.md. Example exports top2048 and only four
+  fields (no study/donor/cell IDs); active median division +log2(1+x), not
+  raw-count total normalization. Actual archive remains unverified; preserve
+  selected source but do not bypass provenance/continuous-scale gates.
+
 - Download human 50k/500k/5M archives on server; choose published human500k as
   current default, superseding Census. No automatic formal Census launch.
 - Download PID981950 / exec58135 confirmed live with growing500k .part;

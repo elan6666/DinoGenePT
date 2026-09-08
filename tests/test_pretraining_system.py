@@ -75,3 +75,38 @@ def test_collator_rejects_duplicate_cells():
     row = sample_crops([1, 2], [2, 4], 6, cell_id="duplicate", epoch=0, config=CropConfig())
     with pytest.raises(ValueError):
         collate_crops([row, row])
+
+
+def test_entire_global_without_masks_has_finite_losses_and_gradients():
+    model, batch = system_and_batch()
+    batch["views"][0]["hidden"].zero_()
+    batch["views"][0]["targets"].zero_()
+    losses = model(batch, step=1, total_steps=10)
+    assert all(torch.isfinite(x) for x in losses.values())
+    losses["total"].backward()
+    assert all(p.grad is not None and torch.isfinite(p.grad).all()
+               for p in model.student.parameters())
+
+
+def test_shared_head_is_same_module_but_centers_and_teacher_are_separate():
+    model, batch = system_and_batch()
+    assert model.student.cell_head is model.student.gene_head
+    assert model.teacher.cell_head is model.teacher.gene_head
+    assert model.teacher.cell_head is not model.student.cell_head
+    assert model.cell_center is not model.gene_center
+    assert model.gene_center.center.numel() == 16
+    assert len(list(model.student.parameters())) == len({id(p) for p in model.student.parameters()})
+    losses = model(batch, step=1, total_steps=10)
+    assert torch.isfinite(losses['ibot'])
+
+
+def test_independent_head_option_preserves_gene_prototypes():
+    original, batch = system_and_batch()
+    model = PretrainingSystem(original.student.backbone.config,
+                              HeadConfig(hidden=32, bottleneck=8, cell_prototypes=16,
+                                         gene_prototypes=12, ibot_separate_head=True))
+    assert model.student.cell_head is not model.student.gene_head
+    assert model.gene_center.center.numel() == 12
+    losses = model(batch, step=1, total_steps=10)
+    losses['total'].backward()
+    assert all(torch.isfinite(v) for v in losses.values())

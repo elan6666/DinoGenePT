@@ -1,7 +1,30 @@
 import numpy as np
 import pytest
 
-from dinogenept.cell.sampling import CropConfig, epoch_batches, sample_crops
+from dinogenept.cell.sampling import CropConfig, collate_crops, epoch_batches, sample_crops
+
+
+def test_batch_half_globals_share_twenty_percent_reconstruction_mask():
+    pytest.importorskip("torch")
+    rows = [sample_crops(np.arange(1, 101), np.ones(100), 100,
+                         cell_id=str(i), epoch=3,
+                         config=CropConfig(global_scale=(1., 1.))) for i in range(8)]
+    batch = collate_crops(rows)
+    repeat = collate_crops(rows)
+    masked = []
+    for index, view in enumerate(batch["views"]):
+        assert (view["targets"] == view["hidden"]).all()
+        assert not (view["hidden"] & ~view["valid"]).any()
+        assert (view["hidden"] == repeat["views"][index]["hidden"]).all()
+        if index < 2:
+            counts = view["hidden"].sum(-1)
+            assert ((counts == 0) | (counts == 20)).all()
+            masked.append(counts > 0)
+        else:
+            assert not view["hidden"].any()
+    assert sum(int(x.sum()) for x in masked) == 8
+    assert (masked[0] == masked[1]).any()  # not forced to exactly one per cell
+    assert all(row["views"][0]["targets"].sum() == 20 for row in rows)
 
 
 def test_continuous_crops_preserve_full_library_and_seed():

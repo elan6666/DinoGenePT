@@ -27,14 +27,15 @@
     "gradient_checkpointing": true,
     "norm_eps": 0.00001
   },
-  "heads": {"hidden": 2048, "bottleneck": 256, "cell_prototypes": 8192, "gene_prototypes": 4096},
+  "heads": {"hidden": 2048, "bottleneck": 256, "cell_prototypes": 8192, "gene_prototypes": 4096, "ibot_separate_head": false},
   "crops": {
     "cap": 2048,
     "local_count": 2,
     "global_scale": [0.4, 1.0],
     "local_scale": [0.05, 0.4],
     "target_fraction": 0.2,
-    "hidden_fraction": 0.8,
+    "hidden_fraction": 1.0,
+    "global_mask_probability": 0.5,
     "seed": 42
   },
   "training": {

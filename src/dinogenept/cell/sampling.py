@@ -1,6 +1,7 @@
 """Stateless continuous-expression crops; IDs/epoch determine all randomness.
 
-CellFM source supplies weighted input capping and 20%/80% target/hidden masks.
+CellFM source supplies weighted input capping. New defaults fully hide the
+20% reconstruction targets, with DINOv2-style batch-level global selection.
 Independent fractional crops, per-cell deterministic seeds and minimum-one
 mask guards are declared project adaptations. No bins or rank-valued tokens.
 """
@@ -19,7 +20,8 @@ class CropConfig:
     global_scale: tuple[float, float] = (0.4, 1.0)
     local_scale: tuple[float, float] = (0.05, 0.4)
     target_fraction: float = 0.2
-    hidden_fraction: float = 0.8
+    hidden_fraction: float = 1.0
+    global_mask_probability: float = 0.5
     seed: int = 42
 
     def __post_init__(self):
@@ -30,6 +32,8 @@ class CropConfig:
                 raise ValueError("Crop scales must lie in (0,1]")
         if not 0 < self.target_fraction <= 1 or not 0 < self.hidden_fraction <= 1:
             raise ValueError("Invalid reconstruction/hidden fraction")
+        if not 0 <= self.global_mask_probability <= 1:
+            raise ValueError("Invalid global mask probability")
 
 
 def cell_rng(seed: int, epoch: int, cell_id: str) -> np.random.Generator:
@@ -90,7 +94,8 @@ def sample_crops(gene_ids, counts, library_size: float | None, *, cell_id: str, 
                 "ratio": float(ratio),
             }
         )
-    return {"cell_id": str(cell_id), "capped_gene_ids": ids[indices].astype(np.int64), "views": views}
+    return {"cell_id": str(cell_id), "capped_gene_ids": ids[indices].astype(np.int64), "views": views,
+            "mask_policy": (config.global_mask_probability, config.seed, epoch)}
 
 
 def collate_crops(rows):
@@ -102,6 +107,15 @@ def collate_crops(rows):
     n_views = len(rows[0]["views"])
     if any(len(row["views"]) != n_views for row in rows):
         raise ValueError("Mixed view configurations")
+    policies = {tuple(row.get("mask_policy", (1.0, 42, 0))) for row in rows}
+    if len(policies) != 1:
+        raise ValueError("Mixed batch masking policies")
+    probability, seed, epoch = policies.pop()
+    # Select floor(2*B*p) globals across the whole per-rank batch, NOT one
+    # global per cell. Independent of worker scheduling, reproducible on resume.
+    rng = cell_rng(seed, epoch, "global-mask:" + repr([row["cell_id"] for row in rows]))
+    enabled = np.zeros(2 * len(rows), dtype=bool)
+    enabled[rng.permutation(len(enabled))[:int(len(enabled) * probability)]] = True
     batches = []
     for view_id in range(n_views):
         size = max(len(row["views"][view_id]["gene_ids"]) for row in rows)
@@ -120,6 +134,9 @@ def collate_crops(rows):
             length = len(view["gene_ids"])
             for key in ("gene_ids", "expression", "targets", "hidden"):
                 arrays[key][i, :length] = view[key]
+            if view_id < 2 and not enabled[view_id * len(rows) + i]:
+                arrays["targets"][i] = False
+                arrays["hidden"][i] = False
             arrays["valid"][i, :length] = True
         batches.append({key: torch.from_numpy(array) for key, array in arrays.items()})
     return {"cell_ids": [row["cell_id"] for row in rows], "views": batches}

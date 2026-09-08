@@ -26,6 +26,7 @@ class HeadConfig:
     bottleneck: int = 256
     cell_prototypes: int = 8192
     gene_prototypes: int = 4096
+    ibot_separate_head: bool = False
 
 
 class PretrainingNetwork(nn.Module):
@@ -34,7 +35,10 @@ class PretrainingNetwork(nn.Module):
         self.backbone = CellBackbone(backbone_config)
         width = backbone_config.width
         self.cell_head = ProjectionHead(width, head_config.cell_prototypes, head_config.hidden, head_config.bottleneck)
-        self.gene_head = ProjectionHead(width, head_config.gene_prototypes, head_config.hidden, head_config.bottleneck)
+        self.gene_head = (
+            ProjectionHead(width, head_config.gene_prototypes, head_config.hidden, head_config.bottleneck)
+            if head_config.ibot_separate_head else self.cell_head
+        )
         self.gene_expression = nn.Sequential(
             nn.Linear(width, width, bias=False), nn.LeakyReLU(0.2), nn.Linear(width, 1, bias=False)
         )
@@ -70,7 +74,7 @@ class PretrainingSystem(nn.Module):
         self.student = PretrainingNetwork(config, heads)
         self.teacher = deepcopy(self.student).requires_grad_(False).eval()
         self.cell_center = TeacherCenter(heads.cell_prototypes)
-        self.gene_center = TeacherCenter(heads.gene_prototypes)
+        self.gene_center = TeacherCenter(heads.gene_prototypes if heads.ibot_separate_head else heads.cell_prototypes)
 
     def train(self, mode=True):
         super().train(mode)

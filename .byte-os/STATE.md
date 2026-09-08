@@ -1,5 +1,14 @@
 # Active project state
 
+## 2026-09-08: training stopped; new mask/head defaults (current override)
+
+- User stopped all work/training/queries. Formal 50k run stopped at logged step
+  309/391; checkpoint and logs retained. Heartbeat dinogenept deleted.
+- Subsequent authorization is code-only: shared 20% iBOT/MSE hidden positions,
+  exactly half of batch globals masked, default shared DINO/iBOT projection.
+  See docs/DINO_MASK_HEAD_UPDATE.md. No training or capacity test restart.
+- Older running/monitor statements below are historical, superseded.
+
 ## 2026-09-08: user cancelled and cleaned 5M download (current override)
 
 - Deleted only server data/official/genecompass-human/randsel_500w_human.tar.gz.part

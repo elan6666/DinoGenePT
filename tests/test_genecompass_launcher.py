@@ -35,6 +35,16 @@ def test_accept_matching_successful_smoke(smoke):
     launcher.validate_smoke(config, root)
 
 
+def test_population_cannot_reuse_other_smoke(smoke):
+    config, root, save = smoke
+    config["published_cells"] = 50000
+    with pytest.raises(ValueError, match="population"):
+        launcher.validate_smoke(config, root)
+    previous = json.loads((root / "resolved_config.json").read_text())
+    save("resolved_config.json", {**previous, "published_cells": 50000})
+    launcher.validate_smoke(config, root)
+
+
 def test_shared_resource_policy_must_match(smoke):
     config, root, save = smoke
     with pytest.raises(ValueError, match="resource policy"):

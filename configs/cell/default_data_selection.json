@@ -1,10 +1,10 @@
 {
-  "dataset": "GeneCompass human 500k",
-  "status": "content_audited_vocabulary_and_loader_pending",
-  "archive": "data/official/genecompass-human/randsel_50w_human.tar.gz",
-  "source_file_id": "d46129ce14de622c4a07a1d1574dddaa",
-  "published_cells": 500000,
-  "training_split": "all_500000_published_cells",
+  "dataset": "GeneCompass human 50k",
+  "status": "explicit_user_switch_requires_matching_smoke",
+  "archive": "data/official/genecompass-human/randsel_5w_human.tar.gz",
+  "source_file_id": "be29663db8c11f4e59aaf2d572b699fe",
+  "published_cells": 50000,
+  "training_split": "all_50000_published_cells",
   "validation_split": "none",
   "downstream_overlap": "unknown_no_source_cell_metadata",
   "protocol": "genecompass_all_cells_one_epoch_no_validation",
@@ -14,7 +14,7 @@
   "pretraining_epochs": 1,
   "finetuning_epochs": 30,
   "finetuning_method": "lora",
-  "current_execution_scope": "human500k_full_one_epoch_pretraining_only",
+  "current_execution_scope": "human50k_full_one_epoch_pretraining_only",
   "required_audits": [
     "archive_integrity_and_actual_cell_count",
     "continuous_expression_scale_and_top2048_truncation",
@@ -23,5 +23,5 @@
     "frozen_all_cells_training_no_validation_protocol",
     "artifact_bound_model_vocabulary_and_training_config"
   ],
-  "note": "User approved all 500000 published cells for one epoch with no heldout validation. Training loss is not generalization evidence. No 5M training or perturbation fine-tuning. Launch remains gated on vocabulary, loader and real-data smoke verification."
+  "note": "User stopped500k training and selected the official50000-cell archive for a fresh one-epoch run. Preserve500k outputs; no implicit weight transfer. No heldout validation; training loss is not generalization evidence. No5M training or perturbation fine-tuning. Guarded launch requires matching50k smoke."
 }

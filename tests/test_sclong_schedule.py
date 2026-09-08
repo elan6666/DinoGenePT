@@ -48,9 +48,10 @@ def test_current_campaign_is_one_epoch_with_explicit_data_protocol():
     selection = json.loads((Path(__file__).parents[1] / "configs/cell/default_data_selection.json").read_text())
     assert selection["pretraining_epochs"] == 1
     assert selection["protocol"] == "genecompass_all_cells_one_epoch_no_validation"
-    assert selection["training_split"] == "all_500000_published_cells"
+    assert selection["training_split"] == "all_50000_published_cells"
+    assert selection["published_cells"] == 50000
     assert selection["validation_split"] == "none"
     assert selection["downstream_overlap"] == "unknown_no_source_cell_metadata"
     assert selection["finetuning_method"] == "lora"
     assert selection["launch_allowed"] is False
-    assert selection["current_execution_scope"] == "human500k_full_one_epoch_pretraining_only"
+    assert selection["current_execution_scope"] == "human50k_full_one_epoch_pretraining_only"

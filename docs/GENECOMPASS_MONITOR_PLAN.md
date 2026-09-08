@@ -1,5 +1,14 @@
 # GeneCompass adaptive handoff
 
+## Latest override: official50k, hourly reports
+
+User stopped500k and switched to a fresh official50k one-epoch run. Its old
+nonzeroexit is an intentional cancellation: do not restart or flag it as a new
+failure. Latest launch handles and acceptance are in
+[GENECOMPASS_50K_HANDOFF.md](GENECOMPASS_50K_HANDOFF.md) and STATE.
+Monitor the50k formal output and the unchanged5M downloader everyONEhour,
+reporting progress on every check. This overrides2hour/500k rules below.
+
 ## Current contract — September 8, user override
 
 Use ONE heartbeat, `dinogenept`, **every2hours**. Report progress on EVERY

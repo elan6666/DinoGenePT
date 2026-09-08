@@ -1,5 +1,10 @@
 # DinoGenePT
 
+Current run scope: user requested stopping500k and switching to the official
+GeneCompass50k subset for one fresh epoch. Old500k outputs remain preserved;
+see [50k switch and launch handoff](docs/GENECOMPASS_50K_HANDOFF.md) and STATE
+for live launch/validation evidence.5M remains download-only, hourly reports.
+
 Gene identity update (2026-09-08): native, frozen-HGNC identity audits and an
 opt-in knowledge adapter now link old names/approved symbols/Ensembl IDs without
 rewriting input axes or existing vectors. Missing identity, source text and

@@ -184,8 +184,11 @@ def run_pretraining(config: dict, *, resume: Path | None = None, smoke_one_step:
         from .genecompass_data import GeneCompassDataset
 
         dataset = GeneCompassDataset(manifest, crops)
-        if purpose == "formal_pretraining" and len(dataset) != 500000:
-            raise ValueError("Published protocol requires all500000 cells")
+        expected_cells = config.get("published_cells", 500000)
+        if expected_cells not in (50000, 500000):
+            raise ValueError("Published protocol supports explicitly selected50k/500k only")
+        if purpose == "formal_pretraining" and len(dataset) != expected_cells:
+            raise ValueError(f"Published protocol requires all{expected_cells} cells")
         validation = None
     else:
         dataset = PretrainingDataset(manifest, "train", crops)

@@ -18,6 +18,8 @@ def validate_smoke(config, smoke_root, shared_process=None):
         raise ValueError("Smoke process did not exit successfully")
     if previous.get("execution_mode") != "smoke_one_step":
         raise ValueError("Not an isolated smoke configuration")
+    if previous.get("published_cells", 500000) != config.get("published_cells", 500000):
+        raise ValueError("Smoke population differs")
     for key in ("backbone", "heads", "crops", "training", "data_manifest_sha256", "protocol"):
         if previous[key] != config[key]:
             raise ValueError(f"Smoke configuration differs: {key}")
@@ -49,23 +51,28 @@ def main():
     parser.add_argument("mode", choices=("smoke", "train"))
     parser.add_argument("--check-only", action="store_true")
     parser.add_argument("--share-with-process", help="explicitly authorized PID:Linux_start_ticks")
+    parser.add_argument("--cells", type=int, choices=(50000, 500000), default=500000)
     args = parser.parse_args()
     root = Path.cwd()
     if str(root) != "/data/yilangliu/DinoGenePT":
         raise ValueError("Run from the approved server project root")
     stem = "smoke" if args.mode == "smoke" else "one-epoch"
-    path = root / f".runtime/genecompass500k-mmap-{stem}-config.json"
+    label = f"genecompass{args.cells // 1000}k-mmap"
+    path = root / f".runtime/{label}-{stem}-config.json"
     config = json.loads(path.read_text())
     if (config.get("protocol") != "genecompass_all_cells_one_epoch_no_validation"
             or config["training"]["epochs"] != 1 or config["training"]["world_size"] != 2):
         raise ValueError("Wrong campaign configuration")
     if digest_file(config["data_manifest"]) != config["data_manifest_sha256"]:
         raise ValueError("Manifest changed")
+    manifest = json.loads(Path(config["data_manifest"]).read_text())
+    if config.get("published_cells", 500000) != args.cells or manifest["training_cells"] != args.cells:
+        raise ValueError("Launcher/config/data population differs")
     output = Path(config["output"]).resolve()
     if not output.is_relative_to(root / "results/pretraining") or output.exists():
         raise FileExistsError("Output must be a fresh project run directory")
     if args.mode == "train":
-        validate_smoke(config, root / "results/pretraining/genecompass500k-mmap-smoke-v1",
+        validate_smoke(config, root / f"results/pretraining/{label}-smoke-v1",
                        args.share_with_process)
     command = [str(root / ".venv/bin/torchrun"), "--standalone", "--nproc_per_node=2",
                "--no-python", str(root / ".venv/bin/dinogenept"), "pretrain", "--config", str(path)]

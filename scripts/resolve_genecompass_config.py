@@ -1,4 +1,4 @@
-"""Freeze the user-approved all500k, one-epoch, no-validation configuration."""
+"""Freeze an explicit official50k/500k, one-epoch, no-validation configuration."""
 
 import argparse
 import json
@@ -17,11 +17,13 @@ def main():
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--run-output", type=Path, required=True)
+    parser.add_argument("--expected-cells", type=int, choices=(50000, 500000), default=500000)
+    parser.add_argument("--reference-config", type=Path, default=Path("configs/cell/census500k_default_recipe.json"))
     args = parser.parse_args()
-    reference = json.loads(Path("configs/cell/census500k_default_recipe.json").read_text())
+    reference = json.loads(args.reference_config.read_text())
     crops = CropConfig(**reference["crops"])
     data = GeneCompassDataset(args.manifest, crops)
-    if len(data) != 500000 or data.gene_count != 23113:
+    if len(data) != args.expected_cells or data.gene_count != 23113:
         raise ValueError("Unexpected human corpus/vocabulary size")
     data.verify()
     backbone = {**reference["backbone"], "genes": data.gene_count}
@@ -33,6 +35,7 @@ def main():
         training={**reference["training"], "epochs": 1, "learning_rate": 5e-5,
                   "lr_scheduler": "sclong_epoch_restarts"},
         downstream_overlap="unknown", validation_policy="none_all_cells_train",
+        published_cells=args.expected_cells,
     )
     # New paths for smoke and formal runs; never replace an existing frozen config.
     if args.config.exists():

@@ -46,6 +46,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--archive", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--expected-cells", type=int, choices=(50000, 500000), default=500000)
     args = parser.parse_args()
     if args.output.exists():
         raise FileExistsError("Use a fresh output; never overwrite a materialization")
@@ -87,12 +88,12 @@ def main():
                 shards.append(dict(path=name, sha256=digest_file(args.output / name), cells=batch.num_rows))
                 rows += batch.num_rows
                 print(json.dumps(dict(rows=rows, shards=len(shards))), flush=True)
-    if rows != 500000:
-        raise ValueError("Expected exactly500000 cells")
+    if rows != args.expected_cells:
+        raise ValueError(f"Expected exactly{args.expected_cells} cells; got{rows}")
     atomic_write_json(args.output / "manifest.json", dict(
         schema="dinogenept.genecompass.continuous.v1", purpose="formal_pretraining",
         protocol="genecompass_all_cells_one_epoch_no_validation", downstream_overlap="unknown",
-        expression="genecompass_published_continuous", data_id="genecompass-human500k-v1",
+        expression="genecompass_published_continuous", data_id=f"genecompass-human{rows // 1000}k-v1",
         training_cells=rows, validation_cells=0, archive_sha256=receipt["sha256"],
         token_dictionary_sha256=token_sha, species_codes=sorted(species), shards=shards,
         vocabulary=dict(path="vocabulary.json", genes=len(genes), sha256=digest_file(args.output / "vocabulary.json")),

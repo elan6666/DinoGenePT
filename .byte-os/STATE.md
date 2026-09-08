@@ -1,5 +1,34 @@
 # Active project state
 
+## Official50k switch prepared Sep8 18:20 (latest)
+
+- User requested stopping500k and using the already downloaded official50k
+  subset. Verified torchrun1667217 received SIGTERM; ranks1667232/1667233
+  stopped and released GPUs. Co-tenant1456767 and5M downloader1768157 intact.
+  Old500k run/log/checkpoint retained; exit1 is USER STOP, do not restart or
+  report as a new fault. Last metrics544steps; savedlast.pt525steps/67200cells.
+- New official50k archive SHA3d4ed25f...8f8b: exactly50000rows, continuous
+  values,2Arrow files. Native50shards and losslessmmap data prepared. Manifest
+  data/pretraining/genecompass-human50k-mmap-v1/manifest.json SHA
+  73d490fc0e8fbfdb60f3827000d582daca15487ec80dc2438a1f53d3454d0d27.
+- New50k config backbone/heads/crops/training dicts equal prior500k config.
+  Fresh initialization,1epoch,no validation,same23113vocab,LR1e-6 throughout
+  this epoch, no new norm or HGNC remapping. Total391optimizer windows.
+- Matching real dualGPU smoke PASSED:1step/128cells,total190.30369 and
+  preclipnorm165715.953 finite,clip1.0,75.307s,exit0,checkpointSHA
+  46f932efe428ec26fff1fb620a581eb03cd15f3e174684e0a90c851098f07af2.
+  This is not completed pretraining or convergence; initial DINO ramp0.
+- Validation:209 full CPU-isolated server tests on code changes;18 targeted
+  local/server tests including updated50k selection;Ruff/localbuild passed.
+  Launcher now requires explicit--cells50000 and matching population smoke.
+- Formal launch INTENT after prep goal completion: tmux
+  dinogenept-genecompass50k-train; log.runtime/genecompass50k-train.log;
+  output results/pretraining/genecompass50k-mmap-one-epoch-v1, config
+  .runtime/genecompass50k-mmap-one-epoch-config.json. Not launched at this entry.
+  See docs/GENECOMPASS_50K_HANDOFF.md. After launch verify actual progress and
+  restore SAME dinogenept monitor every1h/report everycheck for50k+5M download.
+  Monitor paused during preparation, no overlapping activegoal/query.
+
 ## Unified gene identity delivered Sep8 16:30 (latest)
 
 - New opt-in native GeneIdentityIndex/SourceIdentityIndex, CLI

@@ -1,5 +1,53 @@
 # Unified human gene identity
 
+## Source-ID repair (2026-09-09, v3)
+
+The v2 name-only Jurkat audit below is historical. Its builder discarded the
+Ensembl IDs already present in the original/canonical H5AD metadata. The v3
+builder reads hash-verified `var.index` and original `obs.gene_id`, including
+legacy H5AD categorical references; it does not deserialize expression X.
+Canonical gene labels/order and the frozen condition split remain unchanged.
+
+Server bundle: `data/vocabulary/genecompass50k-jurkat-source-ensembl-v3`.
+It contains **20781 Ensembl keys,20782 rows including PAD0**, of which954 keys
+are absent from the observed50k set. Coverage is19827/19827 observed50k,
+6506/6506 Jurkat graph,5000/5000 expression axis and2372/2372 perturbation targets.
+Every source mapping has zero missing tokens and zero duplicate identities;
+all50000 cells remain free of mapped-token collisions. Split1335/445/592 stays
+unchanged. See [compact receipt](results/JOINT_VOCABULARY_SOURCE_V3_20260909.json).
+Coverage does not mean all IDs have present-day HGNC annotation:59 graph IDs
+(55 expression IDs and5 target IDs, overlapping sets) are source-verified but
+unverified in the frozen HGNC snapshot.
+
+Dataset identity and present-day annotation are distinct. Source feature IDs
+define the original expression columns, and source guide IDs define perturbation
+targets. Both must agree for a target on the graph axis. Name-only fallbacks
+still require one strict HGNC match; no name-only conflict is silently accepted.
+Original source names, ID evidence, modern HGNC annotation and contradictions
+are recorded separately. The generic `standardize` conflict gate is unchanged.
+
+- QARS uses original ENSG00000172053, resolving the name ambiguity.
+- C20orf197 uses original ENSG00000176659, whereas MIR646HG uses
+  ENSG00000228340. Do not merge their columns merely because an old-name lookup
+  reaches the same HGNC record. The former source ID is not verified by this
+  HGNC snapshot and remains explicitly labelled as source-verified only.
+- Graph-only MTRNR2L1 has source guide ID ENSG00000256618.
+- Historical label HSPA14 has feature AND guide ID ENSG00000284024, which the
+  frozen HGNC snapshot annotates as MSANTD7. Preserve the original dataset ID
+  and flag `annotation_conflict`; do not relabel its perturbation to modern
+  HSPA14 (ENSG00000187522). The latter is a separate original expression column.
+  This preserves benchmark identity, not proof of guide biological specificity.
+- PRSS50 has a missing original guide-ID field. Any fallback uses source feature
+  identity or strict HGNC evidence and remains marked `guide_id_missing`.
+  This build uses the unique HGNC:17910 / ENSG00000283706 match.
+
+This repair is a versioned vocabulary/mapping artifact, not a positional swap
+into old training shards/checkpoints. Activation must remap shard token IDs and
+bind vocabulary hashes/configuration; knowledge texts must join by audited ID,
+never by a contradictory historical symbol such as HSPA14. No training starts
+as part of vocabulary repair. Transductive use of downstream gene identities
+is disclosed; downstream expression outcomes are not used to build the table.
+
 ## Primary-key standard (2026-09-09)
 
 New vocabularies use versionless Ensembl Gene IDs, not HGNC IDs or gene names,
@@ -16,7 +64,7 @@ Ensembl annotation validity. Original labels,HGNC identity/symbol and sources
 remain in the audit. The legacy `resolve`/knowledge opt-in behavior is preserved;
 historical datasets and vector files are not automatically migrated.
 
-The new bundle is `data/vocabulary/genecompass50k-jurkat-ensembl-v2` on the server.
+The historical v2 bundle is `data/vocabulary/genecompass50k-jurkat-ensembl-v2` on the server.
 It contains20685 Ensembl keys (+PAD0),19827 observed50k genes and858 added keys.
 Unmapped Jurkat rows:graph98,expression95,targets1 (QARS). Lists overlap; do not
 sum them as distinct genes. All unmapped rows retain source order and sentinel-1

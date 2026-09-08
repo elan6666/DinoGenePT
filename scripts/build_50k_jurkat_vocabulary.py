@@ -15,6 +15,7 @@ import numpy as np
 from dinogenept.cell.genecompass_data import GeneCompassDataset
 from dinogenept.cell.sampling import CropConfig
 from dinogenept.gene_identity import GeneIdentityIndex
+from dinogenept.jurkat_identity import load_jurkat_source_ids, source_id_record
 from dinogenept.provenance import atomic_write_json, digest_file
 
 
@@ -28,7 +29,7 @@ def build(manifest, jurkat, hgnc, hgnc_sha256, output):
         raise FileExistsError(output)
     paths = [manifest, hgnc, jurkat / 'canonical/graph_gene_ids.txt',
              jurkat / 'canonical/expression_gene_ids.txt', jurkat / 'manifests/split.json',
-             jurkat / 'manifests/canonical.json']
+             jurkat / 'manifests/canonical.json', jurkat / 'manifests/source.json']
     hashes = {str(p.resolve()): digest_file(p) for p in paths}
     identity = GeneIdentityIndex(hgnc, expected_sha256=hgnc_sha256)
     data = GeneCompassDataset(manifest, CropConfig())
@@ -58,13 +59,33 @@ def build(manifest, jurkat, hgnc, hgnc_sha256, output):
         raise ValueError('Conditions overlap across splits')
     targets = sorted({g for c in sum(conditions, []) for g in c.split('+')
                       if g != split['control_condition_id']})
+    source_manifest = json.loads(paths[6].read_text())
+    axis_ids, target_ids, source_proofs = load_jurkat_source_ids(jurkat, canonical, source_manifest, graph)
+    hashes.update(source_proofs)
     sources = {'50k_observed': observed, 'jurkat_graph': graph,
                'jurkat_expression': expression, 'jurkat_targets': targets}
     entries, records = {}, {}
     for source, labels in sources.items():
         records[source] = []
         for label in labels:
-            key, row = token_identity(identity, label, trusted_ensembl=source == '50k_observed')
+            if source == 'jurkat_targets':
+                if label in target_ids:
+                    row = source_id_record(identity, label, target_ids[label], 'source.obs.gene_id')
+                    key = row['standard_ensembl_id']
+                elif label in axis_ids:
+                    gene_id, proof = axis_ids[label]
+                    row = source_id_record(identity, label, gene_id, proof)
+                    row['guide_id_missing'] = True
+                    key = row['standard_ensembl_id']
+                else:
+                    key, row = token_identity(identity, label)
+                    row['guide_id_missing'] = True
+            elif source.startswith('jurkat') and label in axis_ids:
+                gene_id, proof = axis_ids[label]
+                row = source_id_record(identity, label, gene_id, proof)
+                key = row['standard_ensembl_id']
+            else:
+                key, row = token_identity(identity, label, trusted_ensembl=source == '50k_observed')
             record = {**row, 'token_key': key}
             records[source].append(record)
             if key is None:
@@ -93,6 +114,13 @@ def build(manifest, jurkat, hgnc, hgnc_sha256, output):
     unresolved = {s: dict(Counter(r['status'] for r in rows)) for s, rows in records.items()}
     duplicates = {s: {str(k): n for k, n in Counter(ids).items() if n > 1 and k > 0}
                   for s, ids in mappings.items()}
+    graph_map = dict(zip(graph, mappings['jurkat_graph'], strict=True))
+    target_conflicts = [g for g, token in zip(targets, mappings['jurkat_targets'], strict=True)
+                        if graph_map.get(g) != token]
+    if any(-1 in ids for ids in mappings.values()) or any(duplicates.values()) or target_conflicts:
+        missing = {s: [r['original_label'] for r in rows if r['token_key'] is None]
+                   for s, rows in records.items()}
+        raise ValueError(f'Invalid mapping: missing={missing}, duplicates={duplicates}, conflicts={target_conflicts}')
     for p in paths:
         if digest_file(p) != hashes[str(p.resolve())]:
             raise ValueError('Source changed during build')
@@ -107,7 +135,7 @@ def build(manifest, jurkat, hgnc, hgnc_sha256, output):
     write('unresolved.json', {s: [r for r in rows if r['token_key'] is None] for s, rows in records.items()})
     write('token_sources.json', {key: {k: sorted(v) for k, v in item.items()} for key, item in entries.items()})
     pre_keys = {r['token_key'] for r in records['50k_observed']}
-    receipt = dict(schema='dinogenept.independent-vocabulary.v2',
+    receipt = dict(schema='dinogenept.independent-vocabulary.v3',
                    old_vocabulary_genes=len(old), observed_50k_genes=len(observed),
                    union_genes=len(union), embedding_rows=len(union) + 1,
                    jurkat_only_identities=len(set(union) - pre_keys),
@@ -115,11 +143,14 @@ def build(manifest, jurkat, hgnc, hgnc_sha256, output):
                    split_counts=dict(zip(('train', 'val', 'test'), map(len, conditions), strict=True)),
                    identity_status=unresolved, duplicate_identity_tokens=duplicates,
                    unmapped_rows={s: ids.count(-1) for s, ids in mappings.items()},
+                   annotation_conflicts={s: [r for r in rows if r.get('annotation_conflict')]
+                                         for s, rows in records.items()},
+                   missing_guide_ids=[r for r in records['jurkat_targets'] if r.get('guide_id_missing')],
                    pretraining_collision_cells=collision_cells, inputs_sha256=hashes,
                    vocabulary_source_sha256=digest_file(vocab_path),
-                   token_policy='Ensembl primary; HGNC verification; unresolved names audited as -1',
+                   token_policy='Source Ensembl primary; original feature/guide evidence; HGNC annotation audited',
                    downstream_values_read=False, active_dataset_rewritten=False,
-                   readiness='identity_audit_required_before_dataset_migration',
+                   readiness='complete_source_identity_mapping_not_dataset_migration',
                    source_sha256=digest_file(Path(__file__)))
     receipt['outputs_sha256'] = {p.name: digest_file(p) for p in output.glob('*.json')}
     write('receipt.json', receipt)

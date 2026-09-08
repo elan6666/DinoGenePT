@@ -1,0 +1,176 @@
+{
+  "bundle": "data/vocabulary/genecompass50k-jurkat-source-ensembl-v3",
+  "receipt_sha256": "ab31d9cbc6060630fb1d229ed2fb07816088b378531f815968b7ba1f24df0a82",
+  "receipt": {
+    "active_dataset_rewritten": false,
+    "annotation_conflicts": {
+      "50k_observed": [],
+      "jurkat_expression": [],
+      "jurkat_graph": [
+        {
+          "annotation_conflict": true,
+          "approved_symbol": "MSANTD7",
+          "candidates": [
+            "HGNC:56248"
+          ],
+          "ensembl_id": "ENSG00000284024",
+          "hgnc_ensembl_ids": [
+            "ENSG00000284024"
+          ],
+          "hgnc_id": "HGNC:56248",
+          "match": "ensembl_id",
+          "name_id_check": {
+            "approved_symbol": null,
+            "candidates": [
+              "HGNC:29526",
+              "HGNC:56248"
+            ],
+            "ensembl_id": "ENSG00000284024",
+            "hgnc_id": null,
+            "match": null,
+            "original_ensembl_id": "ENSG00000284024",
+            "original_label": "HSPA14",
+            "status": "conflict"
+          },
+          "original_ensembl_id": "ENSG00000284024",
+          "original_label": "HSPA14",
+          "source_evidence": "source.var.index+canonical.var.index",
+          "standard_ensembl_id": "ENSG00000284024",
+          "standardization_status": "source_id_with_annotation_conflict",
+          "status": "resolved",
+          "token_key": "ENSG00000284024"
+        }
+      ],
+      "jurkat_targets": [
+        {
+          "annotation_conflict": true,
+          "approved_symbol": "MSANTD7",
+          "candidates": [
+            "HGNC:56248"
+          ],
+          "ensembl_id": "ENSG00000284024",
+          "hgnc_ensembl_ids": [
+            "ENSG00000284024"
+          ],
+          "hgnc_id": "HGNC:56248",
+          "match": "ensembl_id",
+          "name_id_check": {
+            "approved_symbol": null,
+            "candidates": [
+              "HGNC:29526",
+              "HGNC:56248"
+            ],
+            "ensembl_id": "ENSG00000284024",
+            "hgnc_id": null,
+            "match": null,
+            "original_ensembl_id": "ENSG00000284024",
+            "original_label": "HSPA14",
+            "status": "conflict"
+          },
+          "original_ensembl_id": "ENSG00000284024",
+          "original_label": "HSPA14",
+          "source_evidence": "source.obs.gene_id",
+          "standard_ensembl_id": "ENSG00000284024",
+          "standardization_status": "source_id_with_annotation_conflict",
+          "status": "resolved",
+          "token_key": "ENSG00000284024"
+        }
+      ]
+    },
+    "downstream_values_read": false,
+    "duplicate_identity_tokens": {
+      "50k_observed": {},
+      "jurkat_expression": {},
+      "jurkat_graph": {},
+      "jurkat_targets": {}
+    },
+    "embedding_rows": 20782,
+    "identity_status": {
+      "50k_observed": {
+        "ambiguous": 1,
+        "resolved": 18026,
+        "unverified_ensembl_id": 1800
+      },
+      "jurkat_expression": {
+        "resolved": 4945,
+        "unverified_ensembl_id": 55
+      },
+      "jurkat_graph": {
+        "resolved": 6447,
+        "unverified_ensembl_id": 59
+      },
+      "jurkat_targets": {
+        "resolved": 2367,
+        "unverified_ensembl_id": 5
+      }
+    },
+    "inputs_sha256": {
+      "/data/yilangliu/DinoGenePT/data/hgnc/2026-08-28/hgnc_complete_set.txt": "0615a070f1628e6727953f67ad9248dd0f0ddbb16d41a7b40e06aa852fc3f448",
+      "/data/yilangliu/DinoGenePT/data/pretraining/genecompass-human50k-mmap-v1/manifest.json": "73d490fc0e8fbfdb60f3827000d582daca15487ec80dc2438a1f53d3454d0d27",
+      "/data/yilangliu/GraD-Pert/data/nadig_jurkat/within_cell_unseen_single/canonical/adata.h5ad": "65b32637b24e6ee6d3399b3280d914dcedc34bf787098c3e9e14a47ebe80cbb5",
+      "/data/yilangliu/GraD-Pert/data/nadig_jurkat/within_cell_unseen_single/canonical/expression_gene_ids.txt": "b713f1fe7e3cf05371668326973fc323a1a2d3c1382163a7fa842218e983c09b",
+      "/data/yilangliu/GraD-Pert/data/nadig_jurkat/within_cell_unseen_single/canonical/graph_gene_ids.txt": "2daf623a932ecb559fa96f34ea8e414a6940253162116b0b78c10746ded4a646",
+      "/data/yilangliu/GraD-Pert/data/nadig_jurkat/within_cell_unseen_single/manifests/canonical.json": "3aeb295de28bcde1c0fb48e97951db5d2656ce407a51bb3c9ebc246bb8611f87",
+      "/data/yilangliu/GraD-Pert/data/nadig_jurkat/within_cell_unseen_single/manifests/source.json": "ffaa5c28cea37d320abd8bad91b468aad905b1635e2c0e98fcbd6c582e3cdc94",
+      "/data/yilangliu/GraD-Pert/data/nadig_jurkat/within_cell_unseen_single/manifests/split.json": "d8807af3f03f4ba6c57ddb4f77acdb915b3b180592bca4ba1619f3e49cbe6890",
+      "/data/yilangliu/GraD-Pert/data/nadig_jurkat/within_cell_unseen_single/source/GSE264667_jurkat_raw_singlecell_01.h5ad": "ffbe15f2c8f7ffcfd7b0ba9e6937d4ebc2d03b0179fa8234648a59bcb82c04a3"
+    },
+    "jurkat_only_identities": 954,
+    "missing_guide_ids": [
+      {
+        "approved_symbol": "PRSS50",
+        "candidates": [
+          "HGNC:17910"
+        ],
+        "ensembl_id": null,
+        "guide_id_missing": true,
+        "hgnc_ensembl_ids": [
+          "ENSG00000283706"
+        ],
+        "hgnc_id": "HGNC:17910",
+        "match": "approved_symbol",
+        "original_ensembl_id": null,
+        "original_label": "PRSS50",
+        "standard_ensembl_id": "ENSG00000283706",
+        "standardization_status": "verified",
+        "status": "resolved",
+        "token_key": "ENSG00000283706"
+      }
+    ],
+    "observed_50k_genes": 19827,
+    "old_vocabulary_genes": 23113,
+    "outputs_sha256": {
+      "50k_observed_vocabulary.json": "0953a82ea1357410435ed8423abac6ab54038c8a4592b88cb963f0fa900fc11a",
+      "identity_audit.json": "d7f35d0026c01985c05aa5166b7323404c928f46a9989ab053211c5be205a1eb",
+      "old_to_new.json": "54984d42fa1124eff523e3618d644c1eedbd134c052af76a172d2a6e77d3d895",
+      "source_token_ids.json": "6fdaf862ccee21fd9426235a0a65e2ed66631f5407c05e99ad9dc14de9e2e5cd",
+      "token_sources.json": "2f5fc592b2472dae0cf41a7fbe75d7777f920698ae7608e8a601719eb6d8cf6b",
+      "unresolved.json": "dbe7344e92d4a85e4b2ee5713b2372b2c424fca4a3edadfbd8f8a756a242b973",
+      "vocabulary.json": "06f7de07d6d5a1f6112f413b5740696521ac58ea673489deeb28d00c2efa82e8"
+    },
+    "pretraining_collision_cells": 0,
+    "readiness": "complete_source_identity_mapping_not_dataset_migration",
+    "schema": "dinogenept.independent-vocabulary.v3",
+    "source_counts": {
+      "50k_observed": 19827,
+      "jurkat_expression": 5000,
+      "jurkat_graph": 6506,
+      "jurkat_targets": 2372
+    },
+    "source_sha256": "fb501f7322ab3a714d816cd0c1c800a9e0430c1e10769551c0c8ddf3218fdefa",
+    "split_counts": {
+      "test": 592,
+      "train": 1335,
+      "val": 445
+    },
+    "token_policy": "Source Ensembl primary; original feature/guide evidence; HGNC annotation audited",
+    "union_genes": 20781,
+    "unmapped_rows": {
+      "50k_observed": 0,
+      "jurkat_expression": 0,
+      "jurkat_graph": 0,
+      "jurkat_targets": 0
+    },
+    "vocabulary_source_sha256": "817da6574fdf366f30ba8aa4b87b11a40b966b6f8d348178c72b9be2ac79f656"
+  }
+}

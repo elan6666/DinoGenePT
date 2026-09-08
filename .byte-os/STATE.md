@@ -1,5 +1,20 @@
 # Active project state
 
+## 2026-09-09: source-ID union v3 repair
+
+- New server bundle data/vocabulary/genecompass50k-jurkat-source-ensembl-v3:
+  20781 Ensembl keys plus PAD0;19827 observed50k and954 additional keys.
+- Complete mappings:50k19827,Jurkat graph6506,expression5000,targets2372;
+  zero unmapped or duplicate IDs,zero50k cell collisions. Split unchanged.
+- Read hash-bound original/canonical H5AD feature and guide IDs, including
+  legacy categorical decoding. No expression X deserialization or mutation.
+- Preserve source HSPA14 ID with explicit HGNC annotation conflict; PRSS50
+  missing guide ID uses unique HGNC match. Generic conflict resolver stays strict.
+- v1/v2 retained as historical audits; no shard/config/checkpoint migration,
+  training or monitoring started. See docs/GENE_IDENTITY.md for activation gates.
+-27 focused server CPU tests passed; local optional AnnData/Torch tests skip
+  when unavailable. Source/config synchronization is distinct from data migration.
+
 ## 2026-09-09: Ensembl-primary standard and union v2
 
 - Durable standard added to AGENTS.md and shared GeneIdentityIndex.standardize.

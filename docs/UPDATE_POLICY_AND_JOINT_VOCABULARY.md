@@ -39,6 +39,10 @@ silently migrated.
 
 ## Independent vocabulary bundle
 
+Historical v1 results below are superseded by the source-ID v3 repair in
+[gene identity documentation](GENE_IDENTITY.md). Preserve them as lineage,
+not the current mapping or activation status.
+
 Server directory: `/data/yilangliu/DinoGenePT/data/vocabulary/genecompass50k-jurkat-v1`.
 Old active vocabulary/data/checkpoints remain untouched. Source GraD-Pert files
 are read-only. No Jurkat expression values, outcomes or evaluation predictions

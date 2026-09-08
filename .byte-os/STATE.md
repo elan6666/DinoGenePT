@@ -1,5 +1,10 @@
 # Active project state
 
+## 2026-09-09: user-selected global batch256
+
+- Active50k tiny recipe:128 cells/GPU *2 GPUs *accumulation1 =256.
+  DINOv2 scaled peak LR1e-4. No formal training or monitor launched.
+
 ## 2026-09-09: active 50k tiny-model configuration and pressure-test result
 
 - New50k resolver defaults to configs/cell/genecompass50k_500k_recipe.json:

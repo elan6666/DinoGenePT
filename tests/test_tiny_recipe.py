@@ -17,6 +17,7 @@ def test_tiny_recipe_parameter_budget_and_preserved_objectives():
     assert abs(count - 500000) / 500000 < .01
     assert cfg['backbone']['genes'] == 23113 and cfg['backbone']['depth'] == 12
     assert cfg['training']['accumulation'] == 1
+    assert cfg['training']['microbatch'] * cfg['training']['world_size'] == 256
     assert cfg['heads']['cell_prototypes'] == 8192
     assert cfg['crops']['cap'] == 2048
 

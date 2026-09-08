@@ -56,8 +56,11 @@ default, full reduced-model backward, DINO/iBOT shared/independent heads and EMA
 
 Tested boundary190 per GPU; long-run stability is not asserted. Recommend
 160 per GPU for headroom (not a formal launch or full-epoch guarantee).
-Recipe microbatch4 remains an initial conservative setting, pressure-test CLI
-overrides it; choose a fresh resolved run config before any formal launch.
+Follow-up user choice: recipe microbatch128, two GPUs, accumulation1 = global
+batch256. Scaled peak LR1e-4. For50000 cells and1epoch:196 updates,31 warmup
+updates (floor16%). This exact batch was not separately pressure-tested;
+larger batches above passed. Pressure receipts retain their original recipe
+hash; choose a fresh resolved run config before any formal launch.
 B190 warmed updates ~4.6–4.7s,~81–82 cells/s, allocated30.12GiB,
 reserved30.28GiB. B160 allocated25.52GiB. Timings exclude loader and use
 repeated fixed cells, so are not end-to-end epoch speed guarantees.

@@ -1,5 +1,16 @@
 # Active project state
 
+## 2026-09-08: user cancelled and cleaned 5M download (current override)
+
+- Deleted only server data/official/genecompass-human/randsel_500w_human.tar.gz.part
+  (12,937,330,688 bytes). Downloader had already exited after a read timeout.
+  Logs remain for history; the partial archive cannot be resumed after deletion.
+- Keep official 50k/500k archives, materialized data and all training checkpoints.
+  The 50k formal tmux remains active. No other GPU job was stopped.
+- Heartbeat dinogenept remains hourly with a report each check, now training-only.
+  Do not restart the cancelled 5M download or treat its missing file as a failure.
+  Earlier download obligations below are historical and superseded.
+
 ## Official50k formal RUNNING Sep8 18:23:40 (latest)
 
 - Preparation goal completed, then new formal launch started18:22 in tmux

@@ -1,5 +1,25 @@
 # Active project state
 
+## Running shared-GPU pretraining (Sep8 09:30, authoritative)
+
+- User-authorized dual-card sharing is now ACTIVE, not waiting for idleGPU0.
+  Queue tmux dinogenept-genecompass-shared; shell1666463 started09:28:21.
+  Source9ed3dc5, log .runtime/genecompass-shared-queue.log, terminal .exit.
+- Real dual-rank smoke PASSED:1step/128cells, finite loss191.0886254 and
+  preclip gradient norm165886.828125, clip1.0, LR1e-6;62.815s/step,
+  2.038cells/s; peak allocated21119391232bytes max rank. Initial distillation
+  ramp weight0, so this is launch/numerical smoke, not all-loss convergence.
+  smoke.pt SHA dddff66cb9880495abdf21913e6582f62be8e6a334810eeabcf5d2af2cf02329;
+  smoke_completed receipt and process exit0 verified. Not formal result.
+- Formal run started after matching-smoke gate, ranks1667232/1667233 at09:30.
+  Output results/pretraining/genecompass500k-mmap-one-epoch-v1. Same frozen
+  all500k/no-validation/1epoch config. No completion receipt yet.
+  Co-tenant1456767 still live at4302MiB; no other task modified or terminated.
+- Heartbeat remains PAUSED per user, no automatic future checks scheduled.
+  Queue runs independently. On next user check inspect formal metrics/exit/
+  completion and retained download; don't recreate goal simply to wait.
+  End-to-end duration not established by the one smoke step; no speed promise.
+
 ## User-authorized GPU sharing (latest; supersedes exclusive wait)
 
 - User explicitly allows dual-GPU DinoGenePT concurrent with the other task.

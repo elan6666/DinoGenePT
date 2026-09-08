@@ -277,6 +277,9 @@ def run_pretraining(config: dict, *, resume: Path | None = None, smoke_one_step:
                 epoch=epoch,
                 step=step,
                 total_steps=total_steps,
+                batch=training["microbatch"] * world * training["accumulation"],
+                warmup_fraction=training.get("lr_warmup_fraction", 0.16),
+                min_lr=training.get("min_learning_rate", 1e-6),
             )
             for group in optimizer.param_groups:
                 group["lr"] = current_lr

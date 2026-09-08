@@ -1,5 +1,12 @@
 # Active project state
 
+## 2026-09-08: LR-only DINOv2 alignment
+
+- Future recipe/resolver now use sqrt batch scaling with base2e-4 at1024,
+  step-level 16% linear warmup then cosine to1e-6, no restarts.
+  Details: docs/DINOV2_LR_UPDATE.md. EMA and other optimizer settings unchanged.
+- Training/queries remain stopped. Old resolved configs/checkpoints untouched.
+
 ## 2026-09-08: training stopped; new mask/head defaults (current override)
 
 - User stopped all work/training/queries. Formal 50k run stopped at logged step

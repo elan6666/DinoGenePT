@@ -32,8 +32,7 @@ def main():
         data_manifest=str(args.manifest.resolve()), data_manifest_sha256=digest_file(args.manifest),
         output=str(args.run_output.resolve()), backbone=asdict(BackboneConfig(**backbone)),
         heads=asdict(HeadConfig(**reference["heads"])), crops=asdict(crops),
-        training={**reference["training"], "epochs": 1, "learning_rate": 5e-5,
-                  "lr_scheduler": "sclong_epoch_restarts"},
+        training={**reference["training"], "epochs": 1},
         downstream_overlap="unknown", validation_policy="none_all_cells_train",
         published_cells=args.expected_cells,
     )

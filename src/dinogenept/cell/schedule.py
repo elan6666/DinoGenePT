@@ -29,7 +29,35 @@ def sclong_learning_rate(epoch: int, *, max_lr: float = 5e-5) -> float:
     return 1e-6 + (peak - 1e-6) * (1 + math.cos(math.pi * (position - 5) / (length - 5))) / 2
 
 
-def learning_rate(name: str, peak: float, *, epoch: int, step: int, total_steps: int) -> float:
+def dinov2_learning_rate(base_lr: float, *, batch: int, step: int, total_steps: int,
+                        warmup_fraction: float = 0.16, min_lr: float = 1e-6) -> float:
+    """Official sqrt_wrt_1024 and CosineScheduler indexing; no cycle restarts.
+
+    Adaptation: floor(0.16 * total_steps) warmup instead of fixed 100k/625k.
+    Batch includes accumulation in our runner; upstream does not accumulate.
+    """
+    if (batch < 1 or total_steps < 1 or step < 0 or not 0 <= warmup_fraction < 1
+            or not math.isfinite(base_lr) or base_lr <= 0
+            or not math.isfinite(min_lr) or min_lr < 0):
+        raise ValueError("Invalid DINOv2 schedule")
+    peak = base_lr * math.sqrt(batch / 1024)
+    if min_lr > peak:
+        raise ValueError("Minimum LR exceeds scaled peak")
+    if step >= total_steps:
+        return min_lr
+    warmup = int(total_steps * warmup_fraction)
+    if step < warmup:
+        return peak * step / max(1, warmup - 1)
+    return min_lr + 0.5 * (peak - min_lr) * (
+        1 + math.cos(math.pi * (step - warmup) / (total_steps - warmup))
+    )
+
+
+def learning_rate(name: str, peak: float, *, epoch: int, step: int, total_steps: int,
+                  batch: int = 1024, warmup_fraction: float = 0.16, min_lr: float = 1e-6) -> float:
+    if name == "dinov2_step_cosine":
+        return dinov2_learning_rate(peak, batch=batch, step=step, total_steps=total_steps,
+                                   warmup_fraction=warmup_fraction, min_lr=min_lr)
     if name == "sclong_epoch_restarts":
         return sclong_learning_rate(epoch, max_lr=peak)
     if name != "legacy_step_cosine":

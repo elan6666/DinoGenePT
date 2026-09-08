@@ -1,5 +1,20 @@
 # Active project state
 
+## Official50k formal RUNNING Sep8 18:23:40 (latest)
+
+- Preparation goal completed, then new formal launch started18:22 in tmux
+  dinogenept-genecompass50k-train (shell1843115, ranks1843159/1843160).
+  Log.runtime/genecompass50k-train.log; output
+  results/pretraining/genecompass50k-mmap-one-epoch-v1. First real step verified:
+  1/391steps,128/50000cells,total190.30369 andpreclipnorm165714.84 finite,
+  LR1e-6,62.486s/step,2.048cells/s. Exit absent; still running, not complete.
+-5M download continues12786335744/25676724557bytes at~82053bytes/s since
+  resume. OtherGPUtask unaffected. Old500k stays user-stopped, do not restart.
+- Code/preparation commit1bd1024; compact preparation receipt in
+  docs/results/GENECOMPASS_50K_PREPARATION.json. Restore existingdinogenept
+  heartbeat ACTIVE every1hour, report both50k training and5M download each time.
+  Never wait for500k completion; new acceptance is50000cells/391steps/1epoch.
+
 ## Official50k switch prepared Sep8 18:20 (latest)
 
 - User requested stopping500k and using the already downloaded official50k

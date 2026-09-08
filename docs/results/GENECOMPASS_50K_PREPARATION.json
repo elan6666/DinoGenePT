@@ -1,0 +1,62 @@
+{
+  "schema": "dinogenept.50k-preparation.v1",
+  "data_cells": 50000,
+  "shards": 50,
+  "vocabulary": {
+    "genes": 23113,
+    "path": "vocabulary.json",
+    "sha256": "817da6574fdf366f30ba8aa4b87b11a40b966b6f8d348178c72b9be2ac79f656"
+  },
+  "archive_sha256": "3d4ed25fa8dd48f616fd6267e9647fc55fcf1da2b0467d95e634a7db80c38f8b",
+  "manifest_sha256": "73d490fc0e8fbfdb60f3827000d582daca15487ec80dc2438a1f53d3454d0d27",
+  "formal_config_sha256": "945ad7f7036fdb0032b90b2dcb6de9275200b84ac96dba8044aadbdf8aae0768",
+  "archive_audit_sha256": "29b7e9c46210008c865d72b96009a90dd39f18869ecf13ec767eb4d78e6bd8ce",
+  "smoke": {
+    "best_validation": null,
+    "cells_seen": 128,
+    "checkpoint_sha256": "46f932efe428ec26fff1fb620a581eb03cd15f3e174684e0a90c851098f07af2",
+    "completed_steps": 1,
+    "data_manifest_sha256": "73d490fc0e8fbfdb60f3827000d582daca15487ec80dc2438a1f53d3454d0d27",
+    "data_purpose": "formal_pretraining",
+    "epoch": 0,
+    "formal_transfer_eligible": false,
+    "full_epoch_completed": false,
+    "next_batch": 16,
+    "purpose": "smoke_one_step",
+    "status": "smoke_completed",
+    "world_size": 2
+  },
+  "smoke_exit": {
+    "returncode": 0
+  },
+  "smoke_metrics": {
+    "event": "optimizer_step",
+    "epoch": 0,
+    "step": 1,
+    "expression": 1.4877585545182228,
+    "cell_expression": 188.81593418121338,
+    "dino": 8.725305408239365,
+    "ibot": 8.148730665445328,
+    "koleo": 5.738051727414131,
+    "total": 190.30369186401367,
+    "cells": 128,
+    "student_gene_tokens": 348209,
+    "data_seconds_rank_mean": 2.4624951616860926,
+    "step_seconds": 75.30711227748543,
+    "cells_per_second": 1.6997066562366137,
+    "learning_rate": 1e-06,
+    "ema_momentum": 0.9960000645570823,
+    "distillation_weight": 0.0,
+    "weighted_losses": {
+      "expression": 1.4877585545182228,
+      "cell_expression": 188.81593418121338,
+      "dino": 0.0,
+      "ibot": 0.0,
+      "koleo": 0.0
+    },
+    "gradient_norm": 165715.953125,
+    "peak_allocated_bytes_max_rank": 20523502080
+  },
+  "old500k": "user_requested_SIGTERM_checkpoint_retained_525steps_67200cells",
+  "formal_status": "launch_submitted_not_completion"
+}

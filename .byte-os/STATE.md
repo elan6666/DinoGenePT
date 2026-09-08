@@ -1,5 +1,38 @@
 # Active project state
 
+## Unified gene identity delivered Sep8 16:30 (latest)
+
+- New opt-in native GeneIdentityIndex/SourceIdentityIndex, CLI
+  `data audit-gene-identities`, IdentityKnowledgeBank and existing KnowledgeBank
+  `identity` config support. Frozen HGNC snapshot0615a070...fc3f448; preserve
+  original names/IDs/column order. No changes to cell model source, active
+  configs, shards, token numbering or existing vector files; no embedding API.
+- Real audit latest data/identity/2026-09-08-v3 (v1/v2 retained); compact
+  docs/results/GENE_IDENTITY_AUDIT_20260908.json.20698/23113 pretraining IDs
+  resolve in this snapshot;2415 unresolved/ambiguous.16157/17730 master labels
+  resolve,63 duplicate identity groups retained, no expression columns merged.
+- Actual extended1777-gene downstream bundle: Adamson targets78/78 and Norman
+  targets100/100 resolved and Base text covered. Full axes1068/1069 and1049/1049.
+  Adamson SOD2 supplied ENSG00000112096 is unverified in snapshot; no guessed
+  mapping. Pretraining token links76/78 and94/100: eight target identities lack
+  a link, a separate future vocabulary/initialization decision. Not finetuning
+  readiness. See docs/GENE_IDENTITY.md; do not flip old configurations blindly.
+- Same-identity/different-text variants are surfaced; ambiguous source IDs are
+  not missing GO. Vector adapter keeps existing corpus/model/hash checks,
+  verifies equal cached vectors for identical text aliases, and preserves axis
+  order. RequiredBase missing/identity conflicts fail; optional absent sources
+  remain omitted. Functional coverage != identity/text/vector coverage.
+- Validation:31 focused local tests;208 full server CPU-only tests; local/server
+  Ruff, wheel/sdist, CLI help, diff check and changed-file secret-pattern scan.
+  Real audit verifies pinned inputs unchanged after execution. Model not trained
+  or benchmarked by these checks. Persistent lesson added to LESSONS.md.
+- Background snapshot16:30:30: training435steps/55680cells (11.136%), all logged
+  total/gradient finite, LR1e-6,2.213cells/s; checkpoint16:20. Download progressed
+  to12199133184/25676724557bytes,~77393bytes/s since resume; no terminal exits.
+  Both existing jobs were left running. Preparation briefly paused the monitor;
+  after verified code/docs sync+commit, finish this goal and restore SAME
+  dinogenept query every2hours, with a report on EVERY check. No new monitors.
+
 ## Authorized download resume Sep8 14:58 (latest)
 
 - User explicitly requested continuing download, every-check progress reports,

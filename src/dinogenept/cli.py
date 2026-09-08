@@ -68,6 +68,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     data = subparsers.add_parser("data", help="prepare pinned datasets on the server")
     data_sub = data.add_subparsers(dest="data_command", required=True)
+    identity = data_sub.add_parser("audit-gene-identities", help="audit frozen HGNC identities and source joins")
+    identity.add_argument("--hgnc", type=Path, required=True)
+    identity.add_argument("--hgnc-sha256", required=True)
+    identity.add_argument("--axis", type=Path, required=True, help="JSON labels or label/ensembl_id records")
+    identity.add_argument("--sources", type=Path, required=True, help="JSON source name to corpus path")
+    identity.add_argument("--output", type=Path, required=True)
     genept = data_sub.add_parser("prepare-genept")
     genept.add_argument("--output", type=Path, required=True)
     genept.add_argument("--keep-archive", action="store_true")
@@ -335,7 +341,14 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(report, indent=2))
         return 0
     if args.command == "data":
-        if args.data_command == "prepare-genept":
+        if args.data_command == "audit-gene-identities":
+            from .gene_identity import audit_identity_files
+
+            result = audit_identity_files(
+                hgnc=args.hgnc, hgnc_sha256=args.hgnc_sha256, axis=args.axis,
+                sources=json.loads(args.sources.read_text()), output=args.output,
+            )
+        elif args.data_command == "prepare-genept":
             result = prepare_genept(args.output, keep_archive=args.keep_archive)
         elif args.data_command == "prepare-ggi":
             result = prepare_ggi(args.output)

@@ -1,0 +1,326 @@
+{
+  "audits": {
+    "adamson_axis": {
+      "duplicate_identities": 0,
+      "identities": {
+        "resolved": 1068,
+        "unverified_ensembl_id": 1
+      },
+      "pretraining_tokens": {
+        "identity_unresolved": 1,
+        "missing": 70,
+        "unique": 998
+      },
+      "report": "data/identity/2026-09-08-v3/adamson_axis.json",
+      "report_sha256": "68e0fe82f53a9136efc73e390b95e7fb549b5f0b8df510d3b1b2e27c94b3d492",
+      "rows": 1069,
+      "safe_unique_axis": false,
+      "source_bundle": "cellfm-1777-v1",
+      "sources": {
+        "GO": {
+          "available": 892,
+          "identity_unresolved": 1,
+          "no_resolved_source_record": 176
+        },
+        "HPA": {
+          "available": 1066,
+          "identity_unresolved": 1,
+          "no_resolved_source_record": 2
+        },
+        "Pathway": {
+          "available": 768,
+          "identity_unresolved": 1,
+          "no_resolved_source_record": 300
+        },
+        "Protein": {
+          "available": 1062,
+          "identity_unresolved": 1,
+          "no_resolved_source_record": 6
+        },
+        "TextBase": {
+          "available": 1068,
+          "identity_unresolved": 1
+        }
+      },
+      "unresolved_source_keys": {
+        "GO": 0,
+        "HPA": 0,
+        "Pathway": 0,
+        "Protein": 0,
+        "TextBase": 0
+      }
+    },
+    "adamson_targets": {
+      "duplicate_identities": 0,
+      "identities": {
+        "resolved": 78
+      },
+      "pretraining_tokens": {
+        "missing": 2,
+        "unique": 76
+      },
+      "report": "data/identity/2026-09-08-v3/adamson_targets.json",
+      "report_sha256": "f8f562ab8cf5feaa4bc8ecb10db7f304bf88cd20e9882de63712d271145d7ff6",
+      "rows": 78,
+      "safe_unique_axis": true,
+      "source_bundle": "cellfm-1777-v1",
+      "sources": {
+        "GO": {
+          "available": 76,
+          "no_resolved_source_record": 2
+        },
+        "HPA": {
+          "available": 78
+        },
+        "Pathway": {
+          "available": 69,
+          "no_resolved_source_record": 9
+        },
+        "Protein": {
+          "available": 78
+        },
+        "TextBase": {
+          "available": 78
+        }
+      },
+      "unresolved_source_keys": {
+        "GO": 0,
+        "HPA": 0,
+        "Pathway": 0,
+        "Protein": 0,
+        "TextBase": 0
+      }
+    },
+    "genecompass_vocabulary": {
+      "duplicate_identities": 0,
+      "identities": {
+        "ambiguous": 1,
+        "resolved": 20698,
+        "unverified_ensembl_id": 2414
+      },
+      "pretraining_tokens": {
+        "identity_unresolved": 2415,
+        "unique": 20698
+      },
+      "report": "data/identity/2026-09-08-v3/genecompass_vocabulary.json",
+      "report_sha256": "fc03af5d9bbbb824219703ae76e5b6ed7c859e9667109e322b9deb0ae1a57cfc",
+      "rows": 23113,
+      "safe_unique_axis": false,
+      "source_bundle": "master-source-only",
+      "sources": {
+        "GO": {
+          "available": 11163,
+          "identity_unresolved": 2415,
+          "no_resolved_source_record": 9534,
+          "source_identity_ambiguous": 1
+        },
+        "HPA": {
+          "available": 12962,
+          "identity_unresolved": 2415,
+          "no_resolved_source_record": 7735,
+          "source_identity_ambiguous": 1
+        },
+        "Pathway": {
+          "available": 9588,
+          "identity_unresolved": 2415,
+          "no_resolved_source_record": 11110
+        },
+        "Protein": {
+          "available": 13098,
+          "identity_unresolved": 2415,
+          "no_resolved_source_record": 7600
+        },
+        "TextBase": {
+          "available": 13771,
+          "identity_unresolved": 2415,
+          "no_resolved_source_record": 6925,
+          "source_conflict": 1,
+          "source_identity_ambiguous": 1
+        }
+      },
+      "unresolved_source_keys": {
+        "GO": 2,
+        "HPA": 1,
+        "Pathway": 0,
+        "Protein": 0,
+        "TextBase": 1573
+      }
+    },
+    "master_labels": {
+      "duplicate_identities": 63,
+      "identities": {
+        "ambiguous": 2,
+        "resolved": 16157,
+        "unresolved": 1571
+      },
+      "pretraining_tokens": {
+        "identity_unresolved": 1573,
+        "missing": 2377,
+        "unique": 13780
+      },
+      "report": "data/identity/2026-09-08-v3/master_labels.json",
+      "report_sha256": "72a47254fbdc22e378c9776dd57a4c27b4bc18adcb2ab582c27d449f743d50b6",
+      "rows": 17730,
+      "safe_unique_axis": false,
+      "source_bundle": "master-source-only",
+      "sources": {
+        "GO": {
+          "available": 12724,
+          "identity_unresolved": 1573,
+          "no_resolved_source_record": 3432,
+          "source_identity_ambiguous": 1
+        },
+        "HPA": {
+          "available": 14702,
+          "identity_unresolved": 1573,
+          "no_resolved_source_record": 1455
+        },
+        "Pathway": {
+          "available": 10760,
+          "identity_unresolved": 1573,
+          "no_resolved_source_record": 5397
+        },
+        "Protein": {
+          "available": 14892,
+          "identity_unresolved": 1573,
+          "no_resolved_source_record": 1265
+        },
+        "TextBase": {
+          "available": 16045,
+          "identity_unresolved": 1573,
+          "source_conflict": 111,
+          "source_identity_ambiguous": 1
+        }
+      },
+      "unresolved_source_keys": {
+        "GO": 2,
+        "HPA": 1,
+        "Pathway": 0,
+        "Protein": 0,
+        "TextBase": 1573
+      }
+    },
+    "norman_axis": {
+      "duplicate_identities": 0,
+      "identities": {
+        "resolved": 1049
+      },
+      "pretraining_tokens": {
+        "missing": 84,
+        "unique": 965
+      },
+      "report": "data/identity/2026-09-08-v3/norman_axis.json",
+      "report_sha256": "c34be1685dd2c6e1c08969891e0f8a167410b2244ff6340aeecf8c5aae58d686",
+      "rows": 1049,
+      "safe_unique_axis": true,
+      "source_bundle": "cellfm-1777-v1",
+      "sources": {
+        "GO": {
+          "available": 849,
+          "no_resolved_source_record": 200
+        },
+        "HPA": {
+          "available": 1045,
+          "no_resolved_source_record": 4
+        },
+        "Pathway": {
+          "available": 747,
+          "no_resolved_source_record": 302
+        },
+        "Protein": {
+          "available": 1041,
+          "no_resolved_source_record": 8
+        },
+        "TextBase": {
+          "available": 1049
+        }
+      },
+      "unresolved_source_keys": {
+        "GO": 0,
+        "HPA": 0,
+        "Pathway": 0,
+        "Protein": 0,
+        "TextBase": 0
+      }
+    },
+    "norman_targets": {
+      "duplicate_identities": 0,
+      "identities": {
+        "resolved": 100
+      },
+      "pretraining_tokens": {
+        "missing": 6,
+        "unique": 94
+      },
+      "report": "data/identity/2026-09-08-v3/norman_targets.json",
+      "report_sha256": "5091412ec5a5c2740f8b8a2584dbbac71f33572b5efcb7685c73d2bb838ca342",
+      "rows": 100,
+      "safe_unique_axis": true,
+      "source_bundle": "cellfm-1777-v1",
+      "sources": {
+        "GO": {
+          "available": 95,
+          "no_resolved_source_record": 5
+        },
+        "HPA": {
+          "available": 100
+        },
+        "Pathway": {
+          "available": 78,
+          "no_resolved_source_record": 22
+        },
+        "Protein": {
+          "available": 100
+        },
+        "TextBase": {
+          "available": 100
+        }
+      },
+      "unresolved_source_keys": {
+        "GO": 0,
+        "HPA": 0,
+        "Pathway": 0,
+        "Protein": 0,
+        "TextBase": 0
+      }
+    }
+  },
+  "hgnc_sha256": "0615a070f1628e6727953f67ad9248dd0f0ddbb16d41a7b40e06aa852fc3f448",
+  "inputs": {
+    "data/corpora/seed-go-master.json": "14820b62b8c6a9aef6798a55aa93905a6616ef7f073d1dbe60b4ab679a27045d",
+    "data/corpora/seed-go-master.manifest.json": "4153f35225136014c8154409591872a290fc8b270df59bb9b7dd401d3d82ceb0",
+    "data/corpora/seed-go-protein-master.json": "5e91e8ca9aa8782593fa397ff023bcb1d7c96eb870907b698bc30d755ea5337b",
+    "data/corpora/seed-go-protein-master.manifest.json": "84da62cae8270c4f8b4a98326804498de1aac446300d16519f3fea9632984962",
+    "data/corpora/seed-go-protein-pathway-hpa-master.json": "3cb5a29831febb7d8be853d85fa8bb8b7697f2190a34272bbae1657cf4f6b2bb",
+    "data/corpora/seed-go-protein-pathway-hpa-master.manifest.json": "afd9380035100db43e9aaa495f0419fbbb28e51d9f946b2f626554b945bf6476",
+    "data/corpora/seed-go-protein-pathway-master.json": "7a952fa7feaf2f19f3e810e8b50532ee0cfd479deb93d62b47dfebedcc9daa3c",
+    "data/corpora/seed-go-protein-pathway-master.manifest.json": "742c90ab5a6a3bd7413128ff66f96f03f55643b43bd44964b3999061f7e0b477",
+    "data/corpora/seed-master.json": "dc6a04038a13f2b098b8501b6260ab14bc94940e92bf9a10ae42a1bdbc33ac95",
+    "data/corpora/seed-master.manifest.json": "07bd8f587b0089a1131e8818b01373571de39d4be03624dbcd2431f878e2eb8d",
+    "data/hgnc/2026-08-28/hgnc_complete_set.txt": "0615a070f1628e6727953f67ad9248dd0f0ddbb16d41a7b40e06aa852fc3f448",
+    "data/identity/2026-09-08-v3/GO.json": "a44fd1fa69705c1128b841a9c800a0a48da0d37efd12ba219b53ae68ba603cd0",
+    "data/identity/2026-09-08-v3/HPA.json": "fb8ad281ba2a90f31b71a80ddde7ef07537c5a9028088438604879e6ff008226",
+    "data/identity/2026-09-08-v3/Pathway.json": "f7d904f625f3d0507e1995a363e3891700fc514f6cacc57ac91c5271c87632b4",
+    "data/identity/2026-09-08-v3/Protein.json": "763036706448201d0c886e6b534769ca12dcedd9b3a6b122680e60d61135605f",
+    "data/knowledge/cellfm-1777-v1/GO.json": "143898692bd46b5e633d79f8d753364c8fbeedecbbf8d6011d6434ad28c5d628",
+    "data/knowledge/cellfm-1777-v1/HPA.json": "d98f30e2b8b42438836ce6fc287b0acf9f00d48d6cf08eadc6dfadb239c8524c",
+    "data/knowledge/cellfm-1777-v1/Pathway.json": "0334460de6f183158ad8ea70e5a8e85cfa5043413e0f0e4e2c05eeabce45529b",
+    "data/knowledge/cellfm-1777-v1/Protein.json": "6f5fe18ba2bee92e32875d49c27b86e9dba5c1491ba0d9075d9bb4e184813a07",
+    "data/knowledge/cellfm-1777-v1/TextBase.json": "101f6c7b695a640bac684d00b6fcec419eaab3c93d811354e357970d77b9dcb4",
+    "data/knowledge/cellfm-1777-v1/receipt.json": "e268fb8d23ca1bd1f93e6c51c780810d308ed1713d63030e96dddcfb484599cb",
+    "data/perturbation/cellfm-v1/adamson/audit.json": "7f51867fe20f46f1c6cd6660fd9844bebed36a235af46ae0fe548ab27c4625ae",
+    "data/perturbation/cellfm-v1/adamson/axis_symbols.json": "8916dfe56ad9e9ccbd6e325ce291bccf9491ab1a5247e7722e58a83a600083b4",
+    "data/perturbation/cellfm-v1/adamson/gene_mapping.json": "96a93792b20c220c839698f1663257c70658bc2d21228bdd9b45ad534d51279d",
+    "data/perturbation/cellfm-v1/adamson/target_symbols.json": "18eb317175a6ab50b64d6f8f821730f2c8fcfd86f1c92fd7b7c3411da4a2b0b2",
+    "data/perturbation/cellfm-v1/norman/audit.json": "e91a8f87e1c3955aaa43fbe516c46024c55922ce4ce2186adf9e47e1e9a024f9",
+    "data/perturbation/cellfm-v1/norman/axis_symbols.json": "44fef8be29352aaf433c17a7493673ac1a06f3f6a930a7d0b4e4975235520775",
+    "data/perturbation/cellfm-v1/norman/gene_mapping.json": "e4595dbfd97a767dcced4edcc9d20588460477ae23f0acd4ad8ce52313d8af36",
+    "data/perturbation/cellfm-v1/norman/target_symbols.json": "6a546b0eb604809a1accc39d311859dc00fd99f58f75b88932b5e4b214be113b",
+    "data/pretraining/genecompass-human500k-mmap-v1/manifest.json": "917a37a4a2b2a9bb2f927c9921a54b3b81c4b7ad213d9ce758b0068a84390f67",
+    "data/pretraining/genecompass-human500k-mmap-v1/vocabulary.json": "817da6574fdf366f30ba8aa4b87b11a40b966b6f8d348178c72b9be2ac79f656"
+  },
+  "inputs_unchanged_after_audit": true,
+  "note": "No data/token/text/vector rewritten; availability is not functional coverage or vector readiness.",
+  "schema": "dinogenept.identity-campaign-audit.v1",
+  "scope": "Current vocabulary/all master labels/released CellFM Adamson+Norman; not all future datasets"
+}

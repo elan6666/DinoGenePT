@@ -1,5 +1,13 @@
 # DinoGenePT
 
+Gene identity update (2026-09-08): native, frozen-HGNC identity audits and an
+opt-in knowledge adapter now link old names/approved symbols/Ensembl IDs without
+rewriting input axes or existing vectors. Missing identity, source text and
+pretraining token coverage are reported separately. See
+[implementation, usage and real-data findings](docs/GENE_IDENTITY.md).
+Current experiment/runtime state is authoritative in [.byte-os/STATE.md](.byte-os/STATE.md);
+older launch plans below do not override the running500k one-epoch campaign.
+
 Current default-model engineering status: native LoRA runner/evaluator and
 single-/dual-RTX5090 capacity probes are implemented and tested. Formal2+10+10
 epochs are still pending complete pretraining materialization. The factored

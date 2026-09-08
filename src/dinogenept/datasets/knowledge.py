@@ -32,7 +32,25 @@ def _fingerprint(corpus):
 
 
 class KnowledgeBank:
-    def __init__(self, sources, required_genes, *, model, width=2048):
+    def __init__(self, sources, required_genes, *, model, width=2048, identity=None):
+        if identity is not None:
+            from dinogenept.gene_identity import read_identity_json
+
+            from .identity_knowledge import IdentityKnowledgeBank
+
+            required_genes = list(required_genes)
+            records = read_identity_json(_read_pinned(identity["axis"]))
+            labels = [row if isinstance(row, str) else row["label"] for row in records]
+            if labels != required_genes:
+                raise ValueError("Identity axis differs from required expression axis/order")
+            aligned = IdentityKnowledgeBank(
+                hgnc=identity["hgnc"], hgnc_sha256=identity["hgnc_sha256"],
+                axis_records=records, sources=sources, model=model, width=width,
+            )
+            self.tables, self.coverage = aligned.tables, aligned.coverage
+            self.identity_report = aligned.report
+            self.model, self.width = model, width
+            return
         if set(sources) != set(KNOWLEDGE_SOURCES):
             raise ValueError("Explicit corpus entries required for TextBase and all four optional sources")
         required = set(required_genes)

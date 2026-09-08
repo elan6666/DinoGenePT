@@ -1,5 +1,15 @@
 # Confirmed project lessons
 
+## 2026-09-08: Label coverage is not identity or pretrained-token coverage
+
+- A complete17730-label master still contains63 multi-label identity groups;
+  the current HGNC snapshot cannot resolve1573 labels. Some approved target
+  genes have Base text but no matching token in the frozen GeneCompass vocabulary.
+- Keep label coverage, HGNC resolution, source availability and pretrained-token
+  coverage separate. Audit against the actual dataset-specific extended corpus,
+  not only the old master. Never merge processed expression columns or mask
+  ambiguous source identity as absent GO; test these cases explicitly.
+
 ## 2026-09-07: Explicitly spawn DataLoader workers with NCCL
 
 - Installed PyTorch DDP documentation warns NCCL is not fork-safe. The runner

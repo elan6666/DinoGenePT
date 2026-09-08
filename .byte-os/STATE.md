@@ -1,5 +1,12 @@
 # Active project state
 
+## 2026-09-09: latest dual-GPU no-accumulation capacity verified
+
+- Per-GPU4 passed3 updates; per-GPU5 passed10; per-GPU6 OOM on full-length
+  real-cell stress crops. Tested equal-rank limit5/global10; conservative4/global8.
+- See docs/BATCH_CAPACITY_20260909.md. Test ended, GPUs released, formal training
+  and monitoring remain stopped. No default formal batch changed.
+
 ## 2026-09-09: EMA aligned to DINOv2 formal configuration
 
 - Teacher EMA base now0.994, cosine toward1 with official zero-based indexing.

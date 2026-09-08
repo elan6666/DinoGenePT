@@ -59,6 +59,21 @@ def _same_torchrun_launcher(pid):
         return False
 
 
+def _authorized_shared_process(pid):
+    """Opt-in sharing binds PID and Linux start ticks; PID reuse fails closed."""
+    token = os.getenv("DINOGENEPT_SHARED_PROCESS", "")
+    if not token:
+        return False
+    try:
+        allowed_pid, start_ticks = map(int, token.split(":"))
+        if pid != allowed_pid or allowed_pid <= 0 or start_ticks <= 0:
+            return False
+        stat = (Path("/proc") / str(pid) / "stat").read_text()
+        return int(stat[stat.rfind(")") + 2:].split()[19]) == start_ticks
+    except (OSError, ValueError, IndexError):
+        return False
+
+
 def _gpu_guard(*, selected_uuid=None):
     """Refuse unrelated compute; accept our group or verified torchrun peers."""
     output = subprocess.check_output(
@@ -76,7 +91,8 @@ def _gpu_guard(*, selected_uuid=None):
         if fields[1].isdigit():
             pid = int(fields[1])
             try:
-                if os.getpgid(pid) != os.getpgid(0) and not _same_torchrun_launcher(pid):
+                if (os.getpgid(pid) != os.getpgid(0) and not _same_torchrun_launcher(pid)
+                        and not _authorized_shared_process(pid)):
                     occupied.append(pid)
             except ProcessLookupError:
                 continue
@@ -152,6 +168,10 @@ def run_pretraining(config: dict, *, resume: Path | None = None, smoke_one_step:
     if device.type == "cuda":
         _gpu_guard()
         torch.cuda.set_device(device)
+        if os.getenv("DINOGENEPT_SHARED_PROCESS"):
+            # Cap our allocator only; NCCL/context memory is additional. Leave
+            # room for the authorized co-tenant, without touching its process.
+            torch.cuda.set_per_process_memory_fraction(0.75, device)
     if world > 1:
         dist.init_process_group("nccl" if device.type == "cuda" else "gloo")
     seed = int(training["seed"])

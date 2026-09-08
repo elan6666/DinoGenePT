@@ -11,7 +11,7 @@ from pathlib import Path
 from dinogenept.provenance import atomic_write_json, digest_file
 
 
-def validate_smoke(config, smoke_root):
+def validate_smoke(config, smoke_root, shared_process=None):
     receipt = json.loads((smoke_root / "smoke.json").read_text())
     previous = json.loads((smoke_root / "resolved_config.json").read_text())
     if json.loads((smoke_root / "exit.json").read_text()).get("returncode") != 0:
@@ -27,6 +27,8 @@ def validate_smoke(config, smoke_root):
             or receipt.get("checkpoint_sha256") != digest_file(smoke_root / "smoke.pt")):
         raise ValueError("Invalid GPU smoke receipt")
     launch = json.loads((smoke_root / "launch.json").read_text())
+    if launch.get("shared_process") != shared_process:
+        raise ValueError("Smoke resource policy differs")
     expected_sources = {str(p) for p in (Path(__file__).resolve().parents[1] / "src/dinogenept/cell").glob("*.py")}
     if set(launch["source_sha256"]) != expected_sources:
         raise ValueError("Incomplete smoke source identity")
@@ -46,6 +48,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("smoke", "train"))
     parser.add_argument("--check-only", action="store_true")
+    parser.add_argument("--share-with-process", help="explicitly authorized PID:Linux_start_ticks")
     args = parser.parse_args()
     root = Path.cwd()
     if str(root) != "/data/yilangliu/DinoGenePT":
@@ -62,7 +65,8 @@ def main():
     if not output.is_relative_to(root / "results/pretraining") or output.exists():
         raise FileExistsError("Output must be a fresh project run directory")
     if args.mode == "train":
-        validate_smoke(config, root / "results/pretraining/genecompass500k-mmap-smoke-v1")
+        validate_smoke(config, root / "results/pretraining/genecompass500k-mmap-smoke-v1",
+                       args.share_with_process)
     command = [str(root / ".venv/bin/torchrun"), "--standalone", "--nproc_per_node=2",
                "--no-python", str(root / ".venv/bin/dinogenept"), "pretrain", "--config", str(path)]
     if args.mode == "smoke":
@@ -72,13 +76,24 @@ def main():
         return
     with (root / ".runtime/genecompass-training.lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        from dinogenept.cell.train import _gpu_guard
+        from dinogenept.cell.train import _authorized_shared_process, _gpu_guard
+
+        os.environ.pop("DINOGENEPT_SHARED_PROCESS", None)
+        if args.share_with_process:
+            os.environ["DINOGENEPT_SHARED_PROCESS"] = args.share_with_process
+            pid = int(args.share_with_process.split(":")[0])
+            if not _authorized_shared_process(pid):
+                # A terminated co-tenant does not require sharing, but cannot
+                # silently reuse this authorization for a replacement process.
+                raise ValueError("Authorized shared process identity is no longer valid")
 
         _gpu_guard()
         output.mkdir(parents=True, exist_ok=False)
         sources = sorted((root / "src/dinogenept/cell").glob("*.py"))
         atomic_write_json(output / "launch.json", dict(
             config_sha256=digest_file(path), command=command,
+            shared_process=args.share_with_process,
+            allocator_memory_fraction=0.75 if args.share_with_process else 1.0,
             source_sha256={str(p): digest_file(p) for p in sources},
         ))
         result = subprocess.run(command, env={**os.environ, "CUDA_VISIBLE_DEVICES": "0,1"})

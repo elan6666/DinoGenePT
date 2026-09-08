@@ -56,3 +56,22 @@ def test_rng_save_and_restore_never_touch_another_gpu(monkeypatch):
     assert saved == [1] and state["cuda_device_indices"] == [1]
     checkpoint.restore_rng(state)
     assert restored == [1]
+
+
+def test_shared_process_is_exact_and_fails_closed(monkeypatch):
+    monkeypatch.delenv("TORCHELASTIC_RUN_ID", raising=False)
+    monkeypatch.setenv("DINOGENEPT_SHARED_PROCESS", "222:123456")
+    monkeypatch.setattr(train.os, "getpgid", lambda pid: pid)
+    monkeypatch.setattr(train.Path, "read_text", lambda p: "222 (worker name) " + "S " * 19 + "123456")
+    monkeypatch.setattr(train.subprocess, "check_output", lambda *a, **kw: "GPU-a, 222\n")
+    train._gpu_guard()
+    monkeypatch.setenv("DINOGENEPT_SHARED_PROCESS", "222:999")
+    with pytest.raises(RuntimeError):
+        train._gpu_guard()
+    monkeypatch.setenv("DINOGENEPT_SHARED_PROCESS", "garbage")
+    with pytest.raises(RuntimeError):
+        train._gpu_guard()
+    monkeypatch.setenv("DINOGENEPT_SHARED_PROCESS", "222:123456")
+    monkeypatch.setattr(train.subprocess, "check_output", lambda *a, **kw: "GPU-a, 333\n")
+    with pytest.raises(RuntimeError):
+        train._gpu_guard()

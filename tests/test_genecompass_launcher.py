@@ -35,6 +35,15 @@ def test_accept_matching_successful_smoke(smoke):
     launcher.validate_smoke(config, root)
 
 
+def test_shared_resource_policy_must_match(smoke):
+    config, root, save = smoke
+    with pytest.raises(ValueError, match="resource policy"):
+        launcher.validate_smoke(config, root, "222:123")
+    launch = json.loads((root / "launch.json").read_text())
+    save("launch.json", {**launch, "shared_process": "222:123"})
+    launcher.validate_smoke(config, root, "222:123")
+
+
 @pytest.mark.parametrize("filename,patch", [
     ("exit.json", {"returncode": 1}),
     ("resolved_config.json", {"execution_mode": "formal"}),

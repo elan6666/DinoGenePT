@@ -1,5 +1,25 @@
 # Active project state
 
+## User-authorized GPU sharing (latest; supersedes exclusive wait)
+
+- User explicitly allows dual-GPU DinoGenePT concurrent with the other task.
+  Only allow co-tenantPID1456767/startticks419662683; never stop/modify it.
+  Native guard still rejects unrecognized processes or PID reuse. Cap OUR
+  PyTorch allocator to75% per card; CUDA/NCCL memory is additional. Current
+  GPU0 free27.8GiB-ish and GPU1 free32.1GiB-ish (nvidia values are MiB).
+- Default architecture/data/crops/losses unchanged; world2, microbatch4,
+  accumulation16.50万全细胞/no-validation/1epoch;5M still downloads only.
+- Prepare guarded scripts/run_genecompass_shared.sh: smoke then independently
+  gated formal run; unique tmux dinogenept-genecompass-shared, log
+  .runtime/genecompass-shared-queue.log and .exit. No auto retry after failure.
+- User paused heartbeat: KEEP PAUSED, not auto-reenabled by byte-auto. Inspect
+  launch health now; the server queue itself advances only if smoke passes.
+  Do not describe queued formal training as already running or completed.
+- Verified:184 server CPU-isolated tests,13 local launch-gate tests, server
+  Ruff, wheel/sdist, shell syntax, matched configs, pinned manifest digest,
+  live exact co-tenant identity and sharing guard. Preparation ready; GPU
+  execution still pending until queue launch after this bounded goal ends.
+
 Latest monitor Sep8 09:15:21: no active goal; same downloader1565317 alive,
 11578376192/25676724557 bytes, approximately0.259MB/s since resume. No exit
 receipt or new429 in current log. GPU0 remains occupied by1456767; no500k

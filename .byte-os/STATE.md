@@ -1,5 +1,21 @@
 # Active project state
 
+## Hourly check Sep8 11:29:53 (latest)
+
+- No active goal. User reenabled heartbeat `dinogenept`, ACTIVE hourly;
+  supersedes historical PAUSED statements. Shared dual-card training unchanged.
+- Formal ranks1667232/1667233 alive:122steps,15616/500000cells, all recorded
+  loss components and gradients finite; latest total9.1004024, LR1e-6,
+  distillation ramp0.30946,58.657s/step,2.182cells/s. Loss weights change over
+  warmup, so total loss alone is not a fixed-objective comparison.
+  last.pt exists1443712967bytes; no completion/exit receipt yet.
+- Download FAILED again HTTP429 at09:31:54, exit1, no live downloader/session.
+  Partial11771314176/25676724557bytes retained. No Retry-After was recorded
+  in this failed log; do not invent a cooldown value from the server. Do not
+  restart this failed paced run automatically or expect its PID to be alive.
+  Retain hourly cooldown monitoring alongside training, no new retry loop.
+  Download is not a prerequisite for this500k training. No other job touched.
+
 ## Running shared-GPU pretraining (Sep8 09:30, authoritative)
 
 - User-authorized dual-card sharing is now ACTIVE, not waiting for idleGPU0.

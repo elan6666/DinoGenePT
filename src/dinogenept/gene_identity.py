@@ -105,6 +105,30 @@ class GeneIdentityIndex:
             "hgnc_ensembl_ids": _split_symbols(row.ensembl_gene_id),
         }
 
+    def standardize(self, label, ensembl_id=None, *, trusted_ensembl=False):
+        """Ensembl primary key; HGNC verifies names, never invents an ID.
+
+        trusted_ensembl requires an externally pinned, provenance-validated ID
+        source. It is not permission to ignore explicit name/ID disagreement.
+        Existing resolve()/legacy knowledge joins keep their strict semantics.
+        """
+        row = self.resolve(label, ensembl_id)
+        supplied = stable_ensembl(ensembl_id or label)
+        key, status = None, row['status']
+        if row['status'] == 'resolved':
+            candidates = sorted({stable_ensembl(x) for x in row['hgnc_ensembl_ids']
+                                 if stable_ensembl(x)})
+            if supplied:
+                key, status = supplied, 'verified'
+            elif len(candidates) == 1:
+                key, status = candidates[0], 'verified'
+            else:
+                status = 'missing_ensembl' if not candidates else 'ambiguous_ensembl'
+        elif trusted_ensembl and supplied and stable_ensembl(label) == supplied:
+            if row['status'] in {'unverified_ensembl_id', 'ambiguous'}:
+                key, status = supplied, 'source_verified_hgnc_unresolved'
+        return {**row, 'standard_ensembl_id': key, 'standardization_status': status}
+
     def axis(self, records):
         rows, identities, labels = [], defaultdict(list), defaultdict(list)
         for position, item in enumerate(records):

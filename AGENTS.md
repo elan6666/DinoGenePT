@@ -118,6 +118,19 @@ the order of data selection, model construction and corpus supplementation.
 
 ## Provenance, evaluation and secrets
 
+- New human gene vocabularies use versionless Ensembl Gene IDs as primary keys,
+  with frozen/hash-verified HGNC approved/previous/alias records for identity
+  verification. Keep original labels, HGNC IDs, approved symbols, source proofs
+  and integer-token mappings. Trusted source Ensembl IDs may be retained when
+  absent from HGNC, but must be labelled as such; syntax alone is not evidence.
+- Name-only records require one verified Ensembl match. Conflicts, ambiguity,
+  missing mappings and duplicate expression columns require explicit audits;
+  never guess IDs, merge columns, or silently drop targets. Unresolved rows use
+  audit sentinel -1, never model padding0 or a fabricated vocabulary entry.
+- Standardization is a preprocessing contract for both datasets and knowledge
+  sources. Preserve historical artifacts; identity or vocabulary changes require
+  new versioned mappings and a completeness/axis audit before training activation.
+
 - Preserve gene identifiers, order, preprocessing scale, condition eligibility,
   splits, seeds and reference/control populations across matched comparisons.
   Audit coverage and study/donor/cell overlap; prevent held-out outcome leakage.

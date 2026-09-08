@@ -1,5 +1,15 @@
 # Active project state
 
+## 2026-09-09: Ensembl-primary standard and union v2
+
+- Durable standard added to AGENTS.md and shared GeneIdentityIndex.standardize.
+  HGNC verifies identities; name-only matches require exactly one Ensembl ID.
+- Server data/vocabulary/genecompass50k-jurkat-ensembl-v2 supersedes mixed-key v1:
+ 20685 Ensembl keys,19827 observed50k,858 added. Old artifacts remain intact.
+- Unmapped rows retained with-1 audit:Jurkat graph98,expression95,targets1;
+  duplicate identity axis remains. Do not activate without resolving these gates.
+- 23 tests passed. No data remapping, GPU training or scheduled monitoring started.
+
 ## 2026-09-09: shared update policy and separate50k/Jurkat vocabulary
 
 - Gene embedding weight_decay0 in both runners and capacity probe; other

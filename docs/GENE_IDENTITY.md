@@ -1,5 +1,36 @@
 # Unified human gene identity
 
+## Primary-key standard (2026-09-09)
+
+New vocabularies use versionless Ensembl Gene IDs, not HGNC IDs or gene names,
+as primary keys. `GeneIdentityIndex.standardize` shares the existing HGNC
+approved-name / previous-name / alias priority and conflict checks. A name-only
+match needs exactly one valid associated Ensembl ID. Invalid, ambiguous, missing
+and conflicting mappings produce no token key, not a guessed replacement.
+
+An independently hash-verified source Ensembl ID may be retained even if absent
+or ambiguous in this HGNC snapshot, with status `source_verified_hgnc_unresolved`.
+The flag is explicit and applies only to ID-labelled records; it cannot bypass
+a contradictory name/ID pair. This is source evidence, not proof of current
+Ensembl annotation validity. Original labels,HGNC identity/symbol and sources
+remain in the audit. The legacy `resolve`/knowledge opt-in behavior is preserved;
+historical datasets and vector files are not automatically migrated.
+
+The new bundle is `data/vocabulary/genecompass50k-jurkat-ensembl-v2` on the server.
+It contains20685 Ensembl keys (+PAD0),19827 observed50k genes and858 added keys.
+Unmapped Jurkat rows:graph98,expression95,targets1 (QARS). Lists overlap; do not
+sum them as distinct genes. All unmapped rows retain source order and sentinel-1
+in `source_token_ids.json` plus full `unresolved.json`. A duplicate axis identity
+also remains (C20orf197/MIR646HG). Therefore the bundle is not training-ready.
+No rows/columns/targets were deleted from source datasets; no expression values
+were merged. The v1 mixed-key bundle remains historical and is superseded for
+new vocabulary work, not overwritten. See [v2 receipt](results/JOINT_VOCABULARY_ENSEMBL_20260909.json).
+
+Any future activation requires a complete mapping and duplicate-column policy,
+then explicit dataset-ID remapping and vocabulary-bound configuration validation.
+Neither-1 nor unresolved names may reach an embedding lookup.23 focused identity
+and vocabulary tests passed for this revision; no training was launched.
+
 Implemented as an **opt-in, non-destructive mapping layer**, not a rewrite of
 training shards, vocabulary positions, expression values or old vector files.
 All sources share one `GeneIdentityIndex`; there are no online lookups at load

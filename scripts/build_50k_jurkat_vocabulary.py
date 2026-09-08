@@ -1,7 +1,7 @@
 """Build additive identity-audited vocabulary; never read Jurkat expression X.
 
 Reads exact GraD-Pert canonical axes/split, not a reconstructed split. Unresolved
-identities retain namespaced source identifiers rather than guessed aliases.
+names stay in a separate audit with token -1, never a fabricated vocabulary ID.
 Output is a separate vocabulary bundle, not an in-place dataset migration.
 """
 
@@ -14,19 +14,13 @@ import numpy as np
 
 from dinogenept.cell.genecompass_data import GeneCompassDataset
 from dinogenept.cell.sampling import CropConfig
-from dinogenept.gene_identity import GeneIdentityIndex, stable_ensembl
+from dinogenept.gene_identity import GeneIdentityIndex
 from dinogenept.provenance import atomic_write_json, digest_file
 
 
-def token_identity(index, label):
-    row = index.resolve(label)
-    if row['status'] == 'resolved':
-        # Stable biological identity, never casefold a token without HGNC evidence.
-        key = row['hgnc_id']
-    else:
-        ensembl = stable_ensembl(label)
-        key = ensembl if ensembl else 'unresolved:Jurkat:' + label
-    return key, row
+def token_identity(index, label, *, trusted_ensembl=False):
+    row = index.standardize(label, trusted_ensembl=trusted_ensembl)
+    return row['standard_ensembl_id'], row
 
 
 def build(manifest, jurkat, hgnc, hgnc_sha256, output):
@@ -70,15 +64,17 @@ def build(manifest, jurkat, hgnc, hgnc_sha256, output):
     for source, labels in sources.items():
         records[source] = []
         for label in labels:
-            key, row = token_identity(identity, label)
+            key, row = token_identity(identity, label, trusted_ensembl=source == '50k_observed')
             record = {**row, 'token_key': key}
             records[source].append(record)
+            if key is None:
+                continue
             item = entries.setdefault(key, {'sources': set(), 'original_labels': set()})
             item['sources'].add(source)
             item['original_labels'].add(label)
     union = sorted(entries)
     lookup = {key: i + 1 for i, key in enumerate(union)}
-    mappings = {s: [lookup[r['token_key']] for r in rows] for s, rows in records.items()}
+    mappings = {s: [lookup.get(r['token_key'], -1) for r in rows] for s, rows in records.items()}
     # A reduced union only maps observed old tokens. Unobserved rows map to -1,
     # even if their identity happens to be reintroduced by Jurkat.
     old_to_new = [-1] * (len(old) + 1)
@@ -95,7 +91,7 @@ def build(manifest, jurkat, hgnc, hgnc_sha256, output):
         ordered = np.sort(mapped, axis=1)
         collision_cells += int(((ordered[:, 1:] == ordered[:, :-1]) & (ordered[:, 1:] > 0)).any(1).sum())
     unresolved = {s: dict(Counter(r['status'] for r in rows)) for s, rows in records.items()}
-    duplicates = {s: {str(k): n for k, n in Counter(ids).items() if n > 1}
+    duplicates = {s: {str(k): n for k, n in Counter(ids).items() if n > 1 and k > 0}
                   for s, ids in mappings.items()}
     for p in paths:
         if digest_file(p) != hashes[str(p.resolve())]:
@@ -108,18 +104,20 @@ def build(manifest, jurkat, hgnc, hgnc_sha256, output):
     write('old_to_new.json', old_to_new)
     write('source_token_ids.json', mappings)
     write('identity_audit.json', records)
+    write('unresolved.json', {s: [r for r in rows if r['token_key'] is None] for s, rows in records.items()})
     write('token_sources.json', {key: {k: sorted(v) for k, v in item.items()} for key, item in entries.items()})
     pre_keys = {r['token_key'] for r in records['50k_observed']}
-    receipt = dict(schema='dinogenept.independent-vocabulary.v1',
+    receipt = dict(schema='dinogenept.independent-vocabulary.v2',
                    old_vocabulary_genes=len(old), observed_50k_genes=len(observed),
                    union_genes=len(union), embedding_rows=len(union) + 1,
                    jurkat_only_identities=len(set(union) - pre_keys),
                    source_counts={s: len(rows) for s, rows in records.items()},
                    split_counts=dict(zip(('train', 'val', 'test'), map(len, conditions), strict=True)),
                    identity_status=unresolved, duplicate_identity_tokens=duplicates,
+                   unmapped_rows={s: ids.count(-1) for s, ids in mappings.items()},
                    pretraining_collision_cells=collision_cells, inputs_sha256=hashes,
                    vocabulary_source_sha256=digest_file(vocab_path),
-                   token_policy='HGNC resolved; exact ENSG or namespaced raw label when unresolved',
+                   token_policy='Ensembl primary; HGNC verification; unresolved names audited as -1',
                    downstream_values_read=False, active_dataset_rewritten=False,
                    readiness='identity_audit_required_before_dataset_migration',
                    source_sha256=digest_file(Path(__file__)))

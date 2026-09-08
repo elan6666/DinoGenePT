@@ -15,6 +15,10 @@
   Output results/pretraining/genecompass500k-mmap-one-epoch-v1. Same frozen
   all500k/no-validation/1epoch config. No completion receipt yet.
   Co-tenant1456767 still live at4302MiB; no other task modified or terminated.
+- Formal first optimizer step independently verified at09:31:128cells,
+  finite total191.0886254, preclip norm165873.78125;66.109s,1.936cells/s,
+  peak allocated21119391232bytes. Process continued into the next step;
+  this is actual formal progress, not only a submitted job.
 - Heartbeat remains PAUSED per user, no automatic future checks scheduled.
   Queue runs independently. On next user check inspect formal metrics/exit/
   completion and retained download; don't recreate goal simply to wait.

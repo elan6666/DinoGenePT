@@ -1,5 +1,15 @@
 # Active project state
 
+## 2026-09-09: width768 restored; reduced-depth capacity candidate
+
+- Supersedes tiny-model selection below: new50k resolver selects balanced recipe,
+  width768/depth4 (3KDA+1MLA), shared head1024/128, Student40,639,827.
+- Dual5090 accumulation1: B19/rank passed10 updates, B20 failed on second.
+  B16/rank also passed10 updates; recommended global32 for memory headroom.
+  This invalidates carrying over tiny-model global batch256. Recipe keeps
+  conservative microbatch4 pending a formal run choice. See docs/BALANCED_50K_MODEL.md.
+- Formal training and scheduled monitoring remain stopped; prior artifacts preserved.
+
 ## 2026-09-09: user-selected global batch256
 
 - Active50k tiny recipe:128 cells/GPU *2 GPUs *accumulation1 =256.

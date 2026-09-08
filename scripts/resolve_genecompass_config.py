@@ -18,9 +18,13 @@ def main():
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--run-output", type=Path, required=True)
     parser.add_argument("--expected-cells", type=int, choices=(50000, 500000), default=500000)
-    parser.add_argument("--reference-config", type=Path, default=Path("configs/cell/census500k_default_recipe.json"))
+    parser.add_argument("--reference-config", type=Path, default=None)
     args = parser.parse_args()
-    reference = json.loads(args.reference_config.read_text())
+    reference_path = args.reference_config or Path(
+        "configs/cell/genecompass50k_500k_recipe.json" if args.expected_cells == 50000
+        else "configs/cell/census500k_default_recipe.json"
+    )
+    reference = json.loads(reference_path.read_text())
     crops = CropConfig(**reference["crops"])
     data = GeneCompassDataset(args.manifest, crops)
     if len(data) != args.expected_cells or data.gene_count != 23113:

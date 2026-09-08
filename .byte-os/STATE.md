@@ -1,5 +1,14 @@
 # Active project state
 
+## 2026-09-09: active 50k tiny-model configuration and pressure-test result
+
+- New50k resolver defaults to configs/cell/genecompass50k_500k_recipe.json:
+  Student495570 parameters (~9.91 per cell),12 layers,width16,shared8192 head.
+  Large model remains available; old checkpoint is not compatible/reused.
+- No-accumulation dual5090: B190/rank passed10 updates, B191 failed on second,
+  B192 failed before first update. Conservative tested candidate160/rank.
+  Details docs/TINY_50K_MODEL.md. Training/monitors remain stopped, GPUs released.
+
 ## 2026-09-09: latest dual-GPU no-accumulation capacity verified
 
 - Per-GPU4 passed3 updates; per-GPU5 passed10; per-GPU6 OOM on full-length

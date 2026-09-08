@@ -33,6 +33,7 @@ class BackboneConfig:
     kda_implementation: str = "chunk"
     gradient_checkpointing: bool = True
     norm_eps: float = 1e-5
+    expression_basis: int = 256
 
     def __post_init__(self):
         values = (
@@ -50,6 +51,7 @@ class BackboneConfig:
             self.residual_block_size,
             self.ffn_expansion,
             self.chunk_size,
+            self.expression_basis,
         )
         if any(x < 1 for x in values) or self.depth % self.global_every:
             raise ValueError("Invalid architecture dimensions; last layer must be global")
@@ -208,7 +210,7 @@ class CellBackbone(nn.Module):
         super().__init__()
         self.config = config
         self.gene = nn.Embedding(config.genes + 1, config.width, padding_idx=0)
-        self.value = ValueEncoder(config.width)
+        self.value = ValueEncoder(config.width, basis=config.expression_basis)
         self.cls = nn.Parameter(torch.zeros(1, 1, config.width))
         self.blocks = nn.ModuleList(CellBlock(config, i) for i in range(config.depth))
         self.output_read = DepthRead(config)

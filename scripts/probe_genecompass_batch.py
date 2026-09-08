@@ -74,6 +74,8 @@ def main():
                     config_sha256=digest_file(args.config), recipe_sha256=digest_file(args.recipe),
                     mask_layout='worst_case_all_global0_half_batch', manifest_sha256=manifest_hash,
                     backbone=cfg['backbone'], heads=cfg['heads'], crops=asdict(crops),
+                    student_parameters=sum(p.numel() for p in model.student.parameters()),
+                    backbone_parameters=sum(p.numel() for p in model.student.backbone.parameters()),
                     view_lengths=[v['gene_ids'].shape[1] for v in batch['views']],
                     precision='bf16_autocast_fp32_parameters', gpu=torch.cuda.get_device_name(),
                     source_sha256=digest_file(Path(__file__)))

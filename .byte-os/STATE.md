@@ -1,5 +1,10 @@
 # Active project state
 
+## 2026-09-09: EMA aligned to DINOv2 formal configuration
+
+- Teacher EMA base now0.994, cosine toward1 with official zero-based indexing.
+  Supersedes earlier unchanged0.996 statements. No training/monitor restarted.
+
 ## 2026-09-08: LR-only DINOv2 alignment
 
 - Future recipe/resolver now use sqrt batch scaling with base2e-4 at1024,

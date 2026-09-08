@@ -110,3 +110,14 @@ def test_independent_head_option_preserves_gene_prototypes():
     losses = model(batch, step=1, total_steps=10)
     losses['total'].backward()
     assert all(torch.isfinite(v) for v in losses.values())
+
+
+def test_ema_matches_dinov2_zero_based_cosine():
+    model, _ = system_and_batch()
+    total = 10
+    reference = 1 + .5 * (.994 - 1) * (1 + np.cos(np.pi * np.arange(total) / total))
+    actual = [model.update_ema(i + 1, total) for i in range(total)]
+    np.testing.assert_allclose(actual, reference, rtol=0, atol=1e-15)
+    assert actual[0] == pytest.approx(.994)
+    assert actual[-1] < 1
+    assert all(b > a for a, b in zip(actual[:-1], actual[1:], strict=True))

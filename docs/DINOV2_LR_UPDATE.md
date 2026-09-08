@@ -29,7 +29,11 @@ warmup value. Scheduler is a pure step function, stable on mid-epoch resume.
 Examples: B=8 -> 1.76777e-5; B=16 -> 2.5e-5; B=128 -> 7.07107e-5;
 B=3072 -> 3.46410e-4. For T=391: W=62. These are calculations, not new runs.
 
-Scope: LR only. EMA remains existing 0.996-to-1; optimizer betas, weight decay,
+Follow-up 2026-09-09: EMA now uses DINOv2 formal base 0.994, cosine toward 1.
+For completed step k, use zero-based iteration k-1 with denominator T, matching
+official indexing. First update is 0.994; final in-budget update approaches but
+does not reach 1. Applied once per optimizer update, not per microbatch.
+This supersedes the original LR-only scope. Optimizer betas, weight decay,
 teacher temperature and loss ramp are unchanged. Do not claim the entire
 optimizer/teacher recipe is identical to DINOv2. Legacy scLong and cosine
 implementations remain available for historical configurations.

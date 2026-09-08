@@ -85,8 +85,11 @@ class PretrainingSystem(nn.Module):
     def update_ema(self, completed_steps: int, total_steps: int):
         if not 1 <= completed_steps <= total_steps:
             raise ValueError("Invalid completed optimizer step count")
-        progress = completed_steps / total_steps
-        momentum = 1 - (1 - 0.996) * (math.cos(math.pi * progress) + 1) / 2
+        # DINOv2 indexes its schedule at the zero-based optimizer iteration,
+        # then applies EMA after optimizer.step(). Last in-budget value is
+        # close to, not exactly, 1 (official cosine denominator is total_steps).
+        progress = (completed_steps - 1) / total_steps
+        momentum = 1 - (1 - 0.994) * (math.cos(math.pi * progress) + 1) / 2
         update_teacher(self.student, self.teacher, momentum)
         return momentum
 

@@ -1,5 +1,8 @@
 import importlib.util
+import json
+from email.message import Message
 from pathlib import Path
+from urllib.error import HTTPError
 
 import pytest
 
@@ -41,4 +44,27 @@ def test_failure_does_not_append_or_retry(tmp_path, monkeypatch):
     with pytest.raises(ValueError):
         module.parallel_resume("unused", part, 100, 1, request_interval=10)
     assert part.read_bytes() == b"old"
+    assert len(calls) == 1
+
+
+@pytest.mark.parametrize("retry_after", ["3600", "Wed, 09 Sep 2026 00:00:00 GMT", None])
+def test_http_failure_reports_metadata_without_retry(monkeypatch, capsys, retry_after):
+    headers = Message()
+    if retry_after is not None:
+        headers["Retry-After"] = retry_after
+    calls = []
+
+    def fail():
+        calls.append(True)
+        raise HTTPError("https://example.invalid", 429, "limited", headers, None)
+
+    monkeypatch.setattr(module, "main", fail)
+    with pytest.raises(HTTPError):
+        module.cli()
+    result = json.loads(capsys.readouterr().out)
+    assert result["event"] == "download_http_error"
+    assert result["status"] == 429
+    assert result["retry_after"] == retry_after
+    assert result["observed_at_unix"] > 0
+    assert result["automatic_retry"] is False
     assert len(calls) == 1

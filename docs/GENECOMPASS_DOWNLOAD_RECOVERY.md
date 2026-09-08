@@ -1,6 +1,14 @@
 # GeneCompass 5M download: controlled recovery proposal
 
-Status: **proposal only; downloader stopped**, 2026-09-08 13:31 CST.
+Status update, September8: user authorized the controlled retry. New one-shot
+launcher `scripts/run_genecompass_download_slow60.sh` uses one worker, bounded
+8MiB requests and60-second delays, separate log/exit lineage. The downloader
+now records HTTP status, observation time and Retry-After before exiting;
+three added tests cover seconds/date/missing headers without retries.
+Current live status belongs in `.byte-os/STATE.md`; launch submission alone is
+not proof of progress. Monitor every2hours and report every time per user.
+
+Historical **proposal only; downloader stopped** snapshot, 2026-09-08 13:31 CST.
 The independent 500k one-epoch training remains running and is not changed.
 
 ## Evidence

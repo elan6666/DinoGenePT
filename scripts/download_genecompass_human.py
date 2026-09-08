@@ -6,6 +6,7 @@ import fcntl
 import gzip
 import json
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -122,5 +123,20 @@ def main():
             print(json.dumps(record), flush=True)
 
 
+def cli():
+    """Record rate-limit metadata without retrying or exposing response bodies."""
+    try:
+        main()
+    except urllib.error.HTTPError as error:
+        print(json.dumps({
+            "event": "download_http_error",
+            "status": error.code,
+            "observed_at_unix": time.time(),
+            "retry_after": error.headers.get("Retry-After") if error.headers else None,
+            "automatic_retry": False,
+        }), flush=True)
+        raise
+
+
 if __name__ == "__main__":
-    main()
+    cli()

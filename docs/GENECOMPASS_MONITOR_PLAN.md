@@ -1,5 +1,42 @@
 # GeneCompass adaptive handoff
 
+## Current contract — September 8, user override
+
+Use ONE heartbeat, `dinogenept`, **every2hours**. Report progress on EVERY
+check, including normal or unchanged progress. This supersedes all historical
+20-minute/hourly/silent rules below; do not automatically change the interval.
+No active goal and active heartbeat simultaneously.
+
+- Training: user-authorized shared dualGPU; do not wait for exclusive cards or
+  modify another job. tmux `dinogenept-genecompass-shared`, queue log/exit
+  `.runtime/genecompass-shared-queue.{log,exit}`, output
+  `results/pretraining/genecompass500k-mmap-one-epoch-v1`.
+- Download: user explicitly authorized another5M resume. New tmux
+  `dinogenept-genecompass-download-slow60`, log/exit
+  `.runtime/genecompass-download-slow60.{log,exit}`; one worker, bounded8MiB
+  requests,60seconds after each batch. Do not follow the old failed paced PID.
+- Each report: timestamp; training steps/cells/percent and change since last
+  check, finite loss/gradient, LR, recent throughput, checkpoint time; download
+  bytes/total/percent and byte delta, speed, process/exit and any429/cooldown.
+  State unavailable observations explicitly. ETA is measured, approximate,
+  and only shown when meaningful. Keep the summary brief.
+- Inspect both jobs, not only GPU utilization. Two consecutive no-progress
+  checks warrant investigation; explicit errors or nonzero exits are actionable
+  at the check that detects them. A2h schedule is not real-time alerting.
+- On429 retain the prefix and structured `download_http_error` metadata.
+  Respect Retry-After; no automatic repeat launch or changed rate. Report the
+  blocker and arrange a bounded recovery phase if authorized. No extra probes
+  while a downloader runs. Never bypass the archive lock.
+- Full training success: exit0, epochs1, training_cells=cells_seen500000,
+  validation_cells0, completed_steps=total_steps, and validlast.pt. Full download
+  success: expected25,676,724,557bytes, fullgzipCRC andSHA receipt.5M is download
+  only, not required by500k training. No GraD-Pert or perturbation fine-tuning.
+- Before substantive repairs/validation, pause this monitor and verify that
+  update succeeded, then create a bounded goal. Restore the SAME monitor after
+  goal completion. Remove it only after both obligations are validated complete.
+
+## Historical preparation plan (superseded by the current contract)
+
 ## Launch intent and phase boundary
 
 After preparation acceptance, complete its Codex goal, verify it is inactive,

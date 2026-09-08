@@ -1,5 +1,32 @@
 # Active project state
 
+## Authorized download resume Sep8 14:58 (latest)
+
+- User explicitly requested continuing download, every-check progress reports,
+  then set cadence to **2hours**. This overrides old waiting-for-authorization,
+  hourly and quiet-report rules. Use the SAME dinogenept heartbeat for both jobs.
+- Download actually resumed: tmux dinogenept-genecompass-download-slow60,
+  shell1768153/python1768157; started14:56:53. Log/exit:
+  .runtime/genecompass-download-slow60.{log,exit}. One worker,8MiB bounded
+  ranges,60seconds after each batch, no internal retry. Archive lock verified
+  free before launch and held by downloader during work. Old artifacts retained.
+- At14:58:25 part11779702784/25676724557bytes, increased8388608bytes from
+  the preserved prefix. First complete range validated and appended, process
+  live, exit absent. Initial transfer153641bytes/s excludes future pacing;
+  sustained speed/ETA not yet established. This is progress, not full recovery
+  or archive completion. Final size/gzipCRC/SHA still required.
+- Training unchanged, latest339steps/43392cells (8.6784%), latest losses and
+  gradient finite, LR1e-6,60.092s/step,2.130cells/s. Co-tenant untouched.
+- Downloader now logs HTTP status, observation time and Retry-After on HTTP
+  failures before propagating the exception. Five relevant tests pass both
+  locally/server CPU-only, Ruff and launcher shell syntax pass. No model or
+  training source/config changes. Initial transient SSH timeout recovered with
+  normal port/key checks; no VPN or service changes.
+- Preparation goal ends after tested code/docs synchronization and confirmed
+  live byte growth. Then activate2h monitor, REPORT EVERY TIME: training
+  steps/cells/loss/LR/throughput/checkpoint and download bytes/delta/process/
+  errors. See docs/GENECOMPASS_MONITOR_PLAN.md. Never auto-restart on429.
+
 ## Hourly check Sep8 14:35:26 (latest)
 
 - No active goal; hourly monitor active. Training advanced249 ->315 steps,

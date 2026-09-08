@@ -1,5 +1,18 @@
 # Active project state
 
+## Hourly check Sep8 14:35:26 (latest)
+
+- No active goal; hourly monitor active. Training advanced249 ->315 steps,
+  40320/500000 cells (8.064%); both ranks1667232/1667233 and queue alive.
+  All315 records have finite loss components and gradient norms. Latest
+  total15.96544, LR1e-6, ramp0.80307, preclip norm3267.0635,
+  57.436s/step,2.229cells/s. Loss weights still changing; no convergence claim.
+- last.pt exists1443712967bytes; formal completion/exit and queue exit absent.
+  GPU usage24452/23038MiB; other task1456767 still4302MiB. No jobs changed.
+- 5M remains stopped, exit1, retained11771314176bytes. No source probe or
+  restart; awaiting user decision on the documented controlled retry.
+  No new actionable failure; retain hourly quiet monitoring.
+
 ## Hourly check Sep8 13:31 (latest)
 
 - Formal training remains live on ranks1667232/1667233:249 optimizer steps,

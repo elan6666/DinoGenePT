@@ -1,5 +1,25 @@
 # Active project state
 
+## Hourly check Sep8 13:31 (latest)
+
+- Formal training remains live on ranks1667232/1667233:249 optimizer steps,
+  31872/500000 cells (6.3744%). All recorded loss components and gradient norms
+  finite. Latest total12.31847, expression0.45741, cell_expression0.37292,
+  preclip norm155.89867, LR1e-6, distillation ramp0.63427,53.964s/step,
+  2.372cells/s. Changing loss weights prevent interpreting total as a fixed
+  objective. last.pt exists1443712967bytes; no completion or exit receipt.
+- Our GPU usage24452/23038MiB; co-tenant1456767 remains4302MiB. No job changed.
+- 5M remains stopped with the same11771314176-byte prefix and exit1.
+  One discarded1MiB probe from that offset returned exact206/Content-Range;
+  no Retry-After header. This does NOT establish sustained download recovery.
+  See docs/GENECOMPASS_DOWNLOAD_RECOVERY.md for the inspected recovery plan.
+- Monitoring was paused for a bounded recovery-preparation goal. No download
+  restart is authorized by this probe. After preparation completes, restore
+  the same hourly training monitor; suppress further download probes until
+  the user chooses a controlled retry. Keep the download obligation open.
+- Automation pause initially failed schema validation; corrected PAUSED was
+  verified immediately. Do not treat an attempted update as a successful pause.
+
 ## Hourly check Sep8 11:29:53 (latest)
 
 - No active goal. User reenabled heartbeat `dinogenept`, ACTIVE hourly;

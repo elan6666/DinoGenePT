@@ -1,5 +1,14 @@
 # Width256 capacity experiment — 2026-09-09
 
+## Subsequent user selection: global batch108
+
+The user selected54 cells/GPU x2 GPUs xaccumulation1 =108. The active recipe
+now reflects this choice; below, microbatch4 and the global96 recommendation
+describe the historical test handoff. Peak LR follows2e-4 *sqrt(108/1024)
+=6.495190528e-5; warmup/decay settings are unchanged. No formal training or
+monitor was launched. The recipe SHA below is the original pressure-test recipe
+before this batch-only configuration change, not the updated file's hash.
+
 User-requested change from the width768/depth4 balanced candidate. New50k
 resolver uses `configs/cell/genecompass50k_width256_recipe.json`; the width768
 recipe and historical checkpoints remain intact. No formal run is launched.

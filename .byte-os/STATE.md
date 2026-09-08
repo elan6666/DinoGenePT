@@ -1,5 +1,13 @@
 # Active project state
 
+## 2026-09-09: user-selected width256 global batch108
+
+- Active50k width256 recipe now uses54 cells/GPU x2 GPUs xaccumulation1 =108.
+- DINOv2 square-root scaled peak LR:2e-4 *sqrt(108/1024) =6.495190528e-5.
+- This is the short-tested capacity boundary, not a full-epoch stability guarantee.
+  Supersedes microbatch4 placeholder and global96 recommendation below.
+- Configuration change only; no formal training or scheduled monitoring launched.
+
 ## 2026-09-09: user-requested width256 capacity test completed
 
 - New50k resolver now selects genecompass50k_width256_recipe.json; width256,

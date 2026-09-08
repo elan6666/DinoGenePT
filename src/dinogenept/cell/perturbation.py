@@ -17,6 +17,7 @@ from torch.nn import functional as F
 from .distillation import TeacherCenter, update_teacher
 from .lora import attach_lora
 from .pretraining import PretrainingNetwork
+from .schedule import teacher_momentum
 
 SOURCES = ("TextBase", "GO", "Protein", "Pathway", "HPA")
 
@@ -177,8 +178,6 @@ class PerturbationSystem(nn.Module):
 
     @torch.no_grad()
     def update_ema(self, completed_steps, total_steps):
-        if not 1 <= completed_steps <= total_steps:
-            raise ValueError("Invalid completed optimizer step count")
-        momentum = 1 - 0.004 * (1 + math.cos(math.pi * completed_steps / total_steps)) / 2
+        momentum = teacher_momentum(completed_steps, total_steps)
         update_teacher(self.student, self.teacher, momentum)
         return momentum

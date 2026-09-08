@@ -21,6 +21,7 @@ from dinogenept.provenance import atomic_write_json, digest_file
 from .backbone import BackboneConfig
 from .checkpoint import load_checkpoint, rng_state, save_checkpoint
 from .dataset import PretrainingDataset
+from .optimization import optimizer_groups
 from .pretraining import HeadConfig, PretrainingSystem
 from .sampling import CropConfig, collate_crops, epoch_batches
 from .schedule import learning_rate
@@ -206,7 +207,7 @@ def run_pretraining(config: dict, *, resume: Path | None = None, smoke_one_step:
         _dataclass(BackboneConfig, config["backbone"]), _dataclass(HeadConfig, config["heads"])
     ).to(device)
     optimizer = torch.optim.AdamW(
-        model.student.parameters(),
+        optimizer_groups(model.student, training["weight_decay"]),
         lr=training["learning_rate"],
         betas=tuple(training["betas"]),
         weight_decay=training["weight_decay"],

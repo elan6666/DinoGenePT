@@ -18,6 +18,7 @@ from .distillation import (
     reconstruction_loss,
     update_teacher,
 )
+from .schedule import teacher_momentum
 
 
 @dataclass(frozen=True)
@@ -83,13 +84,10 @@ class PretrainingSystem(nn.Module):
 
     @torch.no_grad()
     def update_ema(self, completed_steps: int, total_steps: int):
-        if not 1 <= completed_steps <= total_steps:
-            raise ValueError("Invalid completed optimizer step count")
         # DINOv2 indexes its schedule at the zero-based optimizer iteration,
         # then applies EMA after optimizer.step(). Last in-budget value is
         # close to, not exactly, 1 (official cosine denominator is total_steps).
-        progress = (completed_steps - 1) / total_steps
-        momentum = 1 - (1 - 0.994) * (math.cos(math.pi * progress) + 1) / 2
+        momentum = teacher_momentum(completed_steps, total_steps)
         update_teacher(self.student, self.teacher, momentum)
         return momentum
 

@@ -1,5 +1,19 @@
 # Active project state
 
+## 2026-09-09: shared update policy and separate50k/Jurkat vocabulary
+
+- Gene embedding weight_decay0 in both runners and capacity probe; other
+  trainable weights keep existing decay. Fine-tuning defaults now share DINOv2
+  sqrt-batch LR,16% warmup/cosine,betas(.9,.95),and EMA0.994 schedule with pretrain.
+- New checkpoint policy rejects old optimizer resume; explicit transfer separate.
+- Server data/vocabulary/genecompass50k-jurkat-v1:observed50k19827;
+  union20783 keys (+PAD),Jurkat graph6506/expression5000/targets2372.
+- Bundle includes mappings but is NOT activated:QARS ambiguity,unresolved IDs,
+  and C20orf197/MIR646HG duplicate identity require policy before data migration.
+  See docs/UPDATE_POLICY_AND_JOINT_VOCABULARY.md. Old data/checkpoints unchanged.
+- No formal training, GPU use or monitor launched. LoRA still freezes gene table;
+  learning newly added rows is a separate adaptation, not silently enabled.
+
 ## 2026-09-09: user-selected width256 global batch108
 
 - Active50k width256 recipe now uses54 cells/GPU x2 GPUs xaccumulation1 =108.

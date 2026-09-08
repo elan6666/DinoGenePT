@@ -7,6 +7,13 @@ utils.py / pretrain_dual_4096_all_1b_mix.py. No upstream runtime imports.
 import math
 
 
+def teacher_momentum(completed_steps: int, total_steps: int) -> float:
+    """DINOv2 zero-based iteration schedule, applied after optimizer.step()."""
+    if not 1 <= completed_steps <= total_steps:
+        raise ValueError("Invalid completed optimizer step count")
+    return 1 - (1 - 0.994) * (1 + math.cos(math.pi * (completed_steps - 1) / total_steps)) / 2
+
+
 def sclong_learning_rate(epoch: int, *, max_lr: float = 5e-5) -> float:
     """LR used during zero-based epoch; rebuildable exactly on mid-epoch resume.
 

@@ -50,6 +50,7 @@ def save_checkpoint(path: Path, model, optimizer, *, config: dict, progress: dic
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "schema": "dinogenept.training.v1",
+        "update_policy": "dinov2-shared-ema-gene-no-decay-v1",
         "config": config,
         "config_sha256": config_hash(config),
         "progress": progress,
@@ -77,6 +78,8 @@ def load_checkpoint(path: Path, model, optimizer, *, config: dict, rank: int = 0
         raise ValueError("Stored checkpoint config checksum mismatch")
     if not 0 <= rank < len(payload["rank_rng"]):
         raise ValueError("Missing rank-specific RNG state")
+    if payload.get("update_policy") != "dinov2-shared-ema-gene-no-decay-v1":
+        raise ValueError("Checkpoint update policy differs; use explicit weights-only transfer, not resume")
     # Check all model axes before any partial load changes live parameters.
     current = model.state_dict()
     if current.keys() != payload["model"].keys() or any(

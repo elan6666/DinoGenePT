@@ -1,0 +1,9 @@
+{
+  "learning_rate": 0.0002,
+  "lr_scheduler": "dinov2_step_cosine",
+  "lr_warmup_fraction": 0.16,
+  "min_learning_rate": 0.000001,
+  "betas": [0.9, 0.95],
+  "weight_decay": 0.01,
+  "gradient_clip": 1.0
+}

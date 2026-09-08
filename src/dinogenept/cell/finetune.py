@@ -25,6 +25,7 @@ from dinogenept.evaluation.metrics import evaluate_condition, macro_average
 from dinogenept.provenance import atomic_write_json, digest_file
 
 from .checkpoint import load_checkpoint, rng_state, save_checkpoint
+from .optimization import optimizer_groups
 from .perturbation import PerturbationConfig, PerturbationSystem
 from .schedule import learning_rate
 from .train import _dataclass, _gpu_guard
@@ -42,15 +43,20 @@ class FineTuneOptions:
     gene_cap: int = 2048
     evaluation_batch: int = 8
     checkpoint_steps: int = 50
-    learning_rate: float = 5e-5
-    lr_scheduler: str = "sclong_epoch_restarts"
+    learning_rate: float = 2e-4
+    lr_scheduler: str = "dinov2_step_cosine"
+    lr_warmup_fraction: float = 0.16
+    min_learning_rate: float = 1e-6
     weight_decay: float = 0.01
-    betas: tuple = (0.9, 0.999)
+    betas: tuple = (0.9, 0.95)
     gradient_clip: float = 1.0
 
     def __post_init__(self):
-        if self.lr_scheduler not in {"sclong_epoch_restarts", "legacy_step_cosine"}:
+        if self.lr_scheduler not in {"dinov2_step_cosine", "sclong_epoch_restarts", "legacy_step_cosine"}:
             raise ValueError("Unknown learning-rate schedule")
+        if (not 0 <= self.lr_warmup_fraction < 1 or not math.isfinite(self.min_learning_rate)
+                or self.min_learning_rate < 0):
+            raise ValueError("Invalid LR warmup/minimum")
         if (
             min(
                 self.epochs,
@@ -222,7 +228,7 @@ def _run(config, options, purpose, output, device, resume):
         raise ValueError("Knowledge-bank and model dimensions differ")
     trainable = [p for p in model.student.parameters() if p.requires_grad]
     optimizer = torch.optim.AdamW(
-        trainable,
+        optimizer_groups(model.student, options.weight_decay),
         lr=options.learning_rate,
         betas=tuple(options.betas),
         weight_decay=options.weight_decay,
@@ -293,6 +299,9 @@ def _run(config, options, purpose, output, device, resume):
                 epoch=epoch,
                 step=step,
                 total_steps=total_steps,
+                batch=options.bag_size * options.accumulation,
+                warmup_fraction=options.lr_warmup_fraction,
+                min_lr=options.min_learning_rate,
             )
             for group in optimizer.param_groups:
                 group["lr"] = current_lr

@@ -14,6 +14,7 @@ from torch.nn.parallel import DistributedDataParallel
 
 from dinogenept.cell.backbone import BackboneConfig
 from dinogenept.cell.genecompass_data import GeneCompassDataset
+from dinogenept.cell.optimization import optimizer_groups
 from dinogenept.cell.pretraining import HeadConfig, PretrainingSystem
 from dinogenept.cell.sampling import CropConfig, collate_crops
 from dinogenept.cell.train import _gpu_guard, _move
@@ -66,7 +67,7 @@ def main():
     model = PretrainingSystem(BackboneConfig(**cfg['backbone']), HeadConfig(**cfg['heads'])).to(device).train()
     wrapped = DistributedDataParallel(model, device_ids=[local], broadcast_buffers=False)
     model.teacher.load_state_dict(model.student.state_dict())
-    optimizer = torch.optim.AdamW(model.student.parameters(), lr=1e-6,
+    optimizer = torch.optim.AdamW(optimizer_groups(model.student, cfg['training']['weight_decay']), lr=1e-6,
                                  betas=tuple(cfg['training']['betas']),
                                  weight_decay=cfg['training']['weight_decay'])
     identity = dict(purpose='capacity_only_not_training', microbatch=args.microbatch,

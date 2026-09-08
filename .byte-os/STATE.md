@@ -1,5 +1,16 @@
 # Active project state
 
+## 2026-09-09: user-requested width256 capacity test completed
+
+- New50k resolver now selects genecompass50k_width256_recipe.json; width256,
+  depth4 (3KDA+1MLA), KDA2x128/MLA4x64, other balanced fields unchanged.
+  Student11,017,031; backbone8,384,967. Prior768/tiny recipes preserved.
+- Dual5090 accumulation1: B32 passed3; B48 and54 passed10; B55 OOM on third,
+  B56 OOM on second. Tested boundary global108; recommend global96 for headroom.
+  Recipe microbatch4 remains a placeholder, not a formal run configuration.
+- 25 scoped server CPU tests passed. See docs/WIDTH256_CAPACITY.md.
+  GPUs released; formal training and monitors remain stopped.
+
 ## 2026-09-09: width768 restored; reduced-depth capacity candidate
 
 - Supersedes tiny-model selection below: new50k resolver selects balanced recipe,

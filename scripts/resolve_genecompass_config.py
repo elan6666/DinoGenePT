@@ -21,7 +21,7 @@ def main():
     parser.add_argument("--reference-config", type=Path, default=None)
     args = parser.parse_args()
     reference_path = args.reference_config or Path(
-        "configs/cell/genecompass50k_balanced_recipe.json" if args.expected_cells == 50000
+        "configs/cell/genecompass50k_width256_recipe.json" if args.expected_cells == 50000
         else "configs/cell/census500k_default_recipe.json"
     )
     reference = json.loads(reference_path.read_text())

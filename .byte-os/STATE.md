@@ -1,5 +1,14 @@
 # Active project state
 
+## 2026-09-12: H-group training and E-group memory designs selected
+
+- Added docs/H_TRAINING_AND_MEMORY_ABLATIONS.md: GLM5/KimiK3/DS4.1-inspired
+  LR schedules and separate Muon grouping comparisons; no MoE.
+- DS embedding Sinkhorn is an isolated extension, not a silent table optimizer replacement.
+- E0/E256/E512/E1024 compare masked-token iBOT projection/loss chunking with
+  gradient/EMA/center equivalence and fixed-batch peak-memory/throughput gates.
+- Design only: no new runtime switches implemented, no training/monitor launched.
+
 ## 2026-09-09: source-ID union v3 repair
 
 - New server bundle data/vocabulary/genecompass50k-jurkat-source-ensembl-v3:

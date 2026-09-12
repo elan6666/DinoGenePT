@@ -1,5 +1,18 @@
 # Active project state
 
+## Latest: observed fine-tuning implementation and bounded verification
+
+- Base weights reconstruction/main/knowledge/observed = 0.5/1/1/1.
+- Optional observed iBOT=0.5 and condition-filtered KoLeo=0.1, both OFF by default.
+- Train-only matched metadata groups, disjoint unique A/B IDs, singleton skip;
+  same-B clean teacher token targets for iBOT; available-field donor disclosure.
+- F0/F1/F2/F3-OBSERVED overlays added (registry71); pretraining unchanged.
+- Server307 tests passed, including four CUDA BF16 two-step variants and
+  optional-loss exact-resume fixture; local168 passed/18 skipped. No formal runs.
+- KoLeo candidate count is zero in current single-condition runner. Effective
+  KoLeo experiments need a separately audited mixed-condition batching design.
+- docs/OBSERVED_FINETUNING_LOSSES.md is the current loss/pairing contract.
+
 ## 2026-09-12: ablation code and bounded smoke verification
 
 - Native registry67 entries (60 pretraining,7 knowledge), LR/EMA/temperature/

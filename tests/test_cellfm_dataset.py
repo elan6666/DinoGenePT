@@ -77,7 +77,8 @@ def test_real_format_sparse_loader_and_bags_preserve_values_and_zeros(frozen):
     np.testing.assert_array_equal(batch["control_view"]["expression"], batch["full_control"][:, [1, 2, 0]])
     assert batch["control_view"]["valid"].all()
     assert not batch["control_view"]["hidden"].any()
-    assert batch["observed_view"]["hidden"].sum() == 8
+    assert not batch["observed_view"]["hidden"].any()
+    assert not set(batch["observed_cell_ids"]) & set(batch["teacher_cell_ids"])
     assert not batch["teacher_view"]["hidden"].any()
     assert batch["targets"].tolist() == [1]
 
@@ -91,6 +92,21 @@ def test_heldout_cannot_become_teacher_or_observed_or_controls(frozen):
             data.training_inputs(replace(bag, **{field: (9,)}), epoch=0)
     with pytest.raises(ValueError, match="must be in train"):
         data.training_inputs(replace(bag, condition="B+ctrl"), epoch=0)
+    with pytest.raises(ValueError, match="disjoint"):
+        data.training_inputs(replace(bag, observed_post=bag.teacher_post), epoch=0)
+
+
+def test_optional_mask_selection_and_donor_disclosure(frozen):
+    config, _ = frozen
+    data = CellFMDataset(**config)
+    assert data.identity["donor_guaranteed"] is False
+    bag = data.index.training_bags(epoch=0)[0]
+    batch = data.training_inputs(bag, epoch=0, observed_ibot=True)
+    hidden = batch["observed_view"]["hidden"]
+    assert hidden.any(-1).sum() in (1, 2)
+    assert (hidden.sum(-1) <= 1).all()  # Three-gene fixture: minimum one target.
+    twin = data.training_inputs(bag, epoch=0, observed_ibot=True)
+    np.testing.assert_array_equal(hidden, twin["observed_view"]["hidden"])
 
 
 def test_prediction_inputs_do_not_contain_truth_and_preserve_repeated_controls(frozen):

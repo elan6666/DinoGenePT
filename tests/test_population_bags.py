@@ -25,7 +25,24 @@ def test_each_epoch_visits_every_train_post_once_and_never_heldout_teacher():
             assert len(bag.controls) == len(bag.teacher_post) == len(bag.observed_post) == 8
             assert set(bag.controls) <= set(range(4))
             assert set(bag.teacher_post + bag.observed_post) <= set(range(4, 21))
+            assert not set(bag.teacher_post) & set(bag.observed_post)
     assert index.training_bags(epoch=0) != index.training_bags(epoch=1)
+
+
+def test_donor_matching_singletons_and_exact_primary_coverage():
+    index = PopulationIndex(
+        [str(i) for i in range(6)], ["ctrl", "A", "A", "A", "A", "A"], ["T"] * 6,
+        {"train": ["ctrl", "A"], "val": [], "test": []},
+        {"donor": ["d0", "d1", "d1", "d2", "d2", "d3"]},
+    )
+    bags = index.training_bags(epoch=0)
+    assert sorted(i for b in bags for i in b.primary_post) == list(range(1, 6))
+    for b in bags:
+        rows = b.primary_post + b.teacher_post + b.observed_post
+        assert len(set(index.pairing_fields["donor"][list(rows)])) == 1
+        assert not set(b.teacher_post) & set(b.observed_post)
+        if 5 in b.primary_post:
+            assert b.observed_post == ()
 
 
 def test_evaluation_controls_are_frozen_and_truth_not_used_as_inputs():

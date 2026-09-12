@@ -10,6 +10,7 @@ from pathlib import Path
 
 import numpy as np
 
+from dinogenept.cell.sampling import cell_rng
 from dinogenept.datasets.populations import PopulationIndex, continuous_view
 from dinogenept.provenance import digest_file
 
@@ -83,7 +84,15 @@ class CellFMDataset:
                 raise ValueError(f"Frozen observation metadata differs: {field}")
         split = json.loads((directory / "split.json").read_text())
         self.split_conditions = split["conditions"]
-        self.index = PopulationIndex(frozen_obs.row_id, frozen_obs.condition, frozen_obs.cell_type, split["conditions"])
+        # Source metadata is already protected by source_sha256. Never infer donors.
+        pairing = {}
+        for candidates in (("donor_id", "donor", "individual"), ("dose", "dosage"), ("time", "timepoint")):
+            field = next((name for name in candidates if name in obs), None)
+            if field is not None:
+                pairing[field] = obs[field].fillna("__missing__").astype(str).to_numpy()
+        self.index = PopulationIndex(
+            frozen_obs.row_id, frozen_obs.condition, frozen_obs.cell_type, split["conditions"], pairing
+        )
         actual_targets = {gene for condition in self.index.conditions for gene in targets(condition)}
         if actual_targets != set(target_symbols):
             raise ValueError("Perturbation conditions disagree with target manifest")
@@ -100,6 +109,9 @@ class CellFMDataset:
             "cells": matrix.shape[0],
             "genes": matrix.shape[1],
             "expression": audit["expression"],
+            "observed_pairing_fields": ["condition", "cell_type", *pairing],
+            "donor_guaranteed": any(name in pairing and "__missing__" not in pairing[name]
+                                    for name in ("donor_id", "donor", "individual")),
         }
 
     def _rows(self, rows, *, condition, context):
@@ -139,22 +151,43 @@ class CellFMDataset:
             raise ValueError("A perturbation condition is required")
         return symbols, np.asarray([self.mapping[gene] for gene in symbols], dtype=np.int64)
 
-    def training_inputs(self, bag, *, epoch, seed=42, cap=2048):
+    def training_inputs(self, bag, *, epoch, seed=42, cap=2048, observed_ibot=False):
         if bag.condition == "ctrl" or bag.condition not in self.index.splits["train"]:
             raise ValueError("Training post-treatment bags must be in train")
         primary = self._rows(bag.primary_post, condition=bag.condition, context=bag.context)
-        observed = self._rows(bag.observed_post, condition=bag.condition, context=bag.context)
+        observed = (self._rows(bag.observed_post, condition=bag.condition, context=bag.context)
+                    if bag.observed_post else np.asarray([], dtype=np.int64))
         teacher = self._rows(bag.teacher_post, condition=bag.condition, context=bag.context)
+        if len(np.unique(observed)) != len(observed) or len(np.unique(teacher)) != len(teacher):
+            raise ValueError("Repeated observed/teacher cell IDs")
+        if np.intersect1d(observed, teacher).size:
+            raise ValueError("Observed and teacher cell IDs must be disjoint")
+        for values in self.index.pairing_fields.values():
+            if len(np.unique(values[np.concatenate((primary, observed, teacher))])) != 1:
+                raise ValueError("Observed/teacher pairing metadata mismatch")
         controls = self._rows(bag.controls, condition="ctrl", context=bag.context)
         kwargs = {"seed": seed, "epoch": epoch, "cap": cap}
         view, full_control = self._view(controls, role=f"control:{bag.key}", **kwargs)
-        observed_view, _ = self._view(observed, role=f"observed:{bag.key}", masked=True, **kwargs)
+        observed_view = None
+        if len(observed):
+            observed_view, _ = self._view(observed, role=f"observed:{bag.key}", masked=observed_ibot, **kwargs)
+            if observed_ibot:
+                rng = cell_rng(seed, epoch, f"ibot-selection:{bag.key}")
+                # Stochastic rounding preserves 50% participation for odd/singleton bags.
+                n = int(len(observed) * 0.5 + (rng.random() < (len(observed) % 2) * 0.5))
+                selected = rng.permutation(len(observed))[:n]
+                keep = np.zeros(len(observed), dtype=bool)
+                keep[selected] = True
+                observed_view["hidden"][~keep] = False
         teacher_view, _ = self._view(teacher, role=f"teacher:{bag.key}", **kwargs)
         _, model_targets = self.condition_targets(bag.condition)
         return {
             "control_view": view,
             "observed_view": observed_view,
             "teacher_view": teacher_view,
+            "observed_conditions": np.zeros(len(observed), dtype=np.int64),
+            "observed_cell_ids": observed.copy(),
+            "teacher_cell_ids": teacher.copy(),
             "full_control": full_control,
             "train_post": self._expression(primary),
             "axis": self.axis.copy(),

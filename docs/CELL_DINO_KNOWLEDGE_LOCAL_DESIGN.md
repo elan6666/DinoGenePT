@@ -1,5 +1,10 @@
 # DinoGenePT: current model and experiment design
 
+Fine-tuning update: [observed loss/pairing contract](OBSERVED_FINETUNING_LOSSES.md)
+supersedes historical 0.1 distillation weights and overlapping A/B sampling
+below. Current weights are 0.5/1/1/1; optional iBOT=0.5 and KoLeo=0.1 are off.
+Pretraining formulas in this document are unchanged by that update.
+
 Status: **native backbone, five-loss runner and knowledge-local model CPU-tested; formal data/CUDA integration
 and formal experimental validation pending**.
 Updated 2026-09-07, version `dinogenept_design_v2`. This replaces v1;

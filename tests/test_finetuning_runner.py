@@ -16,8 +16,8 @@ from dinogenept.evaluation.cellfm import prepare_evaluation  # noqa: E402
 from dinogenept.provenance import atomic_write_json, digest_file  # noqa: E402
 
 
-@pytest.mark.parametrize("backend", ["chunk", "batched_chunk"])
-def test_two_epoch_transfer_ten_epoch_lora_and_exact_resume(tmp_path, frozen, monkeypatch, backend):  # noqa: F811
+@pytest.mark.parametrize("backend,optional", [("chunk", False), ("batched_chunk", True)])
+def test_two_epoch_transfer_ten_epoch_lora_and_exact_resume(tmp_path, frozen, monkeypatch, backend, optional):  # noqa: F811
     torch.set_num_threads(1)
     pre = fixture_config(tmp_path / "pretraining")
     pre["backbone"]["kda_implementation"] = backend
@@ -54,7 +54,8 @@ def test_two_epoch_transfer_ten_epoch_lora_and_exact_resume(tmp_path, frozen, mo
             "width": 6,
         },
         "evaluation": {"path": str(evaluation), "sha256": digest_file(evaluation)},
-        "perturbation": {"vector_width": 6, "decoder_width": 8, "lora_rank": 2, "lora_alpha": 4, "lora_dropout": 0.05},
+        "perturbation": {"vector_width": 6, "decoder_width": 8, "lora_rank": 2, "lora_alpha": 4, "lora_dropout": 0.05,
+                         "observed_ibot": optional, "observed_koleo": optional, "ibot_chunk_size": 2},
         "training": {
             "device": "cpu",
             "epochs": 10,
@@ -77,6 +78,13 @@ def test_two_epoch_transfer_ten_epoch_lora_and_exact_resume(tmp_path, frozen, mo
     assert progress["epoch"] == 10 and progress["post_cells_seen"] == 50
     assert progress["bags_seen"] == 30 and progress["completed_steps"] == 20
     assert seen_splits == ["val"] * 10 + ["test"]
+    logs = [json.loads(line) for line in (tmp_path / "baseline/metrics.jsonl").read_text().splitlines()]
+    steps = [row for row in logs if row["event"] == "optimizer_step"]
+    assert steps and all(row["koleo_eligible_cells"] == 0 for row in steps)
+    for row in steps:
+        assert sum(row["weighted_losses"].values()) == pytest.approx(row["total"], rel=1e-5)
+    if optional:
+        assert any(row["ibot_masked_cells"] > 0 for row in steps)
     baseline = torch.load(tmp_path / "baseline/last.pt", weights_only=True)
     pretrained = torch.load(best, weights_only=True)["model"]
     for name, value in baseline["model"].items():

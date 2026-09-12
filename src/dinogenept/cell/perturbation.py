@@ -15,6 +15,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from .distillation import TeacherCenter, update_teacher
+from .ibot_chunk import projected_ibot
 from .lora import attach_lora
 from .pretraining import PretrainingNetwork
 from .schedule import teacher_momentum
@@ -32,7 +33,15 @@ class PerturbationConfig:
     lora_dropout: float = 0.05
     teacher_temperature: float = 0.07
     student_temperature: float = 0.1
-    distillation_weight: float = 0.1
+    reconstruction_weight: float = 0.5
+    primary_weight: float = 1.0
+    knowledge_weight: float = 1.0
+    observed_weight: float = 1.0
+    observed_ibot: bool = False
+    observed_koleo: bool = False
+    ibot_weight: float = 0.5
+    koleo_weight: float = 0.1
+    ibot_chunk_size: int = 0
     local_sources: tuple[str, ...] = SOURCES
 
     def __post_init__(self):
@@ -40,10 +49,34 @@ class PerturbationConfig:
             raise ValueError("Main anchor must be CellGene or TextBase")
         if min(self.vector_width, self.decoder_width, self.teacher_temperature, self.student_temperature) <= 0:
             raise ValueError("Invalid perturbation dimensions/temperatures")
-        if self.distillation_weight != 0.1:
-            raise ValueError("This campaign uses the fixed 0.1 distillation weight, not a loss ablation")
+        weights = (self.reconstruction_weight, self.primary_weight, self.knowledge_weight,
+                   self.observed_weight, self.ibot_weight, self.koleo_weight)
+        if any(not math.isfinite(w) or w < 0 for w in weights) or self.ibot_chunk_size < 0:
+            raise ValueError("Invalid loss weights/chunk size")
         if len(set(self.local_sources)) != len(self.local_sources) or set(self.local_sources) - set(SOURCES):
             raise ValueError("Invalid knowledge source allowlist")
+
+    def loss_weights(self):
+        return dict(reconstruction=self.reconstruction_weight, primary_dino=self.primary_weight,
+                    knowledge_dino=self.knowledge_weight, observed_dino=self.observed_weight,
+                    observed_ibot=self.ibot_weight if self.observed_ibot else 0.0,
+                    observed_koleo=self.koleo_weight if self.observed_koleo else 0.0)
+
+
+def condition_filtered_koleo(cls, conditions, eps=1e-8):
+    """Project adaptation: exclude same-condition candidates, no history/all-gather."""
+    if conditions is None or conditions.shape != (len(cls),):
+        raise ValueError("KoLeo requires one condition ID per observed cell")
+    with torch.autocast(device_type=cls.device.type, enabled=False):
+        u = F.normalize(cls.float(), dim=-1, eps=eps)
+        candidates = conditions[:, None] != conditions[None, :]
+        eligible = candidates.any(-1)
+        if not eligible.any():
+            return cls.sum() * 0, 0
+        scores = (u @ u.T).detach().masked_fill(~candidates, -torch.inf)
+        nearest = scores.argmax(-1)
+        distance = F.pairwise_distance(u[eligible], u[nearest[eligible]], eps=eps)
+        return -(distance + eps).log().mean(), int(eligible.sum())
 
 
 class ConditionalNetwork(nn.Module):
@@ -51,6 +84,10 @@ class ConditionalNetwork(nn.Module):
         super().__init__()
         self.backbone = deepcopy(pretrained.backbone)
         self.cell_head = deepcopy(pretrained.cell_head)
+        # No extra parameters or state when iBOT is disabled.
+        if config.observed_ibot:
+            self.gene_head = (self.cell_head if pretrained.gene_head is pretrained.cell_head
+                              else deepcopy(pretrained.gene_head))
         self.config = config
         attach_lora(
             self.backbone,
@@ -119,6 +156,8 @@ class PerturbationSystem(nn.Module):
         self.teacher = deepcopy(self.student).requires_grad_(False).eval()
         prototypes = pretrained.cell_head.prototypes.out_features
         self.center = TeacherCenter(prototypes)
+        if self.config.observed_ibot:
+            self.gene_center = TeacherCenter(self.student.gene_head.prototypes.out_features)
 
     def train(self, mode=True):
         super().train(mode)
@@ -131,12 +170,22 @@ class PerturbationSystem(nn.Module):
         return self.student.decode(encoded["cls"], full_control, axis)
 
     def forward(
-        self, *, control_view, observed_view, teacher_view, full_control, train_post, axis, targets, source_vectors
+        self, *, control_view, observed_view, teacher_view, full_control, train_post, axis, targets, source_vectors,
+        observed_conditions=None, observed_cell_ids=None, teacher_cell_ids=None
     ):
         if not self.training:
             raise RuntimeError("Post-treatment teacher views are training-only; use predict for evaluation")
         if set(source_vectors) - set(SOURCES):
             raise ValueError("Unknown knowledge source")
+        if observed_view is not None:
+            if (observed_cell_ids is None or teacher_cell_ids is None
+                    or observed_cell_ids.shape != (len(observed_view["gene_ids"]),)
+                    or teacher_cell_ids.shape != (len(teacher_view["gene_ids"]),)):
+                raise ValueError("Observed/teacher cell IDs are required and must match views")
+            if (observed_cell_ids.unique().numel() != observed_cell_ids.numel()
+                    or teacher_cell_ids.unique().numel() != teacher_cell_ids.numel()
+                    or torch.isin(observed_cell_ids, teacher_cell_ids).any()):
+                raise ValueError("Observed/teacher cell IDs must be unique and disjoint")
         if train_post.ndim != 2 or train_post.shape[1] != len(axis) or len(train_post) < 1:
             raise ValueError("Post-treatment bag must share the full prediction gene axis")
         if not torch.isfinite(train_post).all() or (train_post < 0).any():
@@ -167,15 +216,42 @@ class PerturbationSystem(nn.Module):
         # When TextBase is primary, pretrained gene tokens are not silently added
         # as an extra local; that belongs to the separately named anchor ablation.
         knowledge = torch.stack(local_losses).mean() if local_losses else primary * 0
-        observed = distill(self.student.encode(observed_view)["cls"])
-        total = reconstruction + self.config.distillation_weight * (primary + knowledge + observed)
+        observed = ibot = koleo = primary * 0
+        masked_cells = eligible_cells = 0
+        observed_count = 0 if observed_view is None else len(observed_view["gene_ids"])
+        if observed_count:
+            obs = self.student.encode(observed_view)
+            observed = distill(obs["cls"])
+            if self.config.observed_ibot:
+                hidden = observed_view["hidden"] & observed_view["valid"]
+                counts = hidden.sum(-1)
+                masked_cells = int((counts > 0).sum())
+                if masked_cells:
+                    # Same B, identical gene order and values, ONLY hidden mask removed.
+                    clean = {**observed_view, "hidden": torch.zeros_like(hidden)}
+                    with torch.no_grad():
+                        clean_encoded = self.teacher.encode(clean)
+                    weights = (1 / counts.clamp_min(1).float() / masked_cells)[:, None].expand_as(hidden)[hidden]
+                    ibot, total_logits, count = projected_ibot(
+                        self.student.gene_head, self.teacher.gene_head, obs["genes"][hidden],
+                        clean_encoded["genes"][hidden], weights, self.gene_center.center,
+                        self.config.teacher_temperature, self.config.student_temperature, self.config.ibot_chunk_size,
+                    )
+                    self.gene_center.update_statistics(total_logits, count)
+            if self.config.observed_koleo:
+                koleo, eligible_cells = condition_filtered_koleo(obs["cls"], observed_conditions)
+        losses = dict(reconstruction=reconstruction, primary_dino=primary, knowledge_dino=knowledge,
+                      observed_dino=observed, observed_ibot=ibot, observed_koleo=koleo)
+        total = sum(losses[name] * weight for name, weight in self.config.loss_weights().items())
         self.center.update(teacher_logits)
         return {
             "total": total,
-            "reconstruction": reconstruction,
-            "primary_dino": primary,
-            "knowledge_dino": knowledge,
-            "observed_dino": observed,
+            **losses,
+            "observed_cells": observed_count,
+            "ibot_masked_cells": masked_cells,
+            "ibot_participation": masked_cells / max(1, observed_count),
+            "koleo_eligible_cells": eligible_cells,
+            "koleo_eligible_fraction": eligible_cells / max(1, observed_count),
             "local_count": len(active_sources),
         }
 

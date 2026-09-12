@@ -174,8 +174,8 @@ def main():
         if args.memory:
             result = memory_probe(device, args.tokens, args.steps, args.warmup)
         else:
-            names = args.smoke or [n for n in ablation_registry() if not n.startswith("K-")]
-            if any(n.startswith("K-") for n in names):
+            names = args.smoke or [n for n in ablation_registry() if not n.startswith(("K-", "F"))]
+            if any(n.startswith(("K-", "F")) for n in names):
                 parser.error("Knowledge variants use perturbation tests, not pretraining smoke")
             result = []
             for name in names:

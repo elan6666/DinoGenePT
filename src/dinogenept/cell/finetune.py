@@ -221,6 +221,8 @@ def _run(config, options, purpose, output, device, resume):
     bank = KnowledgeBank(required_genes=data.symbols, **config["knowledge"])
     state = load_evaluation(data, config["evaluation"]["path"], sha256=config["evaluation"]["sha256"])
     model = PerturbationSystem(pretrained, _dataclass(PerturbationConfig, config.get("perturbation", {}))).to(device)
+    config["perturbation"] = asdict(model.config)
+    config["observed_pairing_contract"] = "train_disjoint_same_available_metadata_group_v1"
     if model.config.main_anchor != "TextBase":
         raise ValueError("Only the declared default TextBase run is scheduled, not anchor ablations")
     del pretrained
@@ -313,12 +315,17 @@ def _run(config, options, purpose, output, device, resume):
             stats, data_seconds, tokens = {}, 0.0, 0
             for bag in window:
                 before_data = time.monotonic()
-                inputs = data.training_inputs(bag, epoch=epoch, seed=options.seed, cap=options.gene_cap)
+                inputs = data.training_inputs(bag, epoch=epoch, seed=options.seed, cap=options.gene_cap,
+                                              observed_ibot=model.config.observed_ibot)
                 symbols, _ = data.condition_targets(bag.condition)
                 inputs["source_vectors"] = bank.for_targets(symbols)
                 active = sum(v is not None for v in inputs["source_vectors"].values())
                 tokens += int(inputs["control_view"]["valid"].sum()) * active
-                tokens += int(inputs["observed_view"]["valid"].sum() + inputs["teacher_view"]["valid"].sum())
+                tokens += int(inputs["teacher_view"]["valid"].sum())
+                if inputs["observed_view"] is not None:
+                    tokens += int(inputs["observed_view"]["valid"].sum())
+                    if model.config.observed_ibot and inputs["observed_view"]["hidden"].any():
+                        tokens += int(inputs["observed_view"]["valid"].sum())
                 inputs = to_device(inputs, device)
                 data_seconds += time.monotonic() - before_data
                 with torch.autocast(device_type=device.type, dtype=torch.bfloat16, enabled=device.type == "cuda"):
@@ -352,8 +359,7 @@ def _run(config, options, purpose, output, device, resume):
                     "step": step + 1,
                     **stats,
                     "weighted_losses": {
-                        k: stats[k] * (1 if k == "reconstruction" else 0.1)
-                        for k in ("reconstruction", "primary_dino", "knowledge_dino", "observed_dino")
+                        k: stats[k] * weight for k, weight in model.config.loss_weights().items()
                     },
                     "primary_post_cells": cells,
                     "bags": len(window),

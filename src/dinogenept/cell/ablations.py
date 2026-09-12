@@ -71,6 +71,11 @@ def ablation_registry():
     for name in ("GO", "Protein", "Pathway", "HPA"):
         rows[f"K-ONLY-{name}"] = {"perturbation": {"local_sources": [name]}}
     rows["K-NO-LOCAL"] = {"perturbation": {"local_sources": []}}
+    for number, (ibot, koleo) in enumerate(((False, False), (True, False), (False, True), (True, True))):
+        rows[f"F{number}-OBSERVED"] = {"perturbation": dict(
+            reconstruction_weight=.5, primary_weight=1., knowledge_weight=1., observed_weight=1.,
+            observed_ibot=ibot, observed_koleo=koleo, ibot_weight=.5, koleo_weight=.1,
+        )}
     return rows
 
 
@@ -84,6 +89,9 @@ def resolve_ablation(base, name):
     BackboneConfig(**result["backbone"])
     HeadConfig(**result["heads"])
     CropConfig(**result["crops"])
+    if "perturbation" in result:
+        from .perturbation import PerturbationConfig
+        PerturbationConfig(**result["perturbation"])
     result["ablation"] = {"id": name, "overlay": deepcopy(variants[name]), "schema": 1}
     if "output" in result:
         result["output"] = str(Path(base["output"]) / "ablations" / name)

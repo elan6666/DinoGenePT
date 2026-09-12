@@ -1,5 +1,11 @@
 # Native default LoRA campaign
 
+Historical campaign record below. Current fine-tuning loss/pairing defaults are
+defined in [OBSERVED_FINETUNING_LOSSES.md](OBSERVED_FINETUNING_LOSSES.md), which
+supersedes the fixed 0.1 weights, independent overlapping bags and unconditional
+observed masking described below. Runtime budget/LR are defined by current code
+and resolved configs, not this old campaign record.
+
 Implementation and CPU integration tests are complete; formal CUDA runs are not.
 This is our declared adaptation, not the unavailable DINOcell training code or
 CellFM's 15-epoch GEARS notebook. Active budget remains two pretraining epochs,

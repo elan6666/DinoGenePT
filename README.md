@@ -1,5 +1,13 @@
 # DinoGenePT
 
+Latest fine-tuning update: disjoint train-only observed/teacher sampling,
+base loss weights 0.5/1/1/1, and optional observed iBOT/KoLeo (off by default).
+Four F-group overlays bring the registry to 71 entries. See
+[observed loss contract and limitations](docs/OBSERVED_FINETUNING_LOSSES.md).
+Server suite: 307 tests passed, including four CUDA/BF16 two-step variants.
+Condition-filtered KoLeo remains ineffective in single-condition bags; no
+formal ablation or training was launched.
+
 Latest verified work (2026-09-12): native ablation registry and bounded tests,
 not a formal training campaign.67 config entries;60 pretraining entries checked
 on two5090s with tiny synthetic inputs. iBOT chunking saves head memory but

@@ -1,8 +1,41 @@
 # Native implementation ledger
 
-Updated 2026-09-07. Reference reading is not a claim of whole-model parity.
+Updated 2026-09-12. Reference reading is not a claim of whole-model parity.
 No upstream model package is imported at runtime. Standard tensor and data
 libraries remain permitted. Unit fixtures are not training results.
+
+## 2026-09-12 ablation implementation sources
+
+- Muon: KellerJordan/Muon `f98f1cacc0263b04290753e32be8d498c1efc806`,
+  `muon.py`, NS polynomial/Nesterov/auxiliary Adam. Independent native code;
+  FP32 NS instead of reference BF16, explicit model-aware groups, no redundant
+  optimizer collectives, batched equal-sized heads. GLM/Kimi use project RMS
+  scale0.2; DS0.18. No claim of bitwise parity with three proprietary trainers.
+- GLM5: arXiv `2602.15763v1` §2.1/AppendixA: Q/K/V up-projection split and LR.
+- KimiK3: arXiv `2607.24653v1` §2.5/3.3. Weight-clip formula inspected in
+  KimiK2 `2507.20534v1` §2.1 Algorithm1, tau100; MLA shared-channel rule retained
+  with NoPE adaptation. Fixed NS/Nesterov implementation is shared to isolate layout.
+- DS4.1: official `deepseek-ai/DeepSeek-V4.1-Flash/DeepSeek_V41_Tech_Report.pdf`,
+  §2.5/Algorithm1/§4.2.2 inspected: Q/K head split, Sinkhorn and LR phases.
+  Fixed-budget warmups/step ratios and conservative auxiliary groups are ours.
+- CellFM `bfed59c0e34103231165d69b97927ecc888d623c`, `retention.py` and
+  `attention.py` read: native ERet mixer ReLU Q/K, Q(K^T V), scale-free inner
+  RMS, SiLU U gate; optional bilinear SGLU and post-LN DeepNorm-form residual.
+  Shared model initialization/output norm, masks and gene crops are our choices;
+  this is not a whole-model CellFM reproduction or a copied MindSpore module.
+- Gated Delta: FLA `9d981ffef3b361ba931102b633ae2a9fd91ca6c3`,
+  `fla/ops/gated_delta_rule/naive.py`. Scalar log decay broadcast into our KDA
+  state equation is algebraically the same delta update (same query scaling).
+- Qwen code reference: Transformers `df04b012229d50d2b6dfba32c61c3057c3a40ea1`,
+  `models/qwen3_5/modeling_qwen3_5.py` recurrent/chunk delta and gate mapping;
+  released Qwen3.8-27B config identifies qwen3_5 model classes. Our reduced
+  variant has equal K/V head counts, NoPE, noncausal grouped global attention,
+  shared native init, optional convolution; not a full Qwen3.8 implementation.
+- iBOT chunking is our checkpointed algebraic implementation, not a claimed
+  imported DINO/GLM kernel. Same per-cell weights and one sum/count center update.
+
+See `ABLATION_IMPLEMENTATION_20260912.md` for current coverage and short-test
+limits; campaign descriptions below are historical.
 
 | Mechanism | Inspected reference | Native implementation / deviations |
 |---|---|---|

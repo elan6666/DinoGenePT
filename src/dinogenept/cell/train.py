@@ -21,7 +21,7 @@ from dinogenept.provenance import atomic_write_json, digest_file
 from .backbone import BackboneConfig
 from .checkpoint import load_checkpoint, rng_state, save_checkpoint
 from .dataset import PretrainingDataset
-from .optimization import optimizer_groups
+from .muon import apply_qk_clip, build_optimizer
 from .pretraining import HeadConfig, PretrainingSystem
 from .sampling import CropConfig, collate_crops, epoch_batches
 from .schedule import learning_rate
@@ -180,6 +180,14 @@ def run_pretraining(config: dict, *, resume: Path | None = None, smoke_one_step:
     np.random.seed(seed + rank)
     torch.manual_seed(seed + rank)
     crops = _dataclass(CropConfig, config["crops"])
+    if crops.local_sampling == "hvg" and purpose == "formal_pretraining":
+        hvg = config.get("hvg_provenance", {})
+        if (hvg.get("selection_split") != "train" or hvg.get("status") != "audited"
+                or hvg.get("data_manifest_sha256") != config["data_manifest_sha256"]):
+            raise ValueError("Formal HVG locals require a training-only frozen selection receipt")
+        selection = Path(hvg["path"])
+        if digest_file(selection) != hvg["sha256"] or json.loads(selection.read_text()) != list(crops.hvg_gene_ids):
+            raise ValueError("Frozen HVG selection content/hash mismatch")
     manifest = Path(config["data_manifest"])
     if published_protocol:
         from .genecompass_data import GeneCompassDataset
@@ -203,15 +211,12 @@ def run_pretraining(config: dict, *, resume: Path | None = None, smoke_one_step:
     dataset.verify()
     if config["backbone"]["genes"] != dataset.gene_count:
         raise ValueError("Backbone vocabulary differs from corpus")
+    if crops.hvg_gene_ids and max(crops.hvg_gene_ids) > dataset.gene_count:
+        raise ValueError("HVG selection exceeds frozen vocabulary")
     model = PretrainingSystem(
         _dataclass(BackboneConfig, config["backbone"]), _dataclass(HeadConfig, config["heads"])
     ).to(device)
-    optimizer = torch.optim.AdamW(
-        optimizer_groups(model.student, training["weight_decay"]),
-        lr=training["learning_rate"],
-        betas=tuple(training["betas"]),
-        weight_decay=training["weight_decay"],
-    )
+    optimizer = build_optimizer(model.student, training)
     output = Path(config["output"])
     if rank == 0:
         output.mkdir(parents=True, exist_ok=True)
@@ -279,11 +284,11 @@ def run_pretraining(config: dict, *, resume: Path | None = None, smoke_one_step:
                 step=step,
                 total_steps=total_steps,
                 batch=training["microbatch"] * world * training["accumulation"],
-                warmup_fraction=training.get("lr_warmup_fraction", 0.16),
-                min_lr=training.get("min_learning_rate", 1e-6),
+                warmup_fraction=training.get("lr_warmup_fraction"),
+                min_lr=training.get("min_learning_rate"),
             )
             for group in optimizer.param_groups:
-                group["lr"] = current_lr
+                group["lr"] = current_lr * group.get("lr_scale", 1.)
             for index in range(window_start, window_end):
                 before_data = time.monotonic()
                 batch = _move(next(iterator), device)
@@ -304,7 +309,14 @@ def run_pretraining(config: dict, *, resume: Path | None = None, smoke_one_step:
             gradient_norm = torch.nn.utils.clip_grad_norm_(
                 model.student.parameters(), training["gradient_clip"], error_if_nonfinite=True
             )
+            if device.type == "cuda":
+                torch.cuda.synchronize()
+            optimizer_start = time.monotonic()
             optimizer.step()
+            clipped_heads = apply_qk_clip(model.student)
+            if device.type == "cuda":
+                torch.cuda.synchronize()
+            optimizer_seconds = time.monotonic() - optimizer_start
             progress.update(
                 epoch=epoch,
                 next_batch=window_end,
@@ -317,13 +329,14 @@ def run_pretraining(config: dict, *, resume: Path | None = None, smoke_one_step:
             elapsed = time.monotonic() - started
             stats = _reduce(stats, device)
             performance = torch.tensor(
-                [elapsed, torch.cuda.max_memory_allocated() if device.type == "cuda" else 0],
+                [elapsed, torch.cuda.max_memory_allocated() if device.type == "cuda" else 0,
+                 torch.cuda.max_memory_reserved() if device.type == "cuda" else 0, optimizer_seconds],
                 dtype=torch.float64,
                 device=device,
             )
             if world > 1:
                 dist.all_reduce(performance, op=dist.ReduceOp.MAX)
-            elapsed, peak_memory = performance.cpu().tolist()
+            elapsed, peak_memory, peak_reserved, optimizer_seconds = performance.cpu().tolist()
             if rank == 0:
                 ramp = min(1.0, step / max(1, math.ceil(total_steps * 0.1)))
                 record = {
@@ -338,6 +351,9 @@ def run_pretraining(config: dict, *, resume: Path | None = None, smoke_one_step:
                     "cells_per_second": stats["cells"] / elapsed,
                     "learning_rate": optimizer.param_groups[0]["lr"],
                     "ema_momentum": momentum,
+                    "optimizer_seconds_max_rank": optimizer_seconds,
+                    "qk_clipped_heads": clipped_heads,
+                    "optimizer_group_lrs": [g["lr"] for g in optimizer.param_groups],
                     "distillation_weight": ramp,
                     "weighted_losses": {
                         key: stats[key] / stats["cells"] * weight
@@ -351,6 +367,7 @@ def run_pretraining(config: dict, *, resume: Path | None = None, smoke_one_step:
                     },
                     "gradient_norm": float(gradient_norm),
                     "peak_allocated_bytes_max_rank": int(peak_memory),
+                    "peak_reserved_bytes_max_rank": int(peak_reserved),
                 }
                 with (output / "metrics.jsonl").open("a") as handle:
                     handle.write(json.dumps(record, allow_nan=False) + "\n")

@@ -23,6 +23,10 @@ class CropConfig:
     hidden_fraction: float = 1.0
     global_mask_probability: float = 0.5
     seed: int = 42
+    cap_sampling: str = "weighted"
+    local_sampling: str = "ratio"
+    hvg_gene_ids: tuple[int, ...] = ()
+    local_hvg_k: int = 128
 
     def __post_init__(self):
         if self.cap < 1 or self.local_count < 0:
@@ -34,6 +38,15 @@ class CropConfig:
             raise ValueError("Invalid reconstruction/hidden fraction")
         if not 0 <= self.global_mask_probability <= 1:
             raise ValueError("Invalid global mask probability")
+        if self.cap_sampling not in {"weighted", "uniform"}:
+            raise ValueError("Unknown cap sampling policy")
+        if self.local_sampling not in {"ratio", "hvg"} or self.local_hvg_k < 1:
+            raise ValueError("Invalid local sampling policy")
+        if self.local_sampling == "hvg" and (
+            not self.hvg_gene_ids or len(set(self.hvg_gene_ids)) != len(self.hvg_gene_ids)
+            or any(type(x) is not int or x <= 0 for x in self.hvg_gene_ids)
+        ):
+            raise ValueError("HVG locals require unique ordered positive gene IDs from training-only selection")
 
 
 def cell_rng(seed: int, epoch: int, cell_id: str) -> np.random.Generator:
@@ -67,7 +80,8 @@ def sample_crops(gene_ids, counts, library_size: float | None, *, cell_id: str, 
     rng = cell_rng(config.seed, epoch, cell_id)
     if indices.size > config.cap:
         weights = np.log1p(counts[indices])
-        indices = rng.choice(indices, size=config.cap, replace=False, p=weights / weights.sum())
+        indices = rng.choice(indices, size=config.cap, replace=False,
+                             p=weights / weights.sum() if config.cap_sampling == "weighted" else None)
     indices = indices[np.argsort(ids[indices])]
     expression = (np.log1p(1e4 * counts / library_size) if expression_scale == "raw_counts"
                   else counts).astype(np.float32)
@@ -77,6 +91,13 @@ def sample_crops(gene_ids, counts, library_size: float | None, *, cell_id: str, 
         ratio = rng.uniform(*scale)
         size = min(indices.size, max(1, math.ceil(ratio * indices.size)))
         selected = rng.choice(indices, size=size, replace=False)
+        if view_id >= 2 and config.local_sampling == "hvg":
+            candidates = {int(ids[i]): i for i in indices}
+            selected = np.asarray([candidates[g] for g in config.hvg_gene_ids if g in candidates]
+                                  [:config.local_hvg_k], dtype=np.int64)
+            size = len(selected)
+            if not size:
+                raise ValueError("Cell has no positive HVG in candidate set; audit coverage, no silent fallback")
         selected = selected[np.argsort(ids[selected])]
         target, hidden = np.zeros(size, dtype=bool), np.zeros(size, dtype=bool)
         if view_id < 2:

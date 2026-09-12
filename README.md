@@ -1,5 +1,15 @@
 # DinoGenePT
 
+Latest verified work (2026-09-12): native ablation registry and bounded tests,
+not a formal training campaign.67 config entries;60 pretraining entries checked
+on two5090s with tiny synthetic inputs. iBOT chunking saves head memory but
+slows the measured head and remains opt-in. See
+[implementation and results](docs/ABLATION_IMPLEMENTATION_20260912.md).
+No training or monitoring is started by this delivery. Earlier run descriptions
+below are historical; [.byte-os/STATE.md](.byte-os/STATE.md) takes precedence.
+
+## Historical project context
+
 Current run scope: user requested stopping500k and switching to the official
 GeneCompass50k subset for one fresh epoch. Old500k outputs remain preserved;
 see [50k switch and launch handoff](docs/GENECOMPASS_50K_HANDOFF.md) and STATE

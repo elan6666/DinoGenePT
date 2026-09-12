@@ -60,6 +60,14 @@ class TeacherCenter(nn.Module):
             rows = rows[valid.reshape(-1)]
         total = rows.sum(0)
         count = total.new_tensor(float(rows.shape[0]))
+        self.update_statistics(total, count)
+
+    @torch.no_grad()
+    def update_statistics(self, total, count):
+        """One logical-batch update, including ranks with zero masked tokens."""
+        total, count = total.detach().float().clone(), count.detach().float().clone()
+        if total.shape != self.center.shape or count.numel() != 1:
+            raise ValueError("Center statistics shape mismatch")
         if dist.is_available() and dist.is_initialized():
             dist.all_reduce(total)
             dist.all_reduce(count)

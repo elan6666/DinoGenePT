@@ -33,6 +33,7 @@ class PerturbationConfig:
     teacher_temperature: float = 0.07
     student_temperature: float = 0.1
     distillation_weight: float = 0.1
+    local_sources: tuple[str, ...] = SOURCES
 
     def __post_init__(self):
         if self.main_anchor not in {"CellGene", "TextBase"}:
@@ -41,6 +42,8 @@ class PerturbationConfig:
             raise ValueError("Invalid perturbation dimensions/temperatures")
         if self.distillation_weight != 0.1:
             raise ValueError("This campaign uses the fixed 0.1 distillation weight, not a loss ablation")
+        if len(set(self.local_sources)) != len(self.local_sources) or set(self.local_sources) - set(SOURCES):
+            raise ValueError("Invalid knowledge source allowlist")
 
 
 class ConditionalNetwork(nn.Module):
@@ -155,7 +158,7 @@ class PerturbationSystem(nn.Module):
         primary = distill(encoded["cls"])
         local_losses = []
         active_sources = []
-        for source in SOURCES:
+        for source in self.config.local_sources:
             vectors = source_vectors.get(source)
             if source == main or vectors is None:
                 continue

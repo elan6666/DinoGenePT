@@ -6,7 +6,6 @@ from dataclasses import dataclass
 
 import torch
 from torch import nn
-from torch.nn import functional as F
 
 from .backbone import BackboneConfig, CellBackbone
 from .distillation import (
@@ -18,6 +17,7 @@ from .distillation import (
     reconstruction_loss,
     update_teacher,
 )
+from .ibot_chunk import projected_ibot
 from .schedule import teacher_momentum
 
 
@@ -28,6 +28,18 @@ class HeadConfig:
     cell_prototypes: int = 8192
     gene_prototypes: int = 4096
     ibot_separate_head: bool = False
+    ibot_chunk_size: int = 0
+    student_temperature: float = 0.1
+    teacher_temperature_start: float = 0.04
+    teacher_temperature_end: float = 0.07
+    ema_initial: float = 0.994
+
+    def __post_init__(self):
+        if (self.ibot_chunk_size < 0 or not 0 <= self.ema_initial < 1
+                or min(self.hidden, self.bottleneck, self.cell_prototypes, self.gene_prototypes) < 1
+                or any(not math.isfinite(t) or t <= 0 for t in (
+                    self.student_temperature, self.teacher_temperature_start, self.teacher_temperature_end))):
+            raise ValueError("Invalid distillation head configuration")
 
 
 class PretrainingNetwork(nn.Module):
@@ -72,6 +84,7 @@ class PretrainingSystem(nn.Module):
     def __init__(self, config: BackboneConfig, heads: HeadConfig | None = None):
         super().__init__()
         heads = HeadConfig() if heads is None else heads
+        self.head_config = heads
         self.student = PretrainingNetwork(config, heads)
         self.teacher = deepcopy(self.student).requires_grad_(False).eval()
         self.cell_center = TeacherCenter(heads.cell_prototypes)
@@ -87,7 +100,7 @@ class PretrainingSystem(nn.Module):
         # DINOv2 indexes its schedule at the zero-based optimizer iteration,
         # then applies EMA after optimizer.step(). Last in-budget value is
         # close to, not exactly, 1 (official cosine denominator is total_steps).
-        momentum = teacher_momentum(completed_steps, total_steps)
+        momentum = teacher_momentum(completed_steps, total_steps, self.head_config.ema_initial)
         update_teacher(self.student, self.teacher, momentum)
         return momentum
 
@@ -99,19 +112,21 @@ class PretrainingSystem(nn.Module):
             raise ValueError("KoLeo batch repeats a cell")
         if total_steps < 1 or not 0 <= step < total_steps:
             raise ValueError("Invalid optimizer step")
-        temperature = 0.04 + 0.03 * min(1, step / max(1, math.ceil(total_steps * 0.1)))
-        t_cell_logits, t_gene_logits, t_prob = [], [], []
+        hc = self.head_config
+        temperature = hc.teacher_temperature_start + (hc.teacher_temperature_end - hc.teacher_temperature_start) * min(
+            1, step / max(1, math.ceil(total_steps * 0.1)))
+        t_cell_logits, t_gene_features = [], []
         with torch.no_grad():
             for view in views[:2]:
                 encoded = self.teacher.encode(view, clean=True)
                 logits = self.teacher.cell_head(encoded["cls"])
                 t_cell_logits.append(logits)
                 hidden = view["hidden"] & view["valid"]
-                token_logits = self.teacher.gene_head(encoded["genes"][hidden])
-                t_gene_logits.append(token_logits)
-                t_prob.append(self.gene_center.targets(token_logits, temperature))
+                t_gene_features.append(encoded["genes"][hidden])
         teacher_cells = [self.cell_center.targets(logits, temperature) for logits in t_cell_logits]
         student_cells, expressions, cell_expressions, ibots, koleos = [], [], [], [], []
+        gene_total = self.gene_center.center.new_zeros(self.gene_center.center.shape)
+        gene_count = gene_total.new_zeros(())
         for index, view in enumerate(views):
             encoded = self.student.encode(view)
             student_cells.append(self.student.cell_head(encoded["cls"]))
@@ -122,20 +137,24 @@ class PretrainingSystem(nn.Module):
             expressions.append(reconstruction_loss(prediction, view["expression"], targets))
             cell_expressions.append(reconstruction_loss(cell_prediction, view["expression"], targets))
             hidden = view["hidden"] & view["valid"]
-            logits = self.student.gene_head(encoded["genes"][hidden])
-            ce = -(t_prob[index] * F.log_softmax(logits.float() / 0.1, -1)).sum(-1)
             weights = (hidden.sum(-1).clamp_min(1).reciprocal().unsqueeze(-1).expand_as(hidden))[hidden]
-            ibots.append((ce * weights).sum() / hidden.shape[0])
+            ibot, subtotal, count = projected_ibot(
+                self.student.gene_head, self.teacher.gene_head, encoded["genes"][hidden],
+                t_gene_features[index], weights / hidden.shape[0], self.gene_center.center,
+                temperature, hc.student_temperature, hc.ibot_chunk_size)
+            ibots.append(ibot)
+            gene_total += subtotal
+            gene_count += count
             koleos.append(koleo_loss(encoded["cls"]))
         losses = {
             "expression": torch.stack(expressions).mean(),
             "cell_expression": torch.stack(cell_expressions).mean(),
-            "dino": dino_loss(student_cells, teacher_cells),
+            "dino": dino_loss(student_cells, teacher_cells, hc.student_temperature),
             "ibot": torch.stack(ibots).mean(),
             "koleo": torch.stack(koleos).sum(),
         }
         losses["total"] = pretraining_loss(**losses, step=step, total_steps=total_steps)
         if self.training:
             self.cell_center.update(torch.cat(t_cell_logits))
-            self.gene_center.update(torch.cat(t_gene_logits))
+            self.gene_center.update_statistics(gene_total, gene_count)
         return losses

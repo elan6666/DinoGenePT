@@ -7,11 +7,43 @@ utils.py / pretrain_dual_4096_all_1b_mix.py. No upstream runtime imports.
 import math
 
 
-def teacher_momentum(completed_steps: int, total_steps: int) -> float:
+def teacher_momentum(completed_steps: int, total_steps: int, initial: float = 0.994) -> float:
     """DINOv2 zero-based iteration schedule, applied after optimizer.step()."""
-    if not 1 <= completed_steps <= total_steps:
+    if not 1 <= completed_steps <= total_steps or not 0 <= initial < 1:
         raise ValueError("Invalid completed optimizer step count")
-    return 1 - (1 - 0.994) * (1 + math.cos(math.pi * (completed_steps - 1) / total_steps)) / 2
+    return 1 - (1 - initial) * (1 + math.cos(math.pi * (completed_steps - 1) / total_steps)) / 2
+
+
+def recipe_learning_rate(name, base_lr, *, batch, step, total_steps, warmup_fraction=None,
+                         min_lr=None):
+    """Small-model adaptations, not the upstream token budgets or absolute LR.
+
+    GLM5: cosine to 20% peak; Kimi K3: 1% warmup/cosine; DS4.1:
+    constant -> cosine at 28/45 budget -> floor at 40/45 budget.
+    Project presets round DS boundaries to .62/.89. Explicit overrides permit
+    controlled warmup/floor comparisons. All schedules index successful steps.
+    """
+    if name not in {"glm5_cosine", "kimi3_cosine", "ds41_plateau_cosine"}:
+        raise ValueError("Unknown recipe schedule")
+    if total_steps < 1 or step < 0 or batch < 1 or not math.isfinite(base_lr) or base_lr <= 0:
+        raise ValueError("Invalid recipe schedule dimensions")
+    peak = base_lr * math.sqrt(batch / 1024)
+    warm = (0.01 if name == "kimi3_cosine" else 0.05) if warmup_fraction is None else warmup_fraction
+    floor = ({"glm5_cosine": peak * .2, "kimi3_cosine": 1e-6,
+              "ds41_plateau_cosine": peak * .1}[name] if min_lr is None else min_lr)
+    if not 0 <= warm < 1 or not math.isfinite(floor) or not 0 <= floor <= peak:
+        raise ValueError("Invalid warmup/floor")
+    if name == "ds41_plateau_cosine" and warm >= .62:
+        raise ValueError("DS warmup must finish before plateau ends")
+    if step >= total_steps:
+        return floor
+    nw = int(total_steps * warm)
+    if step < nw:
+        return peak * step / max(1, nw - 1)
+    start, end = ((.62 * total_steps, .89 * total_steps) if name == "ds41_plateau_cosine"
+                  else (nw, total_steps))
+    u = min(1., max(0., (step - start) / (end - start)))
+    return floor + (peak - floor) * (1 + math.cos(math.pi * u)) / 2
 
 
 def sclong_learning_rate(epoch: int, *, max_lr: float = 5e-5) -> float:
@@ -61,10 +93,15 @@ def dinov2_learning_rate(base_lr: float, *, batch: int, step: int, total_steps: 
 
 
 def learning_rate(name: str, peak: float, *, epoch: int, step: int, total_steps: int,
-                  batch: int = 1024, warmup_fraction: float = 0.16, min_lr: float = 1e-6) -> float:
+                  batch: int = 1024, warmup_fraction: float | None = None,
+                  min_lr: float | None = None) -> float:
+    if name in {"glm5_cosine", "kimi3_cosine", "ds41_plateau_cosine"}:
+        return recipe_learning_rate(name, peak, batch=batch, step=step, total_steps=total_steps,
+                                    warmup_fraction=warmup_fraction, min_lr=min_lr)
     if name == "dinov2_step_cosine":
         return dinov2_learning_rate(peak, batch=batch, step=step, total_steps=total_steps,
-                                   warmup_fraction=warmup_fraction, min_lr=min_lr)
+                                   warmup_fraction=.16 if warmup_fraction is None else warmup_fraction,
+                                   min_lr=1e-6 if min_lr is None else min_lr)
     if name == "sclong_epoch_restarts":
         return sclong_learning_rate(epoch, max_lr=peak)
     if name != "legacy_step_cosine":

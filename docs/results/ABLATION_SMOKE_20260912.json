@@ -1,0 +1,19 @@
+{
+  "purpose": "implementation_and_synthetic_smoke_only",
+  "formal_training_started": false,
+  "registry_entries": 67,
+  "pretraining_entries_checked_ddp": 60,
+  "knowledge_entries": 7,
+  "server_cpu_tests": {"passed": 287, "skipped_cuda_only": 3},
+  "cuda_bf16_tests_passed": 3,
+  "local_light_tests": {"passed": 167, "skipped": 18, "excluded_unrelated_untracked": "tests/test_census_query_groups.py"},
+  "runtime": "PyTorch 2.13.0+cu130; two RTX 5090",
+  "memory_scope": "head+loss only, synthetic 2048 masked tokens, not whole model",
+  "memory_probe_default_enabled": false,
+  "artifacts": [
+    {"path": "results/ibot-memory-smoke-20260912-v1.json", "sha256": "13385ea405abee521988d6fab798690333112043661a99467a5f50d263efa063"},
+    {"path": "results/ablation-ddp-smoke-20260912-v1.json", "sha256": "496a2ffc25f6f915c03726c3eae657bc30212ee428da10119c237e9ecb2a9145"},
+    {"path": "results/ablation-ddp-edge-smoke-20260912-v2.json", "sha256": "37cf482f7bd15f7b29e3d10d190fece0e2bb84ca9584be95dda0d02832b23973"},
+    {"path": "results/ablation-muon-batched-ddp-20260912-v3.json", "sha256": "5fa53345dfffc4a1a088ee8341fa9d742afc0d422d3e9effc1fe49ca23b4acd5"}
+  ]
+}

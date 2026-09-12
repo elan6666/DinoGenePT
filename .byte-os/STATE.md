@@ -1,5 +1,21 @@
 # Active project state
 
+## 2026-09-12: ablation code and bounded smoke verification
+
+- Native registry67 entries (60 pretraining,7 knowledge), LR/EMA/temperature/
+  Muon/Sinkhorn, component/crop/size switches and checkpointed iBOT head CE.
+- Server287 CPU tests passed +3 separately passed CUDA BF16 tests. Sixty
+  pretraining entries completed two-rank two-update synthetic checks; Muon
+  batching rechecked six entries, E chunks include rank with zero masks.
+- Head-only memory benchmark saves37-67% allocated memory but slows the head;
+  no default enablement or full-model speed claim. Default recipe/data untouched.
+- Local167 lightweight tests passed/18 skipped (no Torch/AnnData); untracked
+  user Census test excluded because local pandas absent. User changes preserved.
+- Full report/receipt: docs/ABLATION_IMPLEMENTATION_20260912.md and
+  docs/results/ABLATION_SMOKE_20260912.json. CLI/lint/build passed both hosts.
+- No formal training, dataset remapping, API use, GraD-Pert work or monitor.
+  Formal runs still require actual data/vocabulary/HVG/vector provenance gates.
+
 ## 2026-09-12: H-group training and E-group memory designs selected
 
 - Added docs/H_TRAINING_AND_MEMORY_ABLATIONS.md: GLM5/KimiK3/DS4.1-inspired
